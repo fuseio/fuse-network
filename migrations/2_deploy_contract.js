@@ -1,6 +1,6 @@
 const fs = require('fs');
 const solc = require('solc');
-const ValidatorSet = artifacts.require('./ValidatorSet.sol');
+const Consensus = artifacts.require('./Consensus.sol');
 const Web3 = require('web3')
 
 const getWeb3Latest = () => {
@@ -10,28 +10,28 @@ const getWeb3Latest = () => {
 
 module.exports = function(deployer, network, accounts) {
   if (network !== 'test' && network !== 'ganache') {
-    let validatorSetAddress = process.env.VALIDATOR_SET;
+    let consensusAddress = process.env.CONSENSUS_ADDRESS;
     let minStake = process.env.MIN_STAKE || 0;
 
     let validatorSet;
 
     deployer.then(async function() {
       if (!!process.env.DEPLOY_VALIDATOR_SET === true) {
-        validatorSet = await ValidatorSet.new(minStake);
-        validatorSetAddress = validatorSet.address;
+        validatorSet = await Consensus.new(minStake);
+        consensusAddress = validatorSet.address;
       } else {
-        validatorSet = ValidatorSet.at(validatorSetAddress);
+        validatorSet = Consensus.at(consensusAddress);
       }
 
       const contracts = {
-        'VALIDATOR_SET': validatorSetAddress
+        'VALIDATOR_SET': consensusAddress
       };
 
       fs.writeFileSync('./contracts.json', JSON.stringify(contracts, null, 2));
 
       console.log(
         `
-  ValidatorSet.address ........................ ${validatorSetAddress}
+  Consensus.address ........................ ${consensusAddress}
         `
       )
     }).catch(function(error) {
@@ -64,5 +64,5 @@ async function compileContract(dir, contractName, contractCode) {
   return {abi, bytecode};
 }
 
-// VALIDATOR_SET=0x5f498450a2f199dc961b8e248fcc0c03098228ba MIN_STAKE=10000000000000000000000 ./node_modules/.bin/truffle migrate --reset --network fuse_pos
-// DEPLOY_VALIDATOR_SET=true VALIDATOR_SET=0x5f498450a2f199dc961b8e248fcc0c03098228ba MIN_STAKE=10000000000000000000000 ./node_modules/.bin/truffle migrate --reset --network fuse_pos
+// CONSENSUS_ADDRESS=0x5f498450a2f199dc961b8e248fcc0c03098228ba MIN_STAKE=10000000000000000000000 ./node_modules/.bin/truffle migrate --reset --network fuse_pos
+// DEPLOY_CONSENSUS=true CONSENSUS_ADDRESS=0x5f498450a2f199dc961b8e248fcc0c03098228ba MIN_STAKE=10000000000000000000000 ./node_modules/.bin/truffle migrate --reset --network fuse_pos

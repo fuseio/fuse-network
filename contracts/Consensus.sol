@@ -2,7 +2,7 @@ pragma solidity 0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-contract ValidatorSet {
+contract Consensus {
   using SafeMath for uint256;
 
   event InitiateChange(bytes32 indexed parentHash, address[] newSet);
@@ -17,6 +17,9 @@ contract ValidatorSet {
     uint256 index;
   }
 
+  address public SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+
+  bool public finalized = false;
   address public owner;
   uint256 public minStake;
 
@@ -27,12 +30,17 @@ contract ValidatorSet {
   mapping (address => uint256) public stakeAmount;
 
   modifier onlySystem() {
-    require(msg.sender == 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
+    require(msg.sender == SYSTEM_ADDRESS);
     _;
   }
 
   modifier onlyOwner() {
     require (msg.sender == owner);
+    _;
+  }
+
+  modifier notFinalized() {
+    require (!finalized);
     _;
   }
 
@@ -46,6 +54,10 @@ contract ValidatorSet {
     minStake = _minStake;
   }
 
+  function setSystemAddress(address _newAddress) public onlyOwner {
+    SYSTEM_ADDRESS = _newAddress;
+  }
+
   function getValidators() public view returns(address[]) {
     return currentValidators;
   }
@@ -54,7 +66,8 @@ contract ValidatorSet {
     return pendingValidators;
   }
 
-  function finalizeChange() public onlySystem {
+  function finalizeChange() public onlySystem notFinalized {
+    finalized = true;
     for (uint256 i = 0; i < pendingValidators.length; i++) {
       ValidatorState storage state = validatorsState[pendingValidators[i]];
       if (!state.isValidatorFinalized) {
@@ -81,7 +94,7 @@ contract ValidatorSet {
     return validatorsState[_someone].isValidator && validatorsState[_someone].isValidatorFinalized;
   }
 
-  function getCurrentValidatorsLength() public view returns(uint256) {
+  function currentValidatorsLength() public view returns(uint256) {
     return currentValidators.length;
   }
 
@@ -106,6 +119,7 @@ contract ValidatorSet {
       index: pendingValidators.length
     });
     pendingValidators.push(_validator);
+    finalized = false;
     emit InitiateChange(blockhash(block.number - 1), pendingValidators);
   }
 }

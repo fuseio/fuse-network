@@ -26,12 +26,14 @@ module.exports = {
       host: 'localhost',
       port: 8545,
       network_id: '*', // eslint-disable-line camelcase
-      gasPrice: 1000000000
+      gasPrice: 1000000000,
+      gas: 4600000
     },
     fuse_pos: {
       provider: walletProvider,
       network_id: '*',
-      gasPrice: 1000000000
+      gasPrice: 1000000000,
+      gas: 4600000
     }
   },
   solc: {
