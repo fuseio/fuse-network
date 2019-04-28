@@ -1,4 +1,4 @@
-const Consensus = artifacts.require('Consensus.sol')
+const Consensus = artifacts.require('ConsensusMock.sol')
 const {ERROR_MSG} = require('./helpers')
 const {toBN} = require('web3').utils
 
@@ -67,7 +67,7 @@ contract('Consensus', async (accounts) => {
         // InitiateChange should not be emitted
         logs.length.should.be.equal(0)
       })
-      it.only('more than minimum stake', async () => {
+      it('more than minimum stake', async () => {
         let {logs} = await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE})
         // contract balance should be updated
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))

@@ -54,10 +54,6 @@ contract Consensus {
     minStake = _minStake;
   }
 
-  function setSystemAddress(address _newAddress) public onlyOwner {
-    SYSTEM_ADDRESS = _newAddress;
-  }
-
   function getValidators() public view returns(address[]) {
     return currentValidators;
   }
