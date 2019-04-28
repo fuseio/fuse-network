@@ -1,8 +1,6 @@
-var BigNumber = web3.BigNumber
-
 require('chai')
   .use(require('chai-as-promised'))
-  .use(require('chai-bignumber')(BigNumber))
+  .use(require('chai-bignumber')(web3.BigNumber))
   .should()
 
 exports.ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
