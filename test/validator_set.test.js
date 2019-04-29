@@ -74,10 +74,11 @@ contract('Consensus', async (accounts) => {
         // sender stake amount should be updated
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.getStakeAmount(firstCandidate))
         // validators state should be updated
-        let validatorState = await consensus.validatorsState(firstCandidate)
-        validatorState[0].should.be.equal(true)          // isValidator
-        validatorState[1].should.be.equal(false)         // isValidatorFinalized
-        validatorState[2].should.be.bignumber.equal(0)   // index
+        let state = await consensus.getValidatorState(firstCandidate)
+        state[0].should.be.equal(true)      // isValidator
+        state[1].should.be.equal(false)     // isValidatorFinalized
+        state[2].length.should.be.equal(1)  // indexes
+        state[2][0].should.be.bignumber.equal(0)
         // pending validators should be updated
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
@@ -105,10 +106,11 @@ contract('Consensus', async (accounts) => {
         logs = tx.logs
         MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MIN_STAKE.should.be.bignumber.equal(await consensus.getStakeAmount(firstCandidate))
-        let validatorState = await consensus.validatorsState(firstCandidate)
-        validatorState[0].should.be.equal(true)          // isValidator
-        validatorState[1].should.be.equal(false)         // isValidatorFinalized
-        validatorState[2].should.be.bignumber.equal(0)   // index
+        let state = await consensus.getValidatorState(firstCandidate)
+        state[0].should.be.equal(true)          // isValidator
+        state[1].should.be.equal(false)         // isValidatorFinalized
+        state[2].length.should.be.equal(1)  // indexes
+        state[2][0].should.be.bignumber.equal(0)
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
@@ -146,6 +148,7 @@ contract('Consensus', async (accounts) => {
       })
       it('should be added to pending validators multiple times according to staked amount', async () => {
         // TODO if stakeAmount > minStake should be added as validator X times (where X = stakeAmount/minStake)
+        // TODO add someone one time and someone else more than one time
       })
     })
   })

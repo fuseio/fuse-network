@@ -13,8 +13,8 @@ contract Consensus {
     bool isValidator;
     // Is a validator finalized.
     bool isValidatorFinalized;
-    // Index in the currentValidators.
-    uint256 index;
+    // Indexes in the currentValidators.
+    uint256[] indexes;
   }
 
   address public SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
@@ -64,13 +64,16 @@ contract Consensus {
 
   function finalizeChange() public onlySystem notFinalized {
     finalized = true;
+
     for (uint256 i = 0; i < pendingValidators.length; i++) {
       ValidatorState storage state = validatorsState[pendingValidators[i]];
       if (!state.isValidatorFinalized) {
           state.isValidatorFinalized = true;
       }
     }
+
     currentValidators = pendingValidators;
+
     emit ChangeFinalized(getValidators());
   }
 
@@ -90,6 +93,10 @@ contract Consensus {
     return validatorsState[_someone].isValidator && validatorsState[_someone].isValidatorFinalized;
   }
 
+  function getValidatorState(address _someone) public view returns(bool, bool, uint256[]) {
+    return (validatorsState[_someone].isValidator, validatorsState[_someone].isValidatorFinalized, validatorsState[_someone].indexes);
+  }
+
   function currentValidatorsLength() public view returns(uint256) {
     return currentValidators.length;
   }
@@ -107,15 +114,19 @@ contract Consensus {
 
   function _addValidator(address _validator) internal {
     require(_validator != address(0));
-    require(!isValidator(_validator));
 
-    validatorsState[_validator] = ValidatorState({
-      isValidator: true,
-      isValidatorFinalized: false,
-      index: pendingValidators.length
-    });
+    ValidatorState storage state = validatorsState[_validator];
+    state.isValidator = true;
+    state.isValidatorFinalized = false;
+    if (state.indexes.length > 0) {
+      state.indexes.push(pendingValidators.length);
+    } else {
+      state.indexes = [pendingValidators.length];
+    }
+
     pendingValidators.push(_validator);
     finalized = false;
+
     emit InitiateChange(blockhash(block.number - 1), pendingValidators);
   }
 }
