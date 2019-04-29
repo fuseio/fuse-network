@@ -118,13 +118,15 @@ contract Consensus {
     ValidatorState storage state = validatorsState[_validator];
     state.isValidator = true;
     state.isValidatorFinalized = false;
-    if (state.indexes.length > 0) {
-      state.indexes.push(pendingValidators.length);
-    } else {
-      state.indexes = [pendingValidators.length];
-    }
 
-    pendingValidators.push(_validator);
+    uint256 stakeMultiplier = stakeAmount[_validator].div(minStake);
+    uint256 currentAppearances = state.indexes.length;
+    uint256 appearencesToAdd = stakeMultiplier.sub(currentAppearances);
+
+    for (uint256 i = 0; i < appearencesToAdd; i++) {
+      state.indexes.push(pendingValidators.length);
+      pendingValidators.push(_validator);
+    }
     finalized = false;
 
     emit InitiateChange(blockhash(block.number - 1), pendingValidators);
