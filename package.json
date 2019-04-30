@@ -5,7 +5,8 @@
   "main": "",
   "scripts": {
     "test": "scripts/test.sh",
-    "compile": "truffle compile"
+    "compile": "truffle compile",
+    "flatten": "scripts/flatten.sh"
   },
   "author": "Lior Rabin",
   "license": "MIT",
