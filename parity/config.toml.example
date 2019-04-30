@@ -1,0 +1,34 @@
+[parity]
+chain = "spec.json"
+base_path = "data"
+
+[network]
+port = 30300
+#bootnodes = []
+
+[rpc]
+disable = true
+#cors = ["all"]
+#port = 8545
+#interface = "all"
+#hosts = ["all"]
+#apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+
+[websockets]
+disable = true
+#port = 8546
+#interface = "all"
+#origins = ["all"]
+#hosts = ["all"]
+#apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+
+[account]
+#unlock = []
+#password = []
+
+[mining]
+reseal_on_txs = "none"
+force_sealing = true
+#engine_signer = ""
+min_gas_price = 1000000000 # 1 Gwei/gas
+gas_floor_target = "10000000" # max block size (gas per block)
