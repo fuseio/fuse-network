@@ -44,7 +44,7 @@ Based on [Parity's Validator Set Tutorial](https://wiki.parity.io/Validator-Set-
 	* `echo "<THE_PASSWORD>" > pwd`
 * Edit `config.toml`
 	*  `[account]` section
-		*  `passowrd = ["pwd"]`
+		*  `password = ["pwd"]`
 	*  `[mining]` section
 		*  `engine_signer=<ACCOUNT_ADDRESS_CREATED>`
 * Edit `spec.json`
@@ -52,7 +52,7 @@ Based on [Parity's Validator Set Tutorial](https://wiki.parity.io/Validator-Set-
 * Launch `node.0` to make sure everything is valid
 	* `parity --config config.toml`
 	* You should see a similar line every 5 seconds: `Imported #1 0x1204…4d39 (0 txs, 0.00 Mgas, 1 ms, 0.57 KiB)`
-	* Copy the public node address `enode://752963538fbf4fd29bef9845088763c93bfc9663bf2b4a5dd38408c3c55e0125fddea2d8c6af8a9182cf56d4e5114cf064ea89f225eb07abc026ac42a4404abb@40.0.0.67:30300` and save it to `enode`
+	* Copy the public node address from the parity log output `enode://752963538fbf4fd29bef9845088763c93bfc9663bf2b4a5dd38408c3c55e0125fddea2d8c6af8a9182cf56d4e5114cf064ea89f225eb07abc026ac42a4404abb@40.0.0.67:30300` and save it to a file called `enode`
 
 #### Setup the second node of the network called  **`node.1`**
 Repeat the previous process as before (remember to replace all `node.0` occurrences with `node.1`) but with the same `spec.json` as used by `node.0`, only change in `config.toml`:
@@ -83,7 +83,7 @@ Repeat the previous process as before (remember to replace all `node.0` occurren
 		* `apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]`
 	* `[account]` section
 		* `unlock = ["<ACCOUNT_ADDRESS_CREATED>"]`
-		* `passowrd = ["pwd"]`
+		* `password = ["pwd"]`
 	* `[mining]` section
 		* Delete entirely
 
@@ -103,12 +103,16 @@ Repeat the previous process as before (remember to replace all `node.0` occurren
 * `cd ~/Dev/fuse-pos-network/`
 * `cp .env.example .env`
 * Edit `.env`
-	* `WALLET_PROVIDER_METHOD=keystore`
-	* `CREDENTIALS_KEYSTORE=~/Dev/io.parity.ethereum/alice/data/keys/FuseNetworkPOS/UTC--2019-04-30T11-43-32Z--a72d124a-5c05-c97c-e345-65c030649352`
-	* `CREDENTIALS_PASSWORD=/Users/liorrabin/Dev/io.parity.ethereum/alice/pwd`
-	* `DEPLOY_CONSENSUS=true`
-	* `CONSENSUS_ADDRESS=0x5f498450a2f199dc961b8e248fcc0c03098228ba`
-	* `MIN_STAKE=10000000000000000000000`
+
+```code
+	WALLET_PROVIDER_METHOD=keystore
+	CREDENTIALS_KEYSTORE=~/Dev/io.parity.ethereum/alice/data/keys/FuseNetworkPOS/UTC--2019-04-30T11-43-32Z--a72d124a-5c05-c97c-e345-65c030649352
+	CREDENTIALS_PASSWORD=~/Dev/io.parity.ethereum/alice/pwd
+	DEPLOY_CONSENSUS=true
+	CONSENSUS_ADDRESS=0x5f498450a2f199dc961b8e248fcc0c03098228ba
+	MIN_STAKE=10000000000000000000000
+```
+
 * `./node_modules/.bin/truffle migrate --reset --network fuse_pos`
 * Using your favorite Ethereum wallet send some coins from `alice`'s account to `node.0` and to `node.1` so they have enough to stake and become network validators
 * Add `node.0` and `node.1` as validators by sending more than the minimum stake defined in the Consensus contract to the deployed contract address

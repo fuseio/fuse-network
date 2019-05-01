@@ -28,5 +28,3 @@ module.exports = function(deployer, network, accounts) {
     })
   }
 }
-
-// ./node_modules/.bin/truffle migrate --reset --network fuse_pos

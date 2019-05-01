@@ -46,11 +46,11 @@ contract Consensus {
 
   constructor(uint256 _minStake) public {
     owner = msg.sender;
-    require (_minStake > 0);
     setMinStake(_minStake);
   }
 
   function setMinStake(uint256 _minStake) public onlyOwner {
+    require (_minStake > 0);
     minStake = _minStake;
   }
 
@@ -87,9 +87,7 @@ contract Consensus {
 
     stakeAmount[msg.sender] = stakeAmount[msg.sender].sub(_amount);
 
-    if(_amount >= minStake) {
-      _removeValidator(msg.sender);
-    }
+    _removeValidator(msg.sender);
 
     msg.sender.transfer(_amount);
   }
