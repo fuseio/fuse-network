@@ -1,8 +1,9 @@
 pragma solidity 0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract Consensus {
+contract Consensus is Ownable {
   using SafeMath for uint256;
 
   event InitiateChange(bytes32 indexed parentHash, address[] newSet);
@@ -20,7 +21,6 @@ contract Consensus {
   address public SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
 
   bool public finalized = false;
-  address public owner;
   uint256 public minStake;
 
   address[] public currentValidators;
@@ -34,18 +34,12 @@ contract Consensus {
     _;
   }
 
-  modifier onlyOwner() {
-    require (msg.sender == owner);
-    _;
-  }
-
   modifier notFinalized() {
     require (!finalized);
     _;
   }
 
-  constructor(uint256 _minStake) public {
-    owner = msg.sender;
+  constructor(uint256 _minStake) Ownable() public {
     setMinStake(_minStake);
   }
 
