@@ -1,14 +1,14 @@
 const Consensus = artifacts.require('ConsensusMock.sol')
 const {ERROR_MSG, ZERO_AMOUNT} = require('./helpers')
-const {toBN} = require('web3').utils
+const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const MIN_STAKE_AMOUNT = 10000
 const MULTIPLY_AMOUNT = 3
-const MIN_STAKE = web3.toWei(MIN_STAKE_AMOUNT, 'ether')
-const ONE_ETHER = web3.toWei(1, 'ether')
-const LESS_THAN_MIN_STAKE = web3.toWei(MIN_STAKE_AMOUNT - 1, 'ether')
-const MORE_THAN_MIN_STAKE = web3.toWei(MIN_STAKE_AMOUNT + 1, 'ether')
-const MULTIPLE_MIN_STAKE = web3.toWei(MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT, 'ether')
+const MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT), 'ether')
+const ONE_ETHER = toWei(toBN(1), 'ether')
+const LESS_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
+const MORE_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT + 1), 'ether')
+const MULTIPLE_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT), 'ether')
 const SYSTEM_ADDRESS = '0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE'
 
 contract('Consensus', async (accounts) => {
@@ -23,7 +23,7 @@ contract('Consensus', async (accounts) => {
   })
   describe('initialize', async () => {
     it('default values', async () => {
-      web3.toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(web3.toChecksumAddress(await consensus.SYSTEM_ADDRESS()))
+      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.SYSTEM_ADDRESS()))
       false.should.be.equal(await consensus.finalized())
       MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
       owner.should.equal(await consensus.owner())
@@ -81,7 +81,7 @@ contract('Consensus', async (accounts) => {
         state[0].should.be.equal(true)
         state[1].should.be.equal(false)
         state[2].length.should.be.equal(1)
-        state[2][0].should.be.bignumber.equal(0)
+        state[2][0].should.be.bignumber.equal(toBN(0))
         // pending validators should be updated
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
@@ -113,7 +113,7 @@ contract('Consensus', async (accounts) => {
         state[0].should.be.equal(true)
         state[1].should.be.equal(false)
         state[2].length.should.be.equal(1)
-        state[2][0].should.be.bignumber.equal(0)
+        state[2][0].should.be.bignumber.equal(toBN(0))
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
@@ -142,7 +142,7 @@ contract('Consensus', async (accounts) => {
         let {logs} = await consensus.finalizeChange().should.be.fulfilled
         // currentValidators should be updated
         let currentValidatorsLength = await consensus.currentValidatorsLength()
-        currentValidatorsLength.should.be.bignumber.equal(2)
+        currentValidatorsLength.should.be.bignumber.equal(toBN(2))
         let currentValidators = await consensus.getValidators()
         currentValidators.length.should.be.equal(2)
         currentValidators.should.deep.equal(pendingValidators)
@@ -164,10 +164,10 @@ contract('Consensus', async (accounts) => {
         state[0].should.be.equal(true)
         state[1].should.be.equal(false)
         state[2].length.should.be.equal(MULTIPLY_AMOUNT)
-        state[2][0].should.be.bignumber.equal(0)
-        state[2][1].should.be.bignumber.equal(1)
-        state[2][2].should.be.bignumber.equal(2)
-        // pending validators should be updated
+        state[2][0].should.be.bignumber.equal(toBN(0))
+        state[2][1].should.be.bignumber.equal(toBN(1))
+        state[2][2].should.be.bignumber.equal(toBN(2))
+        // pending validators should be updattoBN(ed)
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT)
         pendingValidators.should.deep.equal(expectedValidators)
@@ -197,7 +197,7 @@ contract('Consensus', async (accounts) => {
         state[0].should.be.equal(true)
         state[1].should.be.equal(false)
         state[2].length.should.be.equal(1)
-        state[2][0].should.be.bignumber.equal(0)
+        state[2][0].should.be.bignumber.equal(toBN(0))
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
@@ -212,17 +212,17 @@ contract('Consensus', async (accounts) => {
         }
         let tx2 = await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
         logs = tx2.logs
-        let amount = web3.toWei(MIN_STAKE_AMOUNT * (1 + MULTIPLY_AMOUNT), 'ether')
+        let amount = toWei(toBN(MIN_STAKE_AMOUNT * (1 + MULTIPLY_AMOUNT)), 'ether')
         amount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         amount.should.be.bignumber.equal(await consensus.getStakeAmount(firstCandidate))
         state = await consensus.getValidatorState(firstCandidate)
         state[0].should.be.equal(true)
         state[1].should.be.equal(false)
         state[2].length.should.be.equal(expectedValidators.length)
-        state[2][0].should.be.bignumber.equal(0)
-        state[2][1].should.be.bignumber.equal(1)
-        state[2][2].should.be.bignumber.equal(2)
-        state[2][3].should.be.bignumber.equal(3)
+        state[2][0].should.be.bignumber.equal(toBN(0))
+        state[2][1].should.be.bignumber.equal(toBN(1))
+        state[2][2].should.be.bignumber.equal(toBN(2))
+        state[2][3].should.be.bignumber.equal(toBN(3))
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1 + MULTIPLY_AMOUNT)
         pendingValidators.should.deep.equal(expectedValidators)
@@ -276,7 +276,7 @@ contract('Consensus', async (accounts) => {
         let {logs} = await consensus.finalizeChange().should.be.fulfilled
         // currentValidators should be updated
         let currentValidatorsLength = await consensus.currentValidatorsLength()
-        currentValidatorsLength.should.be.bignumber.equal(expectedValidators.length)
+        currentValidatorsLength.should.be.bignumber.equal(toBN(expectedValidators.length))
         let currentValidators = await consensus.getValidators()
         currentValidators.length.should.be.equal(expectedValidators.length)
         currentValidators.should.deep.equal(pendingValidators)
@@ -308,7 +308,7 @@ contract('Consensus', async (accounts) => {
       let {logs} = await consensus.finalizeChange().should.be.fulfilled
       // currentValidators should be updated
       let currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(0)
+      currentValidatorsLength.should.be.bignumber.equal(toBN(0))
       let currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(0)
       logs[0].event.should.be.equal('ChangeFinalized')
@@ -319,7 +319,7 @@ contract('Consensus', async (accounts) => {
       await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
       // withdraw
       await consensus.withdraw(MIN_STAKE, {from: firstCandidate})
-      let expectedAmount = web3.toWei(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 1), 'ether')
+      let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 1)), 'ether')
       let expectedValidators = []
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
@@ -335,7 +335,7 @@ contract('Consensus', async (accounts) => {
       let {logs} = await consensus.finalizeChange().should.be.fulfilled
       // currentValidators should be updated
       let currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(MULTIPLY_AMOUNT - 1)
+      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 1))
       let currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
       currentValidators.should.deep.equal(expectedValidators)
@@ -347,7 +347,7 @@ contract('Consensus', async (accounts) => {
       await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
       // withdraw 1st time
       await consensus.withdraw(MIN_STAKE, {from: firstCandidate})
-      let expectedAmount = web3.toWei(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 1), 'ether')
+      let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 1)), 'ether')
       let expectedValidators = []
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
@@ -360,7 +360,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setSystemAddress(accounts[0])
       let tx1 = await consensus.finalizeChange().should.be.fulfilled
       let currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(MULTIPLY_AMOUNT - 1)
+      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 1))
       let currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
       currentValidators.should.deep.equal(expectedValidators)
@@ -368,7 +368,7 @@ contract('Consensus', async (accounts) => {
       tx1.logs[0].args['newSet'].should.deep.equal(currentValidators)
       // withdraw 2nd time
       await consensus.withdraw(MIN_STAKE, {from: firstCandidate})
-      expectedAmount = web3.toWei(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 2), 'ether')
+      expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 2)), 'ether')
       expectedValidators = []
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
@@ -381,7 +381,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setSystemAddress(accounts[0])
       let tx2 = await consensus.finalizeChange().should.be.fulfilled
       currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(MULTIPLY_AMOUNT - 2)
+      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 2))
       currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 2)
       currentValidators.should.deep.equal(expectedValidators)
@@ -389,7 +389,7 @@ contract('Consensus', async (accounts) => {
       tx2.logs[0].args['newSet'].should.deep.equal(currentValidators)
       // withdraw 3rd time
       await consensus.withdraw(MIN_STAKE, {from: firstCandidate})
-      expectedAmount = web3.toWei(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 3), 'ether')
+      expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 3)), 'ether')
       expectedValidators = []
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
       expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
@@ -402,7 +402,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setSystemAddress(accounts[0])
       let tx3 = await consensus.finalizeChange().should.be.fulfilled
       currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(MULTIPLY_AMOUNT - 3)
+      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 3))
       currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 3)
       currentValidators.should.deep.equal(expectedValidators)

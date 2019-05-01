@@ -1,5 +1,6 @@
 require('dotenv').config()
 const Consensus = artifacts.require('./Consensus.sol')
+const {toBN, toWei} = web3.utils
 
 const {
   DEPLOY_CONSENSUS,
@@ -10,7 +11,7 @@ const {
 module.exports = function(deployer, network, accounts) {
   if (network !== 'test' && network !== 'ganache') {
     let consensusAddress = CONSENSUS_ADDRESS
-    let minStake = web3.toWei(MIN_STAKE_ETH || 0, 'ether')
+    let minStake = toWei(toBN(MIN_STAKE_ETH || 0), 'ether')
 
     let validatorSet
 
