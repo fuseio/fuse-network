@@ -2,7 +2,6 @@ require('dotenv').config()
 const HDWalletProvider = require('truffle-hdwallet-provider')
 const fs = require('fs')
 const EthWallet = require('ethereumjs-wallet')
-const WalletProvider = require('truffle-wallet-provider')
 
 const {
   WALLET_PROVIDER_METHOD,
@@ -16,7 +15,8 @@ if (WALLET_PROVIDER_METHOD === 'keystore') {
   const keystore = fs.readFileSync(CREDENTIALS_KEYSTORE).toString()
   const password = fs.readFileSync(CREDENTIALS_PASSWORD).toString().trim()
   const wallet = EthWallet.fromV3(keystore, password)
-  walletProvider = new WalletProvider(wallet, 'http://127.0.0.1:8545')
+  const pkey = wallet.getPrivateKeyString()
+  walletProvider = new HDWalletProvider(pkey, 'http://127.0.0.1:8545')
 } else if (WALLET_PROVIDER_METHOD === 'mnemonic') {
   walletProvider = new HDWalletProvider(MNEMONIC, 'http://127.0.0.1:8545')
 }
