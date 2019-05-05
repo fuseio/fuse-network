@@ -1,12 +1,12 @@
 pragma solidity 0.4.24;
 
+import "./IValidatorSet.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract Consensus is Ownable {
+contract Consensus is IValidatorSet, Ownable {
   using SafeMath for uint256;
 
-  event InitiateChange(bytes32 indexed parentHash, address[] newSet);
   event ChangeFinalized(address[] newSet);
 
   struct ValidatorState {
@@ -18,8 +18,6 @@ contract Consensus is Ownable {
     uint256[] indexes;
   }
 
-  address public SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
-
   bool public finalized = false;
   uint256 public minStake;
 
@@ -28,11 +26,6 @@ contract Consensus is Ownable {
   mapping(address => ValidatorState) public validatorsState;
 
   mapping (address => uint256) public stakeAmount;
-
-  modifier onlySystem() {
-    require(msg.sender == SYSTEM_ADDRESS);
-    _;
-  }
 
   modifier notFinalized() {
     require (!finalized);
