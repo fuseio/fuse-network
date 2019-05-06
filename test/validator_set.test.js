@@ -1,5 +1,5 @@
 const Consensus = artifacts.require('ConsensusMock.sol')
-const {ERROR_MSG, ZERO_AMOUNT} = require('./helpers')
+const {ERROR_MSG, ZERO_AMOUNT, ZERO_ADDRESS} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const MIN_STAKE_AMOUNT = 10000
@@ -15,32 +15,59 @@ contract('Consensus', async (accounts) => {
   let consensus
   let owner = accounts[0]
   let nonOwner = accounts[1]
+  let initialValidator = accounts[0]
   let firstCandidate = accounts[1]
   let secondCandidate = accounts[2]
 
-  beforeEach(async () => {
-    consensus = await Consensus.new(MIN_STAKE)
-  })
   describe('initialize', async () => {
     it('default values', async () => {
+      consensus = await Consensus.new(MIN_STAKE, initialValidator)
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.SYSTEM_ADDRESS()))
       false.should.be.equal(await consensus.finalized())
       MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
       owner.should.equal(await consensus.owner())
       let validators = await consensus.getValidators()
-      validators.length.should.be.equal(0)
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(initialValidator)
+      let pendingValidators = await consensus.getPendingValidators()
+      pendingValidators.length.should.be.equal(0)
+    })
+    it('initial validator address not defined', async () => {
+      consensus = await Consensus.new(MIN_STAKE, ZERO_ADDRESS)
+      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.SYSTEM_ADDRESS()))
+      false.should.be.equal(await consensus.finalized())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
+      owner.should.equal(await consensus.owner())
+      let validators = await consensus.getValidators()
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(owner)
+      let pendingValidators = await consensus.getPendingValidators()
+      pendingValidators.length.should.be.equal(0)
+    })
+    it('initial validator address defined', async () => {
+      consensus = await Consensus.new(MIN_STAKE, initialValidator)
+      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.SYSTEM_ADDRESS()))
+      false.should.be.equal(await consensus.finalized())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
+      owner.should.equal(await consensus.owner())
+      let validators = await consensus.getValidators()
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(initialValidator)
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(0)
     })
     it('only owner can set minStake', async () => {
+      consensus = await Consensus.new(MIN_STAKE, initialValidator)
       await consensus.setMinStake(LESS_THAN_MIN_STAKE, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
       MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
-
       await consensus.setMinStake(LESS_THAN_MIN_STAKE, {from: owner})
       LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
     })
   })
   describe('finalizeChange', async () => {
+    beforeEach(async () => {
+      consensus = await Consensus.new(MIN_STAKE, initialValidator)
+    })
     it('should only be called by SYSTEM_ADDRESS', async () => {
       await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
       await consensus.setSystemAddress(accounts[0], {from: owner})
@@ -54,6 +81,9 @@ contract('Consensus', async (accounts) => {
     })
   })
   describe('stake using payable', async () => {
+    beforeEach(async () => {
+      consensus = await Consensus.new(MIN_STAKE, initialValidator)
+    })
     describe('basic', async () => {
       it('should no allow zero stake', async () => {
         await consensus.send(0, {from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
@@ -286,6 +316,9 @@ contract('Consensus', async (accounts) => {
     })
   })
   describe('withdraw', async () => {
+    beforeEach(async () => {
+      consensus = await Consensus.new(MIN_STAKE, initialValidator)
+    })
     it('cannot withdraw zero', async () => {
       await consensus.withdraw(ZERO_AMOUNT).should.be.rejectedWith(ERROR_MSG)
     })

@@ -32,8 +32,12 @@ contract Consensus is IValidatorSet, Ownable {
     _;
   }
 
-  constructor(uint256 _minStake) Ownable() public {
+  constructor(uint256 _minStake, address _initialValidator) Ownable() public {
     setMinStake(_minStake);
+    if (_initialValidator == address(0)) {
+      _initialValidator = msg.sender;
+    }
+    currentValidators = [_initialValidator];
   }
 
   function setMinStake(uint256 _minStake) public onlyOwner {
@@ -59,7 +63,9 @@ contract Consensus is IValidatorSet, Ownable {
       }
     }
 
-    currentValidators = pendingValidators;
+    if (pendingValidators.length > 0) {
+      currentValidators = pendingValidators;
+    }
 
     emit ChangeFinalized(getValidators());
   }
