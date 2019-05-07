@@ -81,7 +81,7 @@ The script can be called multiple times without problems, so it checks what is a
 _Parity_ will restart automatically on fails.
 
 ```sh
-$ wget -O quickstart.sh https://github.com/ColuLocalNetwork/fuse-post-network/blob/master/quickstart.sh && bash quickstart.sh
+$ wget -O quickstart.sh https://raw.githubusercontent.com/ColuLocalNetwork/fuse-pos-network/master/scripts/quickstart.sh && bash quickstart.sh
 ```
 
 Follow the instructions to insert your password.
