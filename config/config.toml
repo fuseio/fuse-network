@@ -1,0 +1,6 @@
+[parity]
+chain = "/home/parity/.local/share/io.parity.ethereum/spec.json"
+keys_path = "/home/parity/.local/share/io.parity.ethereum/custom/keys"
+
+[network]
+port = 30300
