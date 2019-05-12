@@ -46,4 +46,4 @@ else
   start_ganache
 fi
 
-WALLET_PROVIDER_METHOD=none node_modules/.bin/truffle test "$@" --network ganache
+WALLET_PROVIDER_METHOD=none node_modules/.bin/truffle test "$@" --network test

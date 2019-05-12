@@ -30,6 +30,13 @@ module.exports = {
       gasPrice: 1000000000,
       gas: 4600000
     },
+    test: {
+      host: 'localhost',
+      port: 8545,
+      network_id: '*',
+      gasPrice: 1000000000,
+      gas: 4600000
+    },
     fuse_pos: {
       provider: walletProvider,
       network_id: '*',
