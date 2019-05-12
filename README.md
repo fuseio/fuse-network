@@ -13,12 +13,14 @@
     - [Pre-Requisites](#pre-requisites)
     - [Usage](#Usage)
     - [Examples](#Examples)
+    - [Bootnode](#Bootnode)
     - [Participant](#Participant)
     - [Validator](#Validator)
     - [Create New Account](#create-new-account)
   - [Without Docker](#without-docker)
     - [Pre-Requisites](#pre-requisites)
     - [Creating An Account](#creating-an-account)
+    - [Setup For Bootnodes Using Only CLI](#setup-for-bootnodes-using-only-cli)
     - [Setup For Participants Using Only CLI](#setup-for-participants-using-only-cli)
     - [Setup For Validators Using Only CLI](#setup-for-validators-using-only-cli)
 - [Development](#development)
@@ -96,7 +98,7 @@ The following instructions explain how to start a local node with the _Docker_ i
 
 In fact it uses a pre-configured [Parity Ethereum](https://www.parity.io/) client, combined with a set-up wrapper, to make connecting as easy as possible.
 
-The image is prepared to be used in two different scenarios: as participant or as validator.
+The image is prepared to be used in three different scenarios: as bootnode, as validator or as participant.
 
 #### Pre-Requisites
 
@@ -147,13 +149,23 @@ $ docker run fusenetwork/fusenet --help
  ROLES
    The list of available roles is:
 
-   participant
-     - Connects to an account to being able to create transactions.
-     - Requires the address argument.
-     - Needs the password file and the key-set. (see FILES)
+   bootnode
+     - No mining.
+     - RPC ports open.
+     - Does not require the address argument.
+     - Does not need the password file and the key-set. (see FILES)
 
    validator
      - Connect as authority to the network for validating blocks.
+     - Miner.
+     - RPC ports closed.
+     - Requires the address argument.
+     - Needs the password file and the key-set. (see FILES)
+
+   participant
+     - Connects to an account to being able to create transactions.
+     - No mining.
+     - RPC ports open.
      - Requires the address argument.
      - Needs the password file and the key-set. (see FILES)
 
@@ -171,6 +183,13 @@ $ docker run fusenetwork/fusenet --help
 #### Examples
 
 Besides the original help, the following sections provide some example instructions how to get started for the different selectable roles.
+
+##### Bootnode
+If you want to run a bootnode for the network, it only needs to have RPC and WS ports mapped out of the docker to the local machine, no account address is needed.
+
+```
+$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenetwork/fusenet --role bootnode --parity-args --node-key UNIQUE_NAME_FOR_NODE
+```
 
 ##### Participant
 
@@ -198,14 +217,12 @@ Anyways the password used there has to be stored as shown below.
 
 Finally the client has to be started with the volume bound, the correct role and the address to use.
 
-Be aware that _Docker_ requires absolute paths.
-
 ```sh
 $ mkdir -p ./config/keys/FuseNetwork
 $ cp /path/to/my/key ./config/keys/FuseNetwork/
 $ echo "mysupersecretpassphrase" > ./config/pass.pwd
 $ mkdir ./database
-$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 fusenetwork/fusenet --role participant --address MY_ADDRESS
+$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenetwork/fusenet --role participant --address MY_ADDRESS
 ```
 
 ##### Validator
@@ -288,6 +305,9 @@ For running a node as a validator, you will need to store your password in a fil
 ```sh
 echo [mypassword] > password.pwd
 ```
+
+#### Setup For Bootnodes Using Only CLI
+> TODO
 
 #### Setup For Participants Using Only CLI
 > TODO

@@ -3,7 +3,7 @@ FROM ubuntu:18.04
 ENV HOME=/home/parity
 ENV PARITY_HOME_DIR=$HOME/.local/share/io.parity.ethereum
 ENV PARITY_CONFIG_FILE_CHAIN=$PARITY_HOME_DIR/spec.json
-#ENV PARITY_CONFIG_FILE_BOOTNODES=$PARITY_HOME_DIR/bootnodes.txt
+ENV PARITY_CONFIG_FILE_BOOTNODES=$PARITY_HOME_DIR/bootnodes.txt
 ENV PARITY_CONFIG_FILE_TEMPLATE=$PARITY_HOME_DIR/config.toml
 ENV PARITY_DATA_DIR=$PARITY_HOME_DIR/chains
 ENV PARITY_BIN=/usr/local/bin/parity
@@ -18,7 +18,7 @@ EXPOSE 30300 8545 8546
 
 ### Default chain and node configuration files.
 COPY config/spec.json $PARITY_CONFIG_FILE_CHAIN
-#COPY config/bootnodes.txt $PARITY_CONFIG_FILE_BOOTNODES
+COPY config/bootnodes.txt $PARITY_CONFIG_FILE_BOOTNODES
 COPY config/config.toml $PARITY_CONFIG_FILE_TEMPLATE
 
 ### Wrapper script for Parity.

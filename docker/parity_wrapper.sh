@@ -26,13 +26,23 @@
 # ROLES
 #   The list of available roles is:
 #
-#   participant
-#     - Connects to an account to being able to create transactions.
-#     - Requires the address argument.
-#     - Needs the password file and the key-set. (see FILES)
+#   bootnode
+#     - No mining.
+#     - RPC ports open.
+#     - Does not require the address argument.
+#     - Does not need the password file and the key-set. (see FILES)
 #
 #   validator
 #     - Connect as authority to the network for validating blocks.
+#     - Miner.
+#     - RPC ports closed.
+#     - Requires the address argument.
+#     - Needs the password file and the key-set. (see FILES)
+#
+#   participant
+#     - Connects to an account to being able to create transactions.
+#     - No mining.
+#     - RPC ports open.
 #     - Requires the address argument.
 #     - Needs the password file and the key-set. (see FILES)
 #
@@ -49,37 +59,20 @@
 IFS=' ' read -r -a ARG_VEC <<< "$@"
 
 # Adjustable configuration values.
-ROLE=""
+ROLE="bootnode"
 ADDRESS=""
 GENERATE_NEW_ACCOUNT=false
-PARITY_ARGS="--no-color --jsonrpc-interface all"
+PARITY_ARGS="--no-color"
 
 # Internal stuff.
 declare -a VALID_ROLE_LIST=(
-                            participant
+                            bootnode
                             validator
+                            participant
                            )
 
 # Configuration snippets.
-CONFIG_SNIPPET_VALIDATOR='
-[rpc]
-disable = true
-
-[websockets]
-disable = true
-
-[account]
-password = ["/home/parity/.local/share/io.parity.ethereum/custom/pass.pwd"]
-
-[mining]
-reseal_on_txs = "none"
-force_sealing = true
-engine_signer = "%s"
-min_gas_price = 1000000000
-gas_floor_target = "10000000"
-'
-
-CONFIG_SNIPPET_ACCOUNT='
+CONFIG_SNIPPET_BOOTNODE='
 [rpc]
 cors = ["all"]
 port = 8545
@@ -94,6 +87,52 @@ interface = "all"
 origins = ["all"]
 hosts = ["all"]
 apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+
+[network]
+port = 30300
+'
+
+CONFIG_SNIPPET_VALIDATOR='
+[rpc]
+disable = true
+
+[websockets]
+disable = true
+
+[network]
+port = 30300
+reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
+
+[account]
+password = ["/home/parity/.local/share/io.parity.ethereum/custom/pass.pwd"]
+
+[mining]
+reseal_on_txs = "none"
+force_sealing = true
+engine_signer = "%s"
+min_gas_price = 1000000000
+gas_floor_target = "10000000"
+'
+
+CONFIG_SNIPPET_PARTICIPANT='
+[rpc]
+cors = ["all"]
+port = 8545
+interface = "all"
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore", "personal"]
+
+[websockets]
+disable = false
+port = 8546
+interface = "all"
+origins = ["all"]
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore", "personal"]
+
+[network]
+port = 30300
+reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
 
 [account]
 unlock = ["%s"]
@@ -201,15 +240,19 @@ function adjustConfiguration {
   # Handle the different roles.
   # Append the respective configuration snippet with the necessary variable to the default configuration file.
   case $ROLE in
+    "bootnode")
+      echo "Run as bootnode"
+      printf "$template\n$CONFIG_SNIPPET_BOOTNODE" > $PARITY_CONFIG_FILE
+      ;;
+
     "validator")
       echo "Run as validator with address ${ADDRESS}"
       printf "$template\n$CONFIG_SNIPPET_VALIDATOR" "$ADDRESS" > $PARITY_CONFIG_FILE
-      echo "Here:"
       ;;
 
     "participant")
       echo "Run as participant with address ${ADDRESS}"
-      printf "$template\n$CONFIG_SNIPPET_ACCOUNT" "$ADDRESS" > $PARITY_CONFIG_FILE
+      printf "$template\n$CONFIG_SNIPPET_PARTICIPANT" "$ADDRESS" > $PARITY_CONFIG_FILE
       ;;
   esac
 }
