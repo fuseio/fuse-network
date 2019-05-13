@@ -187,7 +187,7 @@ function startNode {
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
         --volume $CONFIG_DIR:/config/custom \
-        -p 30300:30300 \
+        -p 30303:30300 \
         -p 8545:8545 \
         -p 8546:8546 \
         --restart=on-failure \
@@ -206,7 +206,7 @@ function startNode {
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
         --volume $CONFIG_DIR:/config/custom \
-        -p 30300:30300 \
+        -p 30303:30300 \
         --restart=on-failure \
         $DOCKER_IMAGE_PARITY \
         --role validator \
@@ -223,7 +223,7 @@ function startNode {
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
         --volume $CONFIG_DIR:/config/custom \
-        -p 30300:30300 \
+        -p 30303:30300 \
         -p 8545:8545 \
         -p 8546:8546 \
         --restart=on-failure \
