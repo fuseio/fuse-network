@@ -70,7 +70,7 @@ Please make sure you have access to a continuously running machine, if you like 
 
 ### Quickstart
 
-To make starting a validator node for the FuseNetwork as quick as possible, the _quickstart_ script can be used.
+To make starting a node for the FuseNetwork as quick as possible, the _quickstart_ script can be used.
 
 Simply download and run the script.
 

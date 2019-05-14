@@ -4,6 +4,7 @@ const fs = require('fs')
 const EthWallet = require('ethereumjs-wallet')
 
 const {
+  RPC,
   WALLET_PROVIDER_METHOD,
   CREDENTIALS_KEYSTORE,
   CREDENTIALS_PASSWORD,
@@ -16,9 +17,9 @@ if (WALLET_PROVIDER_METHOD === 'keystore') {
   const password = fs.readFileSync(CREDENTIALS_PASSWORD).toString().trim()
   const wallet = EthWallet.fromV3(keystore, password)
   const pkey = wallet.getPrivateKeyString()
-  walletProvider = new HDWalletProvider(pkey, 'http://127.0.0.1:8545')
+  walletProvider = new HDWalletProvider(pkey, RPC)
 } else if (WALLET_PROVIDER_METHOD === 'mnemonic') {
-  walletProvider = new HDWalletProvider(MNEMONIC, 'http://127.0.0.1:8545')
+  walletProvider = new HDWalletProvider(MNEMONIC, RPC)
 }
 
 module.exports = {
@@ -37,7 +38,7 @@ module.exports = {
       gasPrice: 1000000000,
       gas: 4600000
     },
-    fuse_pos: {
+    fuse: {
       provider: walletProvider,
       network_id: '*',
       gasPrice: 1000000000,
