@@ -1,4 +1,4 @@
-# fuse-post-network
+# fuse-network
 
 - [Contracts](#contracts)
   - [Clone Repository](#clone-repository)
@@ -30,7 +30,7 @@
 ## Contracts
 ### Clone Repository
 ```
-$ git clone https://github.com/ColuLocalNetwork/fuse-pos-network.git ~/Dev/fuse-pos-network
+$ git clone https://github.com/ColuLocalNetwork/fuse-network.git ~/Dev/fuse-network
 ```
 
 ### Install Dependencies
@@ -54,9 +54,9 @@ $ npm run flatten
 ```
 
 ### Deploy
-Make sure `NETWORK_NAME` is defined in [`truffle-config`](https://github.com/ColuLocalNetwork/fuse-pos-network/blob/master/truffle-config.js)
+Make sure `NETWORK_NAME` is defined in [`truffle-config`](https://github.com/ColuLocalNetwork/fuse-network/blob/master/truffle-config.js)
 
-Make sure you've created an `.env` using the template [`env.example`](https://github.com/ColuLocalNetwork/fuse-pos-network/blob/master/.env.example)
+Make sure you've created an `.env` using the template [`env.example`](https://github.com/ColuLocalNetwork/fuse-network/blob/master/.env.example)
 
 Run:
 
@@ -83,7 +83,7 @@ The script can be called multiple times without problems, so it checks what is a
 _Parity_ will restart automatically on fails.
 
 ```sh
-$ wget -O quickstart.sh https://raw.githubusercontent.com/ColuLocalNetwork/fuse-pos-network/master/scripts/quickstart.sh && bash quickstart.sh
+$ wget -O quickstart.sh https://raw.githubusercontent.com/ColuLocalNetwork/fuse-network/master/scripts/quickstart.sh && bash quickstart.sh
 ```
 
 Follow the instructions to insert your password.
@@ -324,7 +324,7 @@ echo [mypassword] > password.pwd
 To build the _Docker_ image, checkout this repository and run `docker build` with your preferred tag name. As the context of the build must be the project root, the path to the `Dockerfile` has to be specified manually.
 
 ```sh
-$ git clone https://github.com/ColuLocalNetwork/fuse-pos-network
+$ git clone https://github.com/ColuLocalNetwork/fuse-network
 $ docker build -f docker/Dockerfile -t MY_TAGNAME .
 $ docker run ... MY_TAGNAME ...
 ```

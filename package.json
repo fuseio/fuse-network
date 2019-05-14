@@ -1,7 +1,7 @@
 {
-  "name": "fuse-pos-network",
+  "name": "fuse-network",
   "version": "0.1.0",
-  "description": "Fuse PoS Network",
+  "description": "Fuse Network",
   "main": "",
   "scripts": {
     "test": "scripts/test.sh",
