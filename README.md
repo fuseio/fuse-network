@@ -1,4 +1,4 @@
-# fuse-network
+# Fuse Network
 
 - [Contracts](#contracts)
   - [Clone Repository](#clone-repository)
