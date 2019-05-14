@@ -1,2 +1,2 @@
-# fuse-pos-network
-Fuse PoS Network
+# fuse-network
+Fuse Network
