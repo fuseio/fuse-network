@@ -1,15 +1,20 @@
 pragma solidity ^0.4.24;
 
-import "./upgradeability/EternalStorage.sol";
-import "./EternalOwnable.sol";
-import "./ValidatorSet.sol";
+import "./eternal-storage/EternalStorage.sol";
+import "./ProxyStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-contract BasicConsensus is EternalStorage, EternalOwnable, ValidatorSet {
+contract ConsensusStorage is EternalStorage {
     using SafeMath for uint256;
 
-    function getConsensusVersion() public pure returns(uint64 major, uint64 minor, uint64 patch) {
-      return (0, 0, 1);
+    modifier onlyOwner() {
+      require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
+      _;
+    }
+
+    modifier onlyOwnerOrVotingToChange() {
+      require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))] || msg.sender == ProxyStorage(getProxyStorage()).getVotingToChangeMinStake());
+      _;
     }
 
     function systemAddress() public view returns(address) {
@@ -36,12 +41,12 @@ contract BasicConsensus is EternalStorage, EternalOwnable, ValidatorSet {
       return boolStorage[keccak256(abi.encodePacked("isInitialized"))];
     }
 
-    function setMinStake(uint256 _minStake) public onlyOwner {
+    function setMinStake(uint256 _minStake) public onlyOwnerOrVotingToChange {
       require(_minStake > 0);
       uintStorage[keccak256(abi.encodePacked("minStake"))] = _minStake;
     }
 
-    function minStake() public view returns(uint256) {
+    function getMinStake() public view returns(uint256) {
       return uintStorage[keccak256(abi.encodePacked("minStake"))];
     }
 
@@ -51,6 +56,10 @@ contract BasicConsensus is EternalStorage, EternalOwnable, ValidatorSet {
 
     function currentValidatorsLength() public view returns(uint256) {
       return addressArrayStorage[keccak256(abi.encodePacked("currentValidators"))].length;
+    }
+
+    function currentValidatorsAtPosition(uint256 _p) public view returns(address) {
+      return addressArrayStorage[keccak256(abi.encodePacked("currentValidators"))][_p];
     }
 
     function currentValidatorsAdd(address _address) internal {
@@ -149,5 +158,16 @@ contract BasicConsensus is EternalStorage, EternalOwnable, ValidatorSet {
 
     function setValidatorIndexes(address _address, uint256[] _indexes) internal {
       uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))] = _indexes;
+    }
+
+    function getProxyStorage() public view returns(address) {
+      return addressStorage[keccak256(abi.encodePacked("proxyStorage"))];
+    }
+
+    function setProxyStorage(address _newAddress) public onlyOwner {
+      require(!boolStorage[keccak256(abi.encodePacked("wasProxyStorageSet"))]);
+      require(_newAddress != address(0));
+      addressStorage[keccak256(abi.encodePacked("proxyStorage"))] = _newAddress;
+      boolStorage[keccak256(abi.encodePacked("wasProxyStorageSet"))] = true;
     }
 }

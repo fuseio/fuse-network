@@ -1,9 +1,10 @@
 pragma solidity ^0.4.24;
 
-import "./BasicConsensus.sol";
+import "./abstracts/ValidatorSet.sol";
+import "./ConsensusStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-contract Consensus is BasicConsensus {
+contract Consensus is ConsensusStorage, ValidatorSet {
   using SafeMath for uint256;
 
   event ChangeFinalized(address[] newSet);
@@ -18,14 +19,12 @@ contract Consensus is BasicConsensus {
     _;
   }
 
-  function initialize(uint256 _minStake, address _initialValidator, address _owner) public returns(bool){
+  function initialize(uint256 _minStake, address _initialValidator) public returns(bool){
     require(!isInitialized());
-    require(_owner != address(0));
     setSystemAddress();
-    setOwner(_owner);
     setMinStake(_minStake);
     if (_initialValidator == address(0)) {
-      currentValidatorsAdd(_owner);
+      currentValidatorsAdd(msg.sender);
     } else {
       currentValidatorsAdd(_initialValidator);
     }
@@ -84,7 +83,7 @@ contract Consensus is BasicConsensus {
 
     stakeAmountAdd(_staker, _amount);
 
-    if (stakeAmount(_staker) >= minStake()) {
+    if (stakeAmount(_staker) >= getMinStake()) {
       _addValidator(_staker);
     }
   }
@@ -95,7 +94,7 @@ contract Consensus is BasicConsensus {
     setIsValidator(_validator, true);
     setIsValidatorFinalized(_validator, false);
 
-    uint256 stakeMultiplier = stakeAmount(_validator).div(minStake());
+    uint256 stakeMultiplier = stakeAmount(_validator).div(getMinStake());
     uint256 currentAppearances = validatorIndexesLength(_validator);
     uint256 appearencesToAdd = stakeMultiplier.sub(currentAppearances);
 
@@ -112,7 +111,7 @@ contract Consensus is BasicConsensus {
   function _removeValidator(address _validator) internal {
     require (_validator != address(0));
 
-    uint256 stakeMultiplier = stakeAmount(_validator).div(minStake());
+    uint256 stakeMultiplier = stakeAmount(_validator).div(getMinStake());
     uint256 currentAppearances = validatorIndexesLength(_validator);
     uint256 appearencesToRemove = currentAppearances.sub(stakeMultiplier);
 

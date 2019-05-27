@@ -1,6 +1,7 @@
 const Consensus = artifacts.require('ConsensusMock.sol')
-const EternalStorageProxy = artifacts.require('EternalStorageProxy.sol')
-const {ERROR_MSG, ZERO_AMOUNT, ZERO_ADDRESS} = require('./helpers')
+const ProxyStorage = artifacts.require('ProxyStorage.sol')
+const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
+const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const MIN_STAKE_AMOUNT = 10000
@@ -10,7 +11,6 @@ const ONE_ETHER = toWei(toBN(1), 'ether')
 const LESS_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
 const MORE_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT + 1), 'ether')
 const MULTIPLE_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT), 'ether')
-const SYSTEM_ADDRESS = '0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE'
 
 contract('Consensus', async (accounts) => {
   let consensusImpl, proxy, consensus
@@ -20,34 +20,39 @@ contract('Consensus', async (accounts) => {
   let firstCandidate = accounts[1]
   let secondCandidate = accounts[2]
 
+  beforeEach(async () => {
+    // Consensus
+    consensusImpl = await Consensus.new()
+    proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
+    consensus = await Consensus.at(proxy.address)
+
+    // ProxyStorage
+    proxyStorageImpl = await ProxyStorage.new()
+    proxy = await EternalStorageProxy.new(ZERO_ADDRESS, proxyStorageImpl.address)
+    proxyStorage = await ProxyStorage.at(proxy.address)
+    await proxyStorage.initialize(consensus.address)
+  })
+
   describe('initialize', async () => {
-    beforeEach(async () => {
-      consensusImpl = await Consensus.new()
-      proxy = await EternalStorageProxy.new()
-      await proxy.methods['upgradeTo(uint256,address)']('1', consensusImpl.address)
-      consensus = await Consensus.at(proxy.address)
-    })
     it('default values', async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator, owner)
+      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+      owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.systemAddress()))
       false.should.be.equal(await consensus.isFinalized())
-      MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
-      owner.should.equal(await consensus.owner())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(initialValidator)
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(0)
     })
-    it('owner address not defined', async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator, ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
-    })
     it('initial validator address not defined - owner should be initial validator', async () => {
-      await consensus.initialize(MIN_STAKE, ZERO_ADDRESS, owner)
+      await consensus.initialize(MIN_STAKE, ZERO_ADDRESS)
+      await consensus.setProxyStorage(proxyStorage.address)
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.systemAddress()))
       false.should.be.equal(await consensus.isFinalized())
-      MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
-      owner.should.equal(await consensus.owner())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(owner)
@@ -55,32 +60,62 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(0)
     })
     it('initial validator address defined', async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator, owner)
+      await consensus.initialize(MIN_STAKE, initialValidator)
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.systemAddress()))
       false.should.be.equal(await consensus.isFinalized())
-      MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
-      owner.should.equal(await consensus.owner())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(initialValidator)
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(0)
     })
-    it('only owner can set minStake', async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator, owner)
+  })
+
+  describe('setMinStake', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('setMinStake should fail if not called by owner', async () => {
       await consensus.setMinStake(LESS_THAN_MIN_STAKE, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
-      MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
+    })
+    it('setMinStake successfully', async () => {
       await consensus.setMinStake(LESS_THAN_MIN_STAKE, {from: owner})
-      LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.minStake())
+      LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
     })
   })
+
+  describe('setProxyStorage', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(MIN_STAKE, initialValidator)
+    })
+    it('setProxyStorage should fail if no address', async () => {
+      await consensus.setProxyStorage(ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('setProxyStorage should fail if not called by owner', async () => {
+      await consensus.setProxyStorage(proxyStorage.address, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
+      // success
+      await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
+      proxyStorage.address.should.be.equal(await consensus.getProxyStorage())
+      // should not be able to set again if already set
+      await consensus.setProxyStorage(RANDOM_ADDRESS).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('setProxyStorage successfully', async () => {
+      await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
+      proxyStorage.address.should.be.equal(await consensus.getProxyStorage())
+    })
+    it('setProxyStorage should not be able to set again if already set', async () => {
+      await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
+      await consensus.setProxyStorage(RANDOM_ADDRESS).should.be.rejectedWith(ERROR_MSG)
+    })
+  })
+
   describe('finalizeChange', async () => {
     beforeEach(async () => {
-      consensusImpl = await Consensus.new()
-      proxy = await EternalStorageProxy.new()
-      await proxy.methods['upgradeTo(uint256,address)']('1', consensusImpl.address)
-      consensus = await Consensus.at(proxy.address)
-      await consensus.initialize(MIN_STAKE, initialValidator, owner)
+      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
     })
     it('should only be called by SYSTEM_ADDRESS', async () => {
       await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
@@ -94,13 +129,11 @@ contract('Consensus', async (accounts) => {
       true.should.be.equal(await consensus.isFinalized())
     })
   })
+
   describe('stake using payable', async () => {
     beforeEach(async () => {
-      consensusImpl = await Consensus.new()
-      proxy = await EternalStorageProxy.new()
-      await proxy.methods['upgradeTo(uint256,address)']('1', consensusImpl.address)
-      consensus = await Consensus.at(proxy.address)
-      await consensus.initialize(MIN_STAKE, initialValidator, owner)
+      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('basic', async () => {
       it('should no allow zero stake', async () => {
@@ -142,6 +175,7 @@ contract('Consensus', async (accounts) => {
         logs[0].args['newSet'].should.deep.equal(pendingValidators)
       })
     })
+
     describe('advanced', async () => {
       it('more than minimum stake amount, in more than one transaction', async () => {
         // 1st stake
@@ -333,13 +367,11 @@ contract('Consensus', async (accounts) => {
       })
     })
   })
+
   describe('withdraw', async () => {
     beforeEach(async () => {
-      consensusImpl = await Consensus.new()
-      proxy = await EternalStorageProxy.new()
-      await proxy.methods['upgradeTo(uint256,address)']('1', consensusImpl.address)
-      consensus = await Consensus.at(proxy.address)
-      await consensus.initialize(MIN_STAKE, initialValidator, owner)
+      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
     })
     it('cannot withdraw zero', async () => {
       await consensus.withdraw(ZERO_AMOUNT).should.be.rejectedWith(ERROR_MSG)
@@ -452,6 +484,62 @@ contract('Consensus', async (accounts) => {
       tx2.logs[0].args['newSet'].should.deep.equal(currentValidators)
       // withdraw 3rd time - should fail as validators list cannot be empty
       await consensus.withdraw(MIN_STAKE, {from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
+    })
+  })
+
+  describe('upgradeTo', async () => {
+    let consensusOldImplementation, consensusNew
+    let proxyStorageStub = accounts[3]
+    beforeEach(async () => {
+      consensus = await Consensus.new()
+      consensusOldImplementation = consensus.address
+      proxy = await EternalStorageProxy.new(proxyStorage.address, consensus.address)
+      consensus = await Consensus.at(proxy.address)
+      consensusNew = await Consensus.new()
+    })
+    it('should only be called by ProxyStorage', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(consensusNew.address, {from: owner}).should.be.rejectedWith(ERROR_MSG)
+      let {logs} = await proxy.upgradeTo(consensusNew.address, {from: proxyStorageStub})
+      logs[0].event.should.be.equal('Upgraded')
+      await proxy.setProxyStorageMock(proxyStorage.address)
+    })
+    it('should change implementation address', async () => {
+      consensusOldImplementation.should.be.equal(await proxy.getImplementation())
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(consensusNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      consensusNew.address.should.be.equal(await proxy.getImplementation())
+    })
+    it('should increment implementation version', async () => {
+      let consensusOldVersion = await proxy.getVersion()
+      let consensusNewVersion = consensusOldVersion.add(toBN(1))
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(consensusNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      consensusNewVersion.should.be.bignumber.equal(await proxy.getVersion())
+    })
+    it('should work after upgrade', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(consensusNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      consensusNew = await Consensus.at(proxy.address)
+      false.should.be.equal(await consensusNew.isInitialized())
+      await consensusNew.initialize(MIN_STAKE, initialValidator).should.be.fulfilled
+      true.should.be.equal(await consensusNew.isInitialized())
+    })
+    it('should use same proxyStorage after upgrade', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(consensusNew.address, {from: proxyStorageStub})
+      consensusNew = await Consensus.at(proxy.address)
+      proxyStorageStub.should.be.equal(await consensusNew.getProxyStorage())
+    })
+    it('should use same storage after upgrade', async () => {
+      await consensus.setMinStake(LESS_THAN_MIN_STAKE, {from: owner})
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(consensusNew.address, {from: proxyStorageStub})
+      consensusNew = await Consensus.at(proxy.address)
+      LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
     })
   })
 })

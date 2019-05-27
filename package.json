@@ -14,6 +14,7 @@
     "dotenv": "^7.0.0",
     "ethereumjs-wallet": "^0.6.3",
     "ganache-cli": "^6.4.3",
+    "moment": "^2.24.0",
     "openzeppelin-solidity": "^2.0.1",
     "truffle": "^5.0.14",
     "truffle-hdwallet-provider": "^1.0.8"

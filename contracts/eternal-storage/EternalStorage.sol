@@ -3,10 +3,16 @@ pragma solidity ^0.4.24;
 
 /**
  * @title EternalStorage
- * @dev This contract holds all the necessary state variables to carry out the storage of any contract.
+ * @dev This contract holds all the necessary state variables to carry out the storage of any contract and to support the upgrade functionality.
  */
 contract EternalStorage {
+    // Version number of the current implementation
+    uint256 internal version;
 
+    // Address of the current implementation
+    address internal implementation;
+
+    // Storage mappings
     mapping(bytes32 => uint256) internal uintStorage;
     mapping(bytes32 => string) internal stringStorage;
     mapping(bytes32 => address) internal addressStorage;
