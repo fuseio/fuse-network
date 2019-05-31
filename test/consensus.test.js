@@ -119,12 +119,12 @@ contract('Consensus', async (accounts) => {
     })
     it('should only be called by SYSTEM_ADDRESS', async () => {
       await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
-      await consensus.setSystemAddress(accounts[0], {from: owner})
+      await consensus.setSystemAddressMock(accounts[0], {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
     })
     it('should set finalized to true', async () => {
       false.should.be.equal(await consensus.isFinalized())
-      await consensus.setSystemAddress(accounts[0])
+      await consensus.setSystemAddressMock(accounts[0])
       await consensus.finalizeChange().should.be.fulfilled
       true.should.be.equal(await consensus.isFinalized())
     })
@@ -220,7 +220,7 @@ contract('Consensus', async (accounts) => {
         tx2.logs[0].event.should.be.equal('InitiateChange')
         tx2.logs[0].args['newSet'].should.deep.equal(pendingValidators)
         // finalize change
-        await consensus.setSystemAddress(accounts[0])
+        await consensus.setSystemAddressMock(accounts[0])
         let {logs} = await consensus.finalizeChange().should.be.fulfilled
         // currentValidators should be updated
         let currentValidatorsLength = await consensus.currentValidatorsLength()
@@ -354,7 +354,7 @@ contract('Consensus', async (accounts) => {
         tx4.logs[0].event.should.be.equal('InitiateChange')
         tx4.logs[0].args['newSet'].should.deep.equal(pendingValidators)
         // finalize change
-        await consensus.setSystemAddress(accounts[0])
+        await consensus.setSystemAddressMock(accounts[0])
         let {logs} = await consensus.finalizeChange().should.be.fulfilled
         // currentValidators should be updated
         let currentValidatorsLength = await consensus.currentValidatorsLength()
@@ -398,7 +398,7 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(1)
       pendingValidators.should.deep.equal([secondCandidate])
       // finalize change
-      await consensus.setSystemAddress(accounts[0])
+      await consensus.setSystemAddressMock(accounts[0])
       let {logs} = await consensus.finalizeChange().should.be.fulfilled
       // currentValidators should be updated
       let currentValidatorsLength = await consensus.currentValidatorsLength()
@@ -426,7 +426,7 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
       pendingValidators.should.deep.equal(expectedValidators)
       // finalize change
-      await consensus.setSystemAddress(accounts[0])
+      await consensus.setSystemAddressMock(accounts[0])
       let {logs} = await consensus.finalizeChange().should.be.fulfilled
       // currentValidators should be updated
       let currentValidatorsLength = await consensus.currentValidatorsLength()
@@ -452,7 +452,7 @@ contract('Consensus', async (accounts) => {
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
       pendingValidators.should.deep.equal(expectedValidators)
-      await consensus.setSystemAddress(accounts[0])
+      await consensus.setSystemAddressMock(accounts[0])
       let tx1 = await consensus.finalizeChange().should.be.fulfilled
       let currentValidatorsLength = await consensus.currentValidatorsLength()
       currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 1))
@@ -473,7 +473,7 @@ contract('Consensus', async (accounts) => {
       pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT - 2)
       pendingValidators.should.deep.equal(expectedValidators)
-      await consensus.setSystemAddress(accounts[0])
+      await consensus.setSystemAddressMock(accounts[0])
       let tx2 = await consensus.finalizeChange().should.be.fulfilled
       currentValidatorsLength = await consensus.currentValidatorsLength()
       currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 2))

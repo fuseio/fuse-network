@@ -108,7 +108,7 @@ contract('BallotsStorage', async (accounts) => {
       await consensus.addValidatorMock(accounts[1])
       await consensus.addValidatorMock(accounts[2])
       await consensus.addValidatorMock(accounts[3])
-      await consensus.setSystemAddress(owner, {from: owner})
+      await consensus.setSystemAddressMock(owner, {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
       toBN(2).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
     })
@@ -162,7 +162,7 @@ contract('BallotsStorage', async (accounts) => {
       await consensus.addValidatorMock(accounts[2])
       await consensus.addValidatorMock(accounts[3])
       await consensus.addValidatorMock(accounts[4])
-      await consensus.setSystemAddress(owner, {from: owner})
+      await consensus.setSystemAddressMock(owner, {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
       limit = await ballotsStorage.getBallotLimitPerValidator()
       limit.should.be.bignumber.equal(toBN(maxLimit/4))

@@ -16,7 +16,7 @@ contract BlockReward is BlockRewardStorage, BlockRewardBase {
 
   function initialize(uint256 _reward) public returns(bool) {
     require(!isInitialized());
-    setSystemAddress();
+    setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     setReward(_reward);
     setInitialized(true);
     return isInitialized();

@@ -66,23 +66,23 @@ contract('BlockReward', async (accounts) => {
     })
     it('can only be called by system address', async () => {
       await blockReward.reward([accounts[3]], [0]).should.be.rejectedWith(ERROR_MSG)
-      await blockReward.setSystemAddress(mockSystemAddress, {from: owner})
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
     })
     it('should revert if input array contains more than one item', async () => {
-      await blockReward.setSystemAddress(mockSystemAddress, {from: owner})
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await blockReward.reward([accounts[3], accounts[4]], [0, 0], {from: mockSystemAddress}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should revert if lengths of input arrays are not equal', async () => {
-      await blockReward.setSystemAddress(mockSystemAddress, {from: owner})
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await blockReward.reward([accounts[3]], [0, 0], {from: mockSystemAddress}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should revert if "kind" parameter is not 0', async () => {
-      await blockReward.setSystemAddress(mockSystemAddress, {from: owner})
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await blockReward.reward([accounts[3]], [1], {from: mockSystemAddress}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should give reward and balance should be updated', async () => {
-      await blockReward.setSystemAddress(mockSystemAddress, {from: owner})
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       let {logs} = await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
       logs.length.should.be.equal(1)
       logs[0].event.should.be.equal('Rewarded')

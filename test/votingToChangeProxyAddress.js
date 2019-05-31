@@ -116,7 +116,7 @@ contract('VotingToChangeProxyAddress', async (accounts) => {
     await consensus.addValidatorMock(votingKeys[5])
     await consensus.addValidatorMock(votingKeys[6])
     await consensus.addValidatorMock(votingKeys[7])
-    await consensus.setSystemAddress(owner, {from: owner})
+    await consensus.setSystemAddressMock(owner, {from: owner})
     await consensus.finalizeChange().should.be.fulfilled
 
     true.should.be.equal(await voting.isValidVotingKey(votingKeys[0]))

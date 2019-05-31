@@ -21,8 +21,8 @@ contract ConsensusStorage is EternalStorage {
       return addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))];
     }
 
-    function setSystemAddress() internal {
-      addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))] = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+    function setSystemAddress(address _newAddress) internal {
+      addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))] = _newAddress;
     }
 
     function setFinalized(bool _status) internal {
