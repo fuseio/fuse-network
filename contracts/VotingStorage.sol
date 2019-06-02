@@ -206,6 +206,11 @@ contract VotingStorage is EternalStorage, VotingEnums {
     boolStorage[keccak256(abi.encodePacked("votingState", _id, "voters", _key))] = true;
   }
 
+  /**
+  * @dev Function used to check if a voting key has voted on a specific ballot
+  * @param _id ballot id to get info of
+  * @param _key voter key to get if voted already
+  */
   function hasAlreadyVoted(uint256 _id, address _key) public view returns(bool) {
     if (_key == address(0)) {
       return false;
@@ -213,6 +218,11 @@ contract VotingStorage is EternalStorage, VotingEnums {
     return boolStorage[keccak256(abi.encodePacked("votingState", _id, "voters", _key))];
   }
 
+  /**
+  * @dev Function checking if a voting key is valid for a specific ballot (ballot is active and key has not voted yet)
+  * @param _id ballot id to get info of
+  * @param _key voter key to check
+  */
   function isValidVote(uint256 _id, address _key) public view returns(bool) {
     bool isActive = isActiveBallot(_id);
     bool hasVoted = hasAlreadyVoted(_id, _key);

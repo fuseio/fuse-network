@@ -6,17 +6,31 @@ import "./ProxyStorage.sol";
 import "./Consensus.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+/**
+* @title Contract handling ballots logic and storage
+*/
 contract BallotsStorage is EternalStorage, VotingEnums {
   using SafeMath for uint256;
 
+  /**
+  * @dev This event will be emitted on threshold change (most likely on ballot finalization)
+  * @param thresholdType type of threshold changed (see VotingEnums.hresholdTypes)
+  * @param newValue new value of the threshold changed
+  */
   event ThresholdChanged(uint256 indexed thresholdType, uint256 newValue);
 
+  /**
+  * @dev This modifier verifies that msg.sender is the owner of the contract (using the storage mapping)
+  */
   modifier onlyOwner() {
     require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
     _;
   }
 
-  modifier onlyVotingToChange() {
+  /**
+  * @dev This modifier verifies that msg.sender is one of the voting contracts which implement threshold changes
+  */
+  modifier onlyVotingToChangeThreshold() {
     bool isVotingToChangeBlockReward = msg.sender == getVotingToChangeBlockReward();
     bool isVotingToChangeMinStake = msg.sender == getVotingToChangeMinStake();
     bool isVotingToChangeMinThreshold = msg.sender == getVotingToChangeMinThreshold();
@@ -24,6 +38,10 @@ contract BallotsStorage is EternalStorage, VotingEnums {
     _;
   }
 
+  /**
+  * @dev Function to be called on contract initialization
+  * @param _thresholds array of initial threshold values (ordered by VotingEnums.ThresholdTypes)
+  */
   function initialize(uint256[] _thresholds) public onlyOwner {
     require(!isInitialized());
     require(_thresholds.length == uint256(ThresholdTypes.MinStake));
@@ -37,14 +55,9 @@ contract BallotsStorage is EternalStorage, VotingEnums {
     setInitialized(true);
   }
 
-  function setInitialized(bool _value) internal {
-    boolStorage[keccak256(abi.encodePacked("isInitialized"))] = _value;
-  }
-
-  function isInitialized() public view returns(bool) {
-    return boolStorage[keccak256(abi.encodePacked("isInitialized"))];
-  }
-
+  /**
+  * @dev Function to get the number of "open" (active) ballots each validator (someone with voting rights) can have at the same time.
+  */
   function getBallotLimitPerValidator() public view returns(uint256) {
     uint256 validatorsCount = getTotalNumberOfValidators();
     if (validatorsCount == 0) {
@@ -57,7 +70,20 @@ contract BallotsStorage is EternalStorage, VotingEnums {
     return limit;
   }
 
-  function setBallotThreshold(uint256 _value, uint256 _thresholdType) public onlyVotingToChange returns(bool) {
+  function setInitialized(bool _value) internal {
+    boolStorage[keccak256(abi.encodePacked("isInitialized"))] = _value;
+  }
+
+  function isInitialized() public view returns(bool) {
+    return boolStorage[keccak256(abi.encodePacked("isInitialized"))];
+  }
+
+  /**
+  * @dev Function to set the value of a ballot threshold. Can only be called by voting contracts to change thresholds.
+  * @param _value new threshold value
+  * @param _thresholdType type of threshold to set its value (see VotingEnums.hresholdTypes)
+  */
+  function setBallotThreshold(uint256 _value, uint256 _thresholdType) public onlyVotingToChangeThreshold returns(bool) {
     if (_value == getBallotThreshold(_thresholdType)) return false;
     if (!setThreshold(_value, _thresholdType)) return false;
     emit ThresholdChanged(_thresholdType, _value);

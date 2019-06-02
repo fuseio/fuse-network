@@ -4,9 +4,15 @@ import "./eternal-storage/EternalStorageProxy.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+/**
+* @title Contract used for access and upgradeability to all network contracts
+*/
 contract ProxyStorage is EternalStorage {
   using SafeMath for uint256;
 
+  /**
+  * @dev Available contract types on the network
+  */
   enum ContractTypes {
     Invalid,
     Consensus,
@@ -19,6 +25,9 @@ contract ProxyStorage is EternalStorage {
     VotingToChangeProxy
   }
 
+  /**
+  * @dev This event will be emitted when all contract addresses have been initialized by the contract owner
+  */
   event ProxyInitialized(
     address consensus,
     address blockReward,
@@ -29,18 +38,33 @@ contract ProxyStorage is EternalStorage {
     address votingToChangeProxy
   );
 
+  /**
+  * @dev This event will be emitted each time a contract address is updated
+  * @param contractType contract type (See ContractTypes enum)
+  * @param contractAddress contract address set for the contract type
+  */
   event AddressSet(uint256 contractType, address contractAddress);
 
+  /**
+  * @dev This modifier verifies that msg.sender is the owner of the contract (using the storage mapping)
+  */
   modifier onlyOwner() {
     require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
     _;
   }
 
+  /**
+  * @dev This modifier verifies that msg.sender is the voting contract which implement proxy address change
+  */
   modifier onlyVotingToChangeProxy() {
     require(msg.sender == getVotingToChangeProxy());
     _;
   }
 
+  /**
+  * @dev Function to be called on contract initialization
+  * @param _consensus address of the network consensus contract
+  */
   function initialize(address _consensus) public onlyOwner returns(bool) {
     require(!isInitialized());
     require(_consensus != address(0));
@@ -50,6 +74,9 @@ contract ProxyStorage is EternalStorage {
     return isInitialized();
   }
 
+  /**
+  * @dev Function to be called to initialize all available contract types addresses
+  */
   function initializeAddresses(address _blockReward, address _ballotsStorage, address _votingToChangeBlockReward, address _votingToChangeMinStake, address _votingToChangeMinThreshold, address _votingToChangeProxy) public onlyOwner {
     require (!boolStorage[keccak256(abi.encodePacked("proxyStorageAddressesInitialized"))]);
 
@@ -73,6 +100,11 @@ contract ProxyStorage is EternalStorage {
     );
   }
 
+  /**
+  * @dev Function to be called to set specific contract type address
+  * @param _contractType contract type (See ContractTypes enum)
+  * @param _contractAddress contract address set for the contract type
+  */
   function setContractAddress(uint256 _contractType, address _contractAddress) public onlyVotingToChangeProxy returns(bool) {
     if (!isInitialized()) return false;
     if (_contractAddress == address(0)) return false;
@@ -101,6 +133,22 @@ contract ProxyStorage is EternalStorage {
       emit AddressSet(_contractType, _contractAddress);
     }
     return success;
+  }
+
+  /**
+  * @dev Function checking if a contract type is valid one for proxy usage
+  * @param _contractType contract type to check if valid
+  */
+  function isValidContractType(uint256 _contractType) public pure returns(bool) {
+    return
+      _contractType == uint256(ContractTypes.Consensus) ||
+      _contractType == uint256(ContractTypes.BlockReward) ||
+      _contractType == uint256(ContractTypes.BallotsStorage) ||
+      _contractType == uint256(ContractTypes.ProxyStorage) ||
+      _contractType == uint256(ContractTypes.VotingToChangeBlockReward) ||
+      _contractType == uint256(ContractTypes.VotingToChangeMinStake) ||
+      _contractType == uint256(ContractTypes.VotingToChangeMinThreshold) ||
+      _contractType == uint256(ContractTypes.VotingToChangeProxy);
   }
 
   function setInitialized(bool _value) internal {
@@ -141,17 +189,5 @@ contract ProxyStorage is EternalStorage {
 
   function getVotingToChangeProxy() public view returns(address){
     return addressStorage[keccak256(abi.encodePacked("votingToChangeProxy"))];
-  }
-
-  function isValidContractType(uint256 _contractType) public pure returns(bool) {
-    return
-      _contractType == uint256(ContractTypes.Consensus) ||
-      _contractType == uint256(ContractTypes.BlockReward) ||
-      _contractType == uint256(ContractTypes.BallotsStorage) ||
-      _contractType == uint256(ContractTypes.ProxyStorage) ||
-      _contractType == uint256(ContractTypes.VotingToChangeBlockReward) ||
-      _contractType == uint256(ContractTypes.VotingToChangeMinStake) ||
-      _contractType == uint256(ContractTypes.VotingToChangeMinThreshold) ||
-      _contractType == uint256(ContractTypes.VotingToChangeProxy);
   }
 }

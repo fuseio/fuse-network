@@ -20,6 +20,7 @@ contract ValidatorSet {
     /// Called when an initiated change reaches finality and is activated.
     /// Only valid when msg.sender == SUPER_USER (EIP96, 2**160 - 2)
     ///
-    /// Also called when the contract is first enabled for consensus. In this case, the "change" finalized is the activation of the initial set.
+    /// Also called when the contract is first enabled for consensus.
+    /// In this case, the "change" finalized is the activation of the initial set.
     function finalizeChange() public;
 }

@@ -7,11 +7,17 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract BlockRewardStorage is EternalStorage {
     using SafeMath for uint256;
 
+    /**
+    * @dev This modifier verifies that msg.sender is the owner of the contract (using the storage mapping)
+    */
     modifier onlyOwner() {
       require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
       _;
     }
 
+    /**
+    * @dev This modifier verifies that msg.sender is the owner of the contract or the voting to change block reward contract (using the storage mapping)
+    */
     modifier onlyOwnerOrVotingToChange() {
       require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))] || msg.sender == ProxyStorage(getProxyStorage()).getVotingToChangeBlockReward());
       _;

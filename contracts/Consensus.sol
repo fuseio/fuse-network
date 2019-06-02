@@ -4,21 +4,39 @@ import "./abstracts/ValidatorSet.sol";
 import "./ConsensusStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+/**
+* @title Contract handling PoS consensus logic
+*/
 contract Consensus is ConsensusStorage, ValidatorSet {
   using SafeMath for uint256;
 
+  /**
+  * @dev This event will be emitted after a change to the validator set has been finalized
+  * @param newSet array of addresses which represent the new validator set
+  */
   event ChangeFinalized(address[] newSet);
 
+  /**
+  * @dev This modifier verifies that the change initiated has not been finalized yet
+  */
   modifier notFinalized() {
     require (!isFinalized());
     _;
   }
 
+  /**
+  * @dev This modifier verifies that msg.sender is the system address (EIP96)
+  */
   modifier onlySystem() {
     require(msg.sender == systemAddress());
     _;
   }
 
+  /**
+  * @dev Function to be called on contract initialization
+  * @param _minStake minimum stake needed to become a validator
+  * @param _initialValidator address of the initial validator. If not set - msg.sender will be the initial validator
+  */
   function initialize(uint256 _minStake, address _initialValidator) public returns(bool){
     require(!isInitialized());
     setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
@@ -32,14 +50,23 @@ contract Consensus is ConsensusStorage, ValidatorSet {
     return isInitialized();
   }
 
+  /**
+  * @dev Function which returns the current validator addresses
+  */
   function getValidators() public view returns(address[]) {
     return currentValidators();
   }
 
+  /**
+  * @dev Function which returns the pending validator addresses (candidates for becoming validators)
+  */
   function getPendingValidators() public view returns(address[]) {
     return pendingValidators();
   }
 
+  /**
+  * @dev See ValidatorSet.finalizeChange
+  */
   function finalizeChange() public onlySystem notFinalized {
     setFinalized(true);
 
@@ -57,10 +84,17 @@ contract Consensus is ConsensusStorage, ValidatorSet {
     emit ChangeFinalized(getValidators());
   }
 
+  /**
+  * @dev Fallback function allowing to pay to this contract. Whoever sends funds is considered as "staking" and wanting to become a validator.
+  */
   function () external payable {
     _stake(msg.sender, msg.value);
   }
 
+  /**
+  * @dev Function to be called when a staker whishes to withdraw some of his staked funds
+  * @param _amount the amount msg.sender wishes to withdraw from the contract
+  */
   function withdraw(uint256 _amount) external {
     require (_amount > 0);
     require (_amount <= stakeAmount(msg.sender));
@@ -72,7 +106,10 @@ contract Consensus is ConsensusStorage, ValidatorSet {
     msg.sender.transfer(_amount);
   }
 
-
+  /**
+  * @dev Function to get the validator state of an address
+  * @param _someone address to check its validator state
+  */
   function getValidatorState(address _someone) public view returns(bool, bool, uint256[]) {
     return (isValidator(_someone), isValidatorFinalized(_someone), validatorIndexes(_someone));
   }

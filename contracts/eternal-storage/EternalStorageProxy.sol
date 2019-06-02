@@ -15,19 +15,40 @@ contract EternalStorageProxy is EternalStorage {
     */
     event Upgraded(uint256 version, address indexed implementation);
 
+    /**
+    * @dev This event will be emitted when ownership is renounces
+    * @param previousOwner address which is renounced from ownership
+    */
     event OwnershipRenounced(address indexed previousOwner);
+
+    /**
+    * @dev This event will be emitted when ownership is transferred
+    * @param previousOwner address which represents the previous owner
+    * @param newOwner address which represents the new owner
+    */
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    /**
+    * @dev This modifier verifies that msg.sender is the ProxyStorage contract
+    */
     modifier onlyProxyStorage() {
       require(msg.sender == getProxyStorage());
       _;
     }
 
+    /**
+    * @dev This modifier verifies that msg.sender is the owner of the contract
+    */
     modifier onlyOwner() {
       require (msg.sender == getOwner());
       _;
     }
 
+    /**
+    * @dev Constructor
+    * @param _proxyStorage address representing the ProxyStorage contract
+    * @param _implementation address representing the implementation contract
+    */
     constructor(address _proxyStorage, address _implementation) public {
       require(_implementation != address(0));
       if (_proxyStorage != address(0)) {
@@ -70,7 +91,7 @@ contract EternalStorageProxy is EternalStorage {
     // solhint-enable no-complex-fallback, no-inline-assembly
 
     /**
-     * @dev Allows ProxyStorage contract to upgrade the current implementation.
+     * @dev Allows ProxyStorage contract (only) to upgrade the current implementation.
      * @param _newImplementation representing the address of the new implementation to be set.
      */
     function upgradeTo(address _newImplementation) public onlyProxyStorage returns(bool) {
