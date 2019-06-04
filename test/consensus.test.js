@@ -1,7 +1,8 @@
+const moment = require('moment')
 const Consensus = artifacts.require('ConsensusMock.sol')
-const ProxyStorage = artifacts.require('ProxyStorage.sol')
+const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
-const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS} = require('./helpers')
+const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS, advanceTime, advanceBlock} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const MIN_STAKE_AMOUNT = 10000
@@ -11,6 +12,8 @@ const ONE_ETHER = toWei(toBN(1), 'ether')
 const LESS_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
 const MORE_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT + 1), 'ether')
 const MULTIPLE_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT), 'ether')
+const CYCLE_DURATION_SECONDS = 24*60*60
+const SNAPSHOTS_PER_CYCLE = 10
 
 contract('Consensus', async (accounts) => {
   let consensusImpl, proxy, consensus
@@ -19,6 +22,7 @@ contract('Consensus', async (accounts) => {
   let initialValidator = accounts[0]
   let firstCandidate = accounts[1]
   let secondCandidate = accounts[2]
+  let thirdCandidate = accounts[3]
 
   beforeEach(async () => {
     // Consensus
@@ -35,12 +39,18 @@ contract('Consensus', async (accounts) => {
 
   describe('initialize', async () => {
     it('default values', async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.systemAddress()))
       false.should.be.equal(await consensus.isFinalized())
       MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
+      toBN(CYCLE_DURATION_SECONDS).should.be.bignumber.equal(await consensus.getCycleDuration())
+      toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
+      toBN(CYCLE_DURATION_SECONDS / SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getTimeToSnapshot())
+      false.should.be.equal(await consensus.hasCycleEnded())
+      toBN(0).should.be.bignumber.equal(await consensus.getLastSnapshotTakenTime())
+      toBN(0).should.be.bignumber.equal(await consensus.getNextSnapshotId())
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(initialValidator)
@@ -48,33 +58,23 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(0)
     })
     it('initial validator address not defined - owner should be initial validator', async () => {
-      await consensus.initialize(MIN_STAKE, ZERO_ADDRESS)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, ZERO_ADDRESS)
       await consensus.setProxyStorage(proxyStorage.address)
-      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.systemAddress()))
-      false.should.be.equal(await consensus.isFinalized())
-      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(owner)
-      let pendingValidators = await consensus.getPendingValidators()
-      pendingValidators.length.should.be.equal(0)
     })
     it('initial validator address defined', async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
-      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.systemAddress()))
-      false.should.be.equal(await consensus.isFinalized())
-      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(initialValidator)
-      let pendingValidators = await consensus.getPendingValidators()
-      pendingValidators.length.should.be.equal(0)
     })
   })
 
   describe('setMinStake', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('setMinStake should fail if not called by owner', async () => {
@@ -87,9 +87,43 @@ contract('Consensus', async (accounts) => {
     })
   })
 
+  describe('setCycleDuration', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('setCycleDuration should fail if not called by owner', async () => {
+      let newCycleDurationSeconds = CYCLE_DURATION_SECONDS / 24
+      await consensus.setCycleDuration(newCycleDurationSeconds, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
+      toBN(CYCLE_DURATION_SECONDS).should.be.bignumber.equal(await consensus.getCycleDuration())
+    })
+    it('setCycleDuration successfully', async () => {
+      let newCycleDurationSeconds = CYCLE_DURATION_SECONDS / 24
+      await consensus.setCycleDuration(newCycleDurationSeconds, {from: owner})
+      toBN(newCycleDurationSeconds).should.be.bignumber.equal(await consensus.getCycleDuration())
+    })
+  })
+
+  describe('setSnapshotsPerCycle', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('setSnapshotsPerCycle should fail if not called by owner', async () => {
+      let newSnapshotsPerCycle = SNAPSHOTS_PER_CYCLE - 1
+      await consensus.setSnapshotsPerCycle(newSnapshotsPerCycle, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
+      toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
+    })
+    it('setSnapshotsPerCycle successfully', async () => {
+      let newSnapshotsPerCycle = SNAPSHOTS_PER_CYCLE - 1
+      await consensus.setSnapshotsPerCycle(newSnapshotsPerCycle, {from: owner})
+      toBN(newSnapshotsPerCycle).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
+    })
+  })
+
   describe('setProxyStorage', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
     })
     it('setProxyStorage should fail if no address', async () => {
       await consensus.setProxyStorage(ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
@@ -114,7 +148,7 @@ contract('Consensus', async (accounts) => {
 
   describe('finalizeChange', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('should only be called by SYSTEM_ADDRESS', async () => {
@@ -128,19 +162,42 @@ contract('Consensus', async (accounts) => {
       await consensus.finalizeChange().should.be.fulfilled
       true.should.be.equal(await consensus.isFinalized())
     })
+    it('should not update current validators set if new set is empty', async () => {
+      let initialValidators = await consensus.getValidators()
+      let mockSet = []
+      await consensus.setNewValidatorSetMock(mockSet)
+      await consensus.setSystemAddressMock(accounts[0])
+      let {logs} = await consensus.finalizeChange().should.be.fulfilled
+      let currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(1)
+      currentValidators.should.deep.equal(initialValidators)
+      logs[0].event.should.be.equal('ChangeFinalized')
+      logs[0].args['newSet'].should.deep.equal(initialValidators)
+    })
+    it('should update current validators set', async () => {
+      let mockSet = [firstCandidate, secondCandidate]
+      await consensus.setNewValidatorSetMock(mockSet)
+      await consensus.setSystemAddressMock(accounts[0])
+      let {logs} = await consensus.finalizeChange().should.be.fulfilled
+      let currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(2)
+      currentValidators.should.deep.equal(mockSet)
+      logs[0].event.should.be.equal('ChangeFinalized')
+      logs[0].args['newSet'].should.deep.equal(mockSet)
+    })
   })
 
   describe('stake using payable', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('basic', async () => {
-      it('should no allow zero stake', async () => {
+      it('should not allow zero stake', async () => {
         await consensus.send(0, {from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
       })
-      it('less than minimum stake', async () => {
-        let {logs} = await consensus.sendTransaction({from: firstCandidate, value: LESS_THAN_MIN_STAKE})
+      it('less than minimum stake - should not be added to pending validators', async () => {
+        await consensus.sendTransaction({from: firstCandidate, value: LESS_THAN_MIN_STAKE}).should.be.fulfilled
         // contract balance should be updated
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         // sender stake amount should be updated
@@ -148,11 +205,9 @@ contract('Consensus', async (accounts) => {
         // pending validators should not be updated
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(0)
-        // InitiateChange should not be emitted
-        logs.length.should.be.equal(0)
       })
       it('more than minimum stake', async () => {
-        let {logs} = await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
         // contract balance should be updated
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         // sender stake amount should be updated
@@ -160,83 +215,51 @@ contract('Consensus', async (accounts) => {
         // validators state should be updated
         let state = await consensus.getValidatorState(firstCandidate)
         state[0].should.be.equal(true)
-        state[1].should.be.equal(false)
-        state[2].length.should.be.equal(1)
-        state[2][0].should.be.bignumber.equal(toBN(0))
+        state[1].length.should.be.equal(1)
+        state[1][0].should.be.bignumber.equal(toBN(0))
         // pending validators should be updated
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
-        // finalized should be updated to false
-        false.should.be.equal(await consensus.isFinalized())
-        // should emit InitiateChange with blockhash and pendingValidators
-        logs.length.should.be.equal(1)
-        logs[0].event.should.be.equal('InitiateChange')
-        logs[0].args['newSet'].should.deep.equal(pendingValidators)
       })
     })
-
     describe('advanced', async () => {
       it('more than minimum stake amount, in more than one transaction', async () => {
         // 1st stake
-        let {logs} = await consensus.sendTransaction({from: firstCandidate, value: LESS_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: LESS_THAN_MIN_STAKE}).should.be.fulfilled
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(0)
-        logs.length.should.be.equal(0)
 
         // 2nd stake
-        let tx = await consensus.sendTransaction({from: firstCandidate, value: ONE_ETHER})
-        logs = tx.logs
+        await consensus.sendTransaction({from: firstCandidate, value: ONE_ETHER}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
         let state = await consensus.getValidatorState(firstCandidate)
         state[0].should.be.equal(true)
-        state[1].should.be.equal(false)
-        state[2].length.should.be.equal(1)
-        state[2][0].should.be.bignumber.equal(toBN(0))
+        state[1].length.should.be.equal(1)
+        state[1][0].should.be.bignumber.equal(toBN(0))
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
-        false.should.be.equal(await consensus.isFinalized())
-        logs.length.should.be.equal(1)
-        logs[0].event.should.be.equal('InitiateChange')
-        logs[0].args['newSet'].should.deep.equal(pendingValidators)
       })
       it('more than one validator', async () => {
         // add 1st validator
-        let tx1 = await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
-        tx1.logs.length.should.be.equal(1)
-        tx1.logs[0].event.should.be.equal('InitiateChange')
-        tx1.logs[0].args['newSet'].should.deep.equal(pendingValidators)
         // add 2nd validator
-        let tx2 = await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(2)
-        tx2.logs.length.should.be.equal(1)
-        tx2.logs[0].event.should.be.equal('InitiateChange')
-        tx2.logs[0].args['newSet'].should.deep.equal(pendingValidators)
-        // finalize change
-        await consensus.setSystemAddressMock(accounts[0])
-        let {logs} = await consensus.finalizeChange().should.be.fulfilled
-        // currentValidators should be updated
-        let currentValidatorsLength = await consensus.currentValidatorsLength()
-        currentValidatorsLength.should.be.bignumber.equal(toBN(2))
-        let currentValidators = await consensus.getValidators()
-        currentValidators.length.should.be.equal(2)
-        currentValidators.should.deep.equal(pendingValidators)
-        logs[0].event.should.be.equal('ChangeFinalized')
-        logs[0].args['newSet'].should.deep.equal(currentValidators)
       })
       it('multiple times according to staked amount', async () => {
         let expectedValidators = []
         for (let i = 0; i < MULTIPLY_AMOUNT; i++) {
           expectedValidators.push(firstCandidate)
         }
-        let {logs} = await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE}).should.be.fulfilled
         // contract balance should be updated
         MULTIPLE_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         // sender stake amount should be updated
@@ -244,133 +267,274 @@ contract('Consensus', async (accounts) => {
         // validators state should be updated
         let state = await consensus.getValidatorState(firstCandidate)
         state[0].should.be.equal(true)
-        state[1].should.be.equal(false)
-        state[2].length.should.be.equal(MULTIPLY_AMOUNT)
-        state[2][0].should.be.bignumber.equal(toBN(0))
-        state[2][1].should.be.bignumber.equal(toBN(1))
-        state[2][2].should.be.bignumber.equal(toBN(2))
-        // pending validators should be updattoBN(ed)
+        state[1].length.should.be.equal(MULTIPLY_AMOUNT)
+        state[1][0].should.be.bignumber.equal(toBN(0))
+        state[1][1].should.be.bignumber.equal(toBN(1))
+        state[1][2].should.be.bignumber.equal(toBN(2))
+        // pending validators should be updated
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT)
         pendingValidators.should.deep.equal(expectedValidators)
-        // finalized should be updated to false
-        false.should.be.equal(await consensus.isFinalized())
-        // should emit InitiateChange with blockhash and pendingValidators
-        logs.length.should.be.equal(1)
-        logs[0].event.should.be.equal('InitiateChange')
-        logs[0].args['newSet'].should.deep.equal(pendingValidators)
       })
       it('multiple times according to staked amount, in more than one transaction', async () => {
         // 1st stake
-        let {logs} = await consensus.sendTransaction({from: firstCandidate, value: LESS_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: LESS_THAN_MIN_STAKE}).should.be.fulfilled
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(0)
-        logs.length.should.be.equal(0)
 
         // 2nd stake - added once
         let expectedValidators = [firstCandidate]
-        let tx1 = await consensus.sendTransaction({from: firstCandidate, value: ONE_ETHER})
-        logs = tx1.logs
+        await consensus.sendTransaction({from: firstCandidate, value: ONE_ETHER}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
         let state = await consensus.getValidatorState(firstCandidate)
         state[0].should.be.equal(true)
-        state[1].should.be.equal(false)
-        state[2].length.should.be.equal(1)
-        state[2][0].should.be.bignumber.equal(toBN(0))
+        state[1].length.should.be.equal(1)
+        state[1][0].should.be.bignumber.equal(toBN(0))
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
-        false.should.be.equal(await consensus.isFinalized())
-        logs.length.should.be.equal(1)
-        logs[0].event.should.be.equal('InitiateChange')
-        logs[0].args['newSet'].should.deep.equal(pendingValidators)
 
         // 3rd stake - added MULTIPLY_AMOUNT more times
         for (let i = 0; i < MULTIPLY_AMOUNT; i++) {
           expectedValidators.push(firstCandidate)
         }
-        let tx2 = await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
-        logs = tx2.logs
+        await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE}).should.be.fulfilled
         let amount = toWei(toBN(MIN_STAKE_AMOUNT * (1 + MULTIPLY_AMOUNT)), 'ether')
         amount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         amount.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
         state = await consensus.getValidatorState(firstCandidate)
         state[0].should.be.equal(true)
-        state[1].should.be.equal(false)
-        state[2].length.should.be.equal(expectedValidators.length)
-        state[2][0].should.be.bignumber.equal(toBN(0))
-        state[2][1].should.be.bignumber.equal(toBN(1))
-        state[2][2].should.be.bignumber.equal(toBN(2))
-        state[2][3].should.be.bignumber.equal(toBN(3))
+        state[1].length.should.be.equal(expectedValidators.length)
+        state[1][0].should.be.bignumber.equal(toBN(0))
+        state[1][1].should.be.bignumber.equal(toBN(1))
+        state[1][2].should.be.bignumber.equal(toBN(2))
+        state[1][3].should.be.bignumber.equal(toBN(3))
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(1 + MULTIPLY_AMOUNT)
         pendingValidators.should.deep.equal(expectedValidators)
-        false.should.be.equal(await consensus.isFinalized())
-        logs.length.should.be.equal(1)
-        logs[0].event.should.be.equal('InitiateChange')
-        logs[0].args['newSet'].should.deep.equal(pendingValidators)
       })
       it('multiple validators, multiple times', async () => {
         let expectedValidators = []
         // add 1st validator
         expectedValidators.push(firstCandidate)
-        let tx1 = await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
         let pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
-        tx1.logs.length.should.be.equal(1)
-        tx1.logs[0].event.should.be.equal('InitiateChange')
-        tx1.logs[0].args['newSet'].should.deep.equal(pendingValidators)
         // add 2nd validator
         expectedValidators.push(secondCandidate)
-        let tx2 = await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
-        tx2.logs.length.should.be.equal(1)
-        tx2.logs[0].event.should.be.equal('InitiateChange')
-        tx2.logs[0].args['newSet'].should.deep.equal(pendingValidators)
         // add 1st validator MULTIPLY_AMOUNT more times
         for (let i = 0; i < MULTIPLY_AMOUNT; i++) {
           expectedValidators.push(firstCandidate)
         }
-        let tx3 = await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
+        await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE}).should.be.fulfilled
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
-        tx3.logs.length.should.be.equal(1)
-        tx3.logs[0].event.should.be.equal('InitiateChange')
-        tx3.logs[0].args['newSet'].should.deep.equal(pendingValidators)
         // add 2nd validator one more time
         expectedValidators.push(secondCandidate)
-        let tx4 = await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE})
+        await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
         pendingValidators = await consensus.getPendingValidators()
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
-        tx4.logs.length.should.be.equal(1)
-        tx4.logs[0].event.should.be.equal('InitiateChange')
-        tx4.logs[0].args['newSet'].should.deep.equal(pendingValidators)
-        // finalize change
-        await consensus.setSystemAddressMock(accounts[0])
-        let {logs} = await consensus.finalizeChange().should.be.fulfilled
-        // currentValidators should be updated
-        let currentValidatorsLength = await consensus.currentValidatorsLength()
-        currentValidatorsLength.should.be.bignumber.equal(toBN(expectedValidators.length))
-        let currentValidators = await consensus.getValidators()
-        currentValidators.length.should.be.equal(expectedValidators.length)
-        currentValidators.should.deep.equal(pendingValidators)
-        logs[0].event.should.be.equal('ChangeFinalized')
-        logs[0].args['newSet'].should.deep.equal(currentValidators)
       })
+    })
+  })
+
+  describe('cycles and snapshots', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('hasCycleEnded', async () => {
+      false.should.be.equal(await consensus.hasCycleEnded())
+      let currentCycleEndTime = await consensus.getCurrentCycleEndTime()
+      await advanceTime(CYCLE_DURATION_SECONDS)
+      true.should.be.equal(await consensus.hasCycleEnded())
+    })
+    it('shouldTakeSnapshot', async () => {
+      let timeToSnapshot = await consensus.getTimeToSnapshot()
+      let lastSnapshotTakenTime = await consensus.getLastSnapshotTakenTime()
+      let currentTime = await consensus.getTime()
+      let shouldTakeSnapshot = currentTime.sub(lastSnapshotTakenTime).gte(timeToSnapshot)
+      shouldTakeSnapshot.should.be.equal(await consensus.shouldTakeSnapshot())
+
+      await consensus.setSnapshotsPerCycle(CYCLE_DURATION_SECONDS, {from: owner})
+      true.should.be.equal(await consensus.shouldTakeSnapshot())
+    })
+    it('getSnapshot & addToSnapshot', async () => {
+      let id = await consensus.getNextSnapshotId()
+      let snapshot = await consensus.getSnapshot(id)
+      snapshot.length.should.be.equal(0)
+      snapshot.should.deep.equal([])
+      await consensus.addToSnapshotMock(accounts[1], id)
+      await consensus.addToSnapshotMock(accounts[2], id)
+      await consensus.addToSnapshotMock(accounts[3], id)
+      snapshot = await consensus.getSnapshot(id)
+      snapshot.length.should.be.equal(3)
+      snapshot.should.deep.equal([accounts[1], accounts[2], accounts[3]])
+    })
+    it('getRandom', async () => {
+      let repeats = 25
+      let randoms = []
+      for (let i = 0; i < repeats; i++) {
+        randoms.push((await consensus.getRandom(0, SNAPSHOTS_PER_CYCLE)).toNumber())
+        await advanceBlock()
+      }
+      randoms.length.should.be.equal(repeats)
+      let distincts = [...new Set(randoms)]
+      distincts.length.should.be.greaterThan(1)
+      distincts.length.should.be.lessThan(SNAPSHOTS_PER_CYCLE)
+    })
+    it('golden flow should work', async () => {
+      let currentValidators, pendingValidators, timeToSnapshot, id, snapshot, randomSnapshotId, randomSnapshot, tx
+
+      await consensus.setSystemAddressMock(owner)
+      await proxyStorage.setBlockRewardMock(owner)
+
+      await consensus.setSnapshotsPerCycle(3, {from: owner})
+
+      currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(1)
+      currentValidators[0].should.be.equal(initialValidator)
+      // console.log('currentValidators', currentValidators)
+      pendingValidators = await consensus.getPendingValidators()
+      pendingValidators.length.should.be.equal(0)
+      // console.log('pendingValidators', pendingValidators)
+
+      // 1st staker added to pending validators
+      await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
+      pendingValidators = await consensus.getPendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      pendingValidators.should.deep.equal([firstCandidate])
+      // console.log('pendingValidators', pendingValidators)
+
+      // advance time to take snapshot
+      timeToSnapshot = (await consensus.getTimeToSnapshot()).toNumber()
+      await advanceTime(timeToSnapshot)
+      await advanceBlock()
+
+      // call cycle function
+      tx = await consensus.cycle({from: owner}).should.be.fulfilled
+      tx.logs.length.should.be.equal(0)
+
+      // check snapshot created
+      id = await consensus.getNextSnapshotId()
+      snapshot = await consensus.getSnapshot(id - 1)
+      snapshot.length.should.be.equal(1)
+      snapshot.should.deep.equal([firstCandidate])
+
+      // 2nd staker added to pending validators
+      await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
+      pendingValidators = await consensus.getPendingValidators()
+      pendingValidators.length.should.be.equal(2)
+      pendingValidators.should.deep.equal([firstCandidate, secondCandidate])
+      // console.log('pendingValidators', pendingValidators)
+
+      // advance time to take snapshot
+      timeToSnapshot = (await consensus.getTimeToSnapshot()).toNumber()
+      await advanceTime(timeToSnapshot)
+      await advanceBlock()
+
+      // call cycle function
+      tx = await consensus.cycle({from: owner}).should.be.fulfilled
+      tx.logs.length.should.be.equal(0)
+
+      // check snapshot created
+      id = await consensus.getNextSnapshotId()
+      snapshot = await consensus.getSnapshot(id - 1)
+      snapshot.length.should.be.equal(2)
+      snapshot.should.deep.equal([firstCandidate, secondCandidate])
+
+      // advance time to end cycle
+      await advanceTime(CYCLE_DURATION_SECONDS - 2 * timeToSnapshot)
+      await advanceBlock()
+
+      // get random snapshot id
+      randomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
+      // console.log('randomSnapshotId', randomSnapshotId)
+      randomSnapshot = await consensus.getSnapshot(randomSnapshotId)
+      // console.log('randomSnapshot', randomSnapshot)
+
+      // call cycle function
+      tx = await consensus.cycle({from: owner}).should.be.fulfilled
+      tx.logs.length.should.be.equal(1)
+      tx.logs[0].event.should.be.equal('InitiateChange')
+      tx.logs[0].args['newSet'].should.deep.equal(randomSnapshot)
+
+      // call finalizeChange
+      tx = await consensus.finalizeChange().should.be.fulfilled
+      currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(randomSnapshot.length)
+      currentValidators.should.deep.equal(randomSnapshot)
+      tx.logs[0].event.should.be.equal('ChangeFinalized')
+      tx.logs[0].args['newSet'].should.deep.equal(randomSnapshot)
+      // console.log('currentValidators', currentValidators)
+
+      // 3rd staker added to pending validators
+      await consensus.sendTransaction({from: thirdCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
+      pendingValidators = await consensus.getPendingValidators()
+      pendingValidators.length.should.be.equal(3)
+      pendingValidators.should.deep.equal([firstCandidate, secondCandidate, thirdCandidate])
+      // console.log('pendingValidators', pendingValidators)
+
+      // advance time to take snapshot
+      timeToSnapshot = (await consensus.getTimeToSnapshot()).toNumber()
+      await advanceTime(timeToSnapshot)
+      await advanceBlock()
+
+      // call cycle function
+      tx = await consensus.cycle({from: owner}).should.be.fulfilled
+      tx.logs.length.should.be.equal(0)
+
+      // check snapshot created
+      id = await consensus.getNextSnapshotId()
+      snapshot = await consensus.getSnapshot(id - 1)
+      snapshot.length.should.be.equal(3)
+      snapshot.should.deep.equal([firstCandidate, secondCandidate, thirdCandidate])
+
+      // advance time to end cycle
+      await advanceTime(CYCLE_DURATION_SECONDS - 1 * timeToSnapshot)
+      await advanceBlock()
+
+      // get random snapshot id
+      newRandomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
+      while (newRandomSnapshotId == randomSnapshotId) {
+        await advanceBlock()
+        newRandomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
+      }
+      randomSnapshotId = newRandomSnapshotId
+      // console.log('randomSnapshotId', randomSnapshotId)
+      randomSnapshot = await consensus.getSnapshot(randomSnapshotId)
+      // console.log('randomSnapshot', randomSnapshot)
+
+      // call cycle function
+      tx = await consensus.cycle({from: owner}).should.be.fulfilled
+      tx.logs.length.should.be.equal(1)
+      tx.logs[0].event.should.be.equal('InitiateChange')
+      tx.logs[0].args['newSet'].should.deep.equal(randomSnapshot)
+
+      // call finalizeChange
+      tx = await consensus.finalizeChange().should.be.fulfilled
+      currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(randomSnapshot.length)
+      currentValidators.should.deep.equal(randomSnapshot)
+      tx.logs[0].event.should.be.equal('ChangeFinalized')
+      tx.logs[0].args['newSet'].should.deep.equal(randomSnapshot)
+      // console.log('currentValidators', currentValidators)
     })
   })
 
   describe('withdraw', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('cannot withdraw zero', async () => {
@@ -380,11 +544,7 @@ contract('Consensus', async (accounts) => {
       await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE})
       await consensus.withdraw(MORE_THAN_MIN_STAKE).should.be.rejectedWith(ERROR_MSG)
     })
-    it('cannot withdraw and leave validators list empty', async () => {
-      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE})
-      await consensus.withdraw(MIN_STAKE, {from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
-    })
-    it('can withdraw all staked amount and update validators', async () => {
+    it('can withdraw all staked amount', async () => {
       // stake
       await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE})
       // stake
@@ -397,19 +557,8 @@ contract('Consensus', async (accounts) => {
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(1)
       pendingValidators.should.deep.equal([secondCandidate])
-      // finalize change
-      await consensus.setSystemAddressMock(accounts[0])
-      let {logs} = await consensus.finalizeChange().should.be.fulfilled
-      // currentValidators should be updated
-      let currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(toBN(1))
-      let currentValidators = await consensus.getValidators()
-      currentValidators.length.should.be.equal(1)
-      currentValidators.should.deep.equal([secondCandidate])
-      logs[0].event.should.be.equal('ChangeFinalized')
-      logs[0].args['newSet'].should.deep.equal(currentValidators)
     })
-    it('can withdraw less than staked amount and update validators', async () => {
+    it('can withdraw less than staked amount', async () => {
       // stake
       await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
       // withdraw
@@ -425,19 +574,8 @@ contract('Consensus', async (accounts) => {
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
       pendingValidators.should.deep.equal(expectedValidators)
-      // finalize change
-      await consensus.setSystemAddressMock(accounts[0])
-      let {logs} = await consensus.finalizeChange().should.be.fulfilled
-      // currentValidators should be updated
-      let currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 1))
-      let currentValidators = await consensus.getValidators()
-      currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
-      currentValidators.should.deep.equal(expectedValidators)
-      logs[0].event.should.be.equal('ChangeFinalized')
-      logs[0].args['newSet'].should.deep.equal(currentValidators)
     })
-    it('can withdraw multiple times and update validators accordingly', async () => {
+    it('can withdraw multiple times', async () => {
       // stake
       await consensus.sendTransaction({from: firstCandidate, value: MULTIPLE_MIN_STAKE})
       // withdraw 1st time
@@ -452,15 +590,6 @@ contract('Consensus', async (accounts) => {
       let pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
       pendingValidators.should.deep.equal(expectedValidators)
-      await consensus.setSystemAddressMock(accounts[0])
-      let tx1 = await consensus.finalizeChange().should.be.fulfilled
-      let currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 1))
-      let currentValidators = await consensus.getValidators()
-      currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 1)
-      currentValidators.should.deep.equal(expectedValidators)
-      tx1.logs[0].event.should.be.equal('ChangeFinalized')
-      tx1.logs[0].args['newSet'].should.deep.equal(currentValidators)
       // withdraw 2nd time
       await consensus.withdraw(MIN_STAKE, {from: firstCandidate})
       expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT * (MULTIPLY_AMOUNT - 2)), 'ether')
@@ -473,17 +602,6 @@ contract('Consensus', async (accounts) => {
       pendingValidators = await consensus.getPendingValidators()
       pendingValidators.length.should.be.equal(MULTIPLY_AMOUNT - 2)
       pendingValidators.should.deep.equal(expectedValidators)
-      await consensus.setSystemAddressMock(accounts[0])
-      let tx2 = await consensus.finalizeChange().should.be.fulfilled
-      currentValidatorsLength = await consensus.currentValidatorsLength()
-      currentValidatorsLength.should.be.bignumber.equal(toBN(MULTIPLY_AMOUNT - 2))
-      currentValidators = await consensus.getValidators()
-      currentValidators.length.should.be.equal(MULTIPLY_AMOUNT - 2)
-      currentValidators.should.deep.equal(expectedValidators)
-      tx2.logs[0].event.should.be.equal('ChangeFinalized')
-      tx2.logs[0].args['newSet'].should.deep.equal(currentValidators)
-      // withdraw 3rd time - should fail as validators list cannot be empty
-      await consensus.withdraw(MIN_STAKE, {from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
@@ -525,7 +643,7 @@ contract('Consensus', async (accounts) => {
       await proxy.setProxyStorageMock(proxyStorage.address)
       consensusNew = await Consensus.at(proxy.address)
       false.should.be.equal(await consensusNew.isInitialized())
-      await consensusNew.initialize(MIN_STAKE, initialValidator).should.be.fulfilled
+      await consensusNew.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator).should.be.fulfilled
       true.should.be.equal(await consensusNew.isInitialized())
     })
     it('should use same proxyStorage after upgrade', async () => {

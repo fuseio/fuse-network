@@ -7,7 +7,24 @@ contract ConsensusMock is Consensus {
     addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))] = _newAddress;
   }
 
-  function addValidatorMock(address _validator) public onlyOwner {
-    pendingValidatorsAdd(_validator);
+  function setTime(uint256 _newTime) public {
+    uintStorage[keccak256(abi.encodePacked("mockTime"))] = _newTime;
+  }
+
+  function getTime() public view returns(uint256) {
+    uint256 time = uintStorage[keccak256(abi.encodePacked("mockTime"))];
+    if (time == 0) {
+      return now;
+    } else {
+      return time;
+    }
+  }
+
+  function setNewValidatorSetMock(address[] _newSet) public {
+    addressArrayStorage[keccak256(abi.encodePacked("newValidatorSet"))] = _newSet;
+  }
+
+  function addToSnapshotMock(address _address, uint256 _snapshotId) public {
+    addToSnapshot(_address, _snapshotId);
   }
 }

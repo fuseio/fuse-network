@@ -22,4 +22,8 @@ contract ProxyStorageMock is ProxyStorage {
   function setConsensusMock(address _newAddress) public {
     addressStorage[keccak256(abi.encodePacked("consensus"))] = _newAddress;
   }
+
+  function setBlockRewardMock(address _newAddress) public {
+    addressStorage[keccak256(abi.encodePacked("blockReward"))] = _newAddress;
+  }
 }

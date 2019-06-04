@@ -23,6 +23,10 @@ contract ConsensusStorage is EternalStorage {
       _;
     }
 
+    function getTime() public view returns(uint256) {
+      return now;
+    }
+
     function systemAddress() public view returns(address) {
       return addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))];
     }
@@ -54,6 +58,85 @@ contract ConsensusStorage is EternalStorage {
 
     function getMinStake() public view returns(uint256) {
       return uintStorage[keccak256(abi.encodePacked("minStake"))];
+    }
+
+    function setCycleDuration(uint256 _cycleDuration) public onlyOwner {
+      require(_cycleDuration > 0);
+      uintStorage[keccak256(abi.encodePacked("cycleDuration"))] = _cycleDuration;
+    }
+
+    function getCycleDuration() public view returns(uint256) {
+      return uintStorage[keccak256(abi.encodePacked("cycleDuration"))];
+    }
+
+    function setCurrentCycleTimeframe() internal {
+      setCurrentCycleStartTime(getTime());
+      setCurrentCycleEndTime(getTime() + getCycleDuration());
+    }
+
+    function setCurrentCycleStartTime(uint256 _time) private {
+      uintStorage[keccak256(abi.encodePacked("currentCycleStartTime"))] = _time;
+    }
+
+    function getCurrentCycleStartTime() public view returns(uint256) {
+      return uintStorage[keccak256(abi.encodePacked("currentCycleStartTime"))];
+    }
+
+    function setCurrentCycleEndTime(uint256 _time) private {
+      uintStorage[keccak256(abi.encodePacked("currentCycleEndTime"))] = _time;
+    }
+
+    function getCurrentCycleEndTime() public view returns(uint256) {
+      return uintStorage[keccak256(abi.encodePacked("currentCycleEndTime"))];
+    }
+
+    function hasCycleEnded() public view returns(bool) {
+      return (getTime() >= getCurrentCycleEndTime());
+    }
+
+    function setSnapshotsPerCycle(uint256 _snapshotsPerCycle) public onlyOwner {
+      require(_snapshotsPerCycle > 0);
+      uintStorage[keccak256(abi.encodePacked("snapshotsPerCycle"))] = _snapshotsPerCycle;
+    }
+
+    function getSnapshotsPerCycle() public view returns(uint256) {
+      return uintStorage[keccak256(abi.encodePacked("snapshotsPerCycle"))];
+    }
+
+    function setLastSnapshotTakenTime(uint256 _time) internal {
+      uintStorage[keccak256(abi.encodePacked("lastSnapshotTakenTime"))] = _time;
+    }
+
+    function getLastSnapshotTakenTime() public view returns(uint256) {
+      return uintStorage[keccak256(abi.encodePacked("lastSnapshotTakenTime"))];
+    }
+
+    function getNextSnapshotId() public view returns(uint256) {
+      return uintStorage[keccak256(abi.encodePacked("nextSnapshotId"))];
+    }
+
+    function setNextSnapshotId(uint256 _id) internal {
+      uintStorage[keccak256(abi.encodePacked("nextSnapshotId"))] = _id;
+    }
+
+    function addToSnapshot(address _address, uint256 _snapshotId) internal {
+        addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId))].push(_address);
+    }
+
+    function getSnapshot(uint256 _snapshotId) public view returns(address[]) {
+       return addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId))];
+    }
+
+    function getTimeToSnapshot() public view returns(uint256) {
+      return getCycleDuration().div(getSnapshotsPerCycle());
+    }
+
+    function shouldTakeSnapshot() public view returns(bool) {
+      return (getTime() - getLastSnapshotTakenTime() >= getTimeToSnapshot());
+    }
+
+    function getRandom(uint256 _from, uint256 _to) public view returns(uint256) {
+      return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1)))).mod(_to).add(_from);
     }
 
     function currentValidators() public view returns(address[]) {
@@ -129,14 +212,6 @@ contract ConsensusStorage is EternalStorage {
       boolStorage[keccak256(abi.encodePacked("isValidator", _address))] = _status;
     }
 
-    function isValidatorFinalized(address _address) public view returns(bool) {
-      return boolStorage[keccak256(abi.encodePacked("isValidatorFinalized", _address))];
-    }
-
-    function setIsValidatorFinalized(address _address, bool _status) internal {
-      boolStorage[keccak256(abi.encodePacked("isValidatorFinalized", _address))] = _status;
-    }
-
     function validatorIndexes(address _address) public view returns(uint256[]) {
       return uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))];
     }
@@ -175,5 +250,17 @@ contract ConsensusStorage is EternalStorage {
       require(_newAddress != address(0));
       addressStorage[keccak256(abi.encodePacked("proxyStorage"))] = _newAddress;
       boolStorage[keccak256(abi.encodePacked("wasProxyStorageSet"))] = true;
+    }
+
+    function newValidatorSet() public view returns(address[]) {
+      return addressArrayStorage[keccak256(abi.encodePacked("newValidatorSet"))];
+    }
+
+    function newValidatorSetLength() public view returns(uint256) {
+      return addressArrayStorage[keccak256(abi.encodePacked("newValidatorSet"))].length;
+    }
+
+    function setNewValidatorSet(address[] _newSet) internal {
+      addressArrayStorage[keccak256(abi.encodePacked("newValidatorSet"))] = _newSet;
     }
 }

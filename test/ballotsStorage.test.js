@@ -26,7 +26,7 @@ contract('BallotsStorage', async (accounts) => {
     consensusImpl = await Consensus.new()
     proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
     consensus = await Consensus.at(proxy.address)
-    await consensus.initialize(toWei(toBN(10000), 'ether'), owner)
+    await consensus.initialize(toWei(toBN(10000), 'ether'), 24*60*60, 10, owner)
 
     // ProxyStorage
     proxyStorageImpl = await ProxyStorage.new()
@@ -105,9 +105,7 @@ contract('BallotsStorage', async (accounts) => {
     })
     it('should get correct value depending on validators count', async () => {
       toBN(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
-      await consensus.addValidatorMock(accounts[1])
-      await consensus.addValidatorMock(accounts[2])
-      await consensus.addValidatorMock(accounts[3])
+      await consensus.setNewValidatorSetMock([accounts[1], accounts[2], accounts[3]])
       await consensus.setSystemAddressMock(owner, {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
       toBN(2).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
@@ -158,10 +156,7 @@ contract('BallotsStorage', async (accounts) => {
       let maxLimit = await ballotsStorage.getMaxLimitBallot()
       let limit = await ballotsStorage.getBallotLimitPerValidator()
       limit.should.be.bignumber.equal(maxLimit)
-      await consensus.addValidatorMock(accounts[1])
-      await consensus.addValidatorMock(accounts[2])
-      await consensus.addValidatorMock(accounts[3])
-      await consensus.addValidatorMock(accounts[4])
+      await consensus.setNewValidatorSetMock([accounts[1], accounts[2], accounts[3], accounts[4]])
       await consensus.setSystemAddressMock(owner, {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
       limit = await ballotsStorage.getBallotLimitPerValidator()

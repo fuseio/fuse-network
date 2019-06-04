@@ -56,7 +56,7 @@ contract('VotingToChangeMinThreshold', async (accounts) => {
     consensusImpl = await Consensus.new()
     proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
     consensus = await Consensus.at(proxy.address)
-    await consensus.initialize(toWei(toBN(10000), 'ether'), owner)
+    await consensus.initialize(toWei(toBN(10000), 'ether'), 24*60*60, 10, owner)
 
     // ProxyStorage
     proxyStorageImpl = await ProxyStorage.new()
@@ -86,14 +86,7 @@ contract('VotingToChangeMinThreshold', async (accounts) => {
       votingToChangeProxy
     )
 
-    await consensus.addValidatorMock(votingKeys[0])
-    await consensus.addValidatorMock(votingKeys[1])
-    await consensus.addValidatorMock(votingKeys[2])
-    await consensus.addValidatorMock(votingKeys[3])
-    await consensus.addValidatorMock(votingKeys[4])
-    await consensus.addValidatorMock(votingKeys[5])
-    await consensus.addValidatorMock(votingKeys[6])
-    await consensus.addValidatorMock(votingKeys[7])
+    await consensus.setNewValidatorSetMock(votingKeys)
     await consensus.setSystemAddressMock(owner, {from: owner})
     await consensus.finalizeChange().should.be.fulfilled
 

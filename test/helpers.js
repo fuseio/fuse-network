@@ -29,3 +29,30 @@ exports.CONTRACT_TYPES = {
   VOTING_TO_CHANGE_MIN_THRESHOLD: 7,
   VOTING_TO_CHANGE_PROXY: 8
 }
+exports.advanceTime = (seconds) => {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_increaseTime',
+      params: [seconds],
+      id: new Date().getTime()
+    }, (err, result) => {
+      if (err) { return reject(err) }
+      return resolve(result)
+    })
+  })
+}
+exports.advanceBlock = () => {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_mine',
+      id: new Date().getTime()
+    }, async (err, result) => {
+      if (err) { return reject(err) }
+      const newBlock = await web3.eth.getBlock('latest')
+      const newBlockNumber = newBlock.number
+      return resolve(newBlockNumber)
+    })
+  })
+}

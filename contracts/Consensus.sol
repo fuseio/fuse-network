@@ -33,14 +33,26 @@ contract Consensus is ConsensusStorage, ValidatorSet {
   }
 
   /**
+  * @dev This modifier verifies that msg.sender is the block reward contract
+  */
+  modifier onlyBlockReward() {
+    require (msg.sender == ProxyStorage(getProxyStorage()).getBlockReward());
+    _;
+  }
+  /**
   * @dev Function to be called on contract initialization
   * @param _minStake minimum stake needed to become a validator
+  * @param _cycleDuration time in seconds of cycle, on the end of each cycle a new validator set will be selected
+  * @param _snapshotsPerCycle number of pending validator snapshots to be saved each cycle
   * @param _initialValidator address of the initial validator. If not set - msg.sender will be the initial validator
   */
-  function initialize(uint256 _minStake, address _initialValidator) public returns(bool){
+  function initialize(uint256 _minStake, uint256 _cycleDuration, uint256 _snapshotsPerCycle, address _initialValidator) public returns(bool) {
     require(!isInitialized());
     setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     setMinStake(_minStake);
+    setCycleDuration(_cycleDuration);
+    setCurrentCycleTimeframe();
+    setSnapshotsPerCycle(_snapshotsPerCycle);
     if (_initialValidator == address(0)) {
       currentValidatorsAdd(msg.sender);
     } else {
@@ -68,18 +80,11 @@ contract Consensus is ConsensusStorage, ValidatorSet {
   * @dev See ValidatorSet.finalizeChange
   */
   function finalizeChange() public onlySystem notFinalized {
+    if (newValidatorSetLength() > 0) {
+      setCurrentValidators(newValidatorSet());
+    }
+
     setFinalized(true);
-
-    for (uint256 i = 0; i < pendingValidatorsLength(); i++) {
-      address pendingValidator = pendingValidatorsAtPosition(i);
-      if (!isValidatorFinalized(pendingValidator)) {
-        setIsValidatorFinalized(pendingValidator, true);
-      }
-    }
-
-    if (pendingValidatorsLength() > 0) {
-      setCurrentValidators(pendingValidators());
-    }
 
     emit ChangeFinalized(getValidators());
   }
@@ -110,8 +115,8 @@ contract Consensus is ConsensusStorage, ValidatorSet {
   * @dev Function to get the validator state of an address
   * @param _someone address to check its validator state
   */
-  function getValidatorState(address _someone) public view returns(bool, bool, uint256[]) {
-    return (isValidator(_someone), isValidatorFinalized(_someone), validatorIndexes(_someone));
+  function getValidatorState(address _someone) public view returns(bool, uint256[]) {
+    return (isValidator(_someone), validatorIndexes(_someone));
   }
 
   function _stake(address _staker, uint256 _amount) internal {
@@ -129,7 +134,6 @@ contract Consensus is ConsensusStorage, ValidatorSet {
     require(_validator != address(0));
 
     setIsValidator(_validator, true);
-    setIsValidatorFinalized(_validator, false);
 
     uint256 stakeMultiplier = stakeAmount(_validator).div(getMinStake());
     uint256 currentAppearances = validatorIndexesLength(_validator);
@@ -139,10 +143,6 @@ contract Consensus is ConsensusStorage, ValidatorSet {
       validatorIndexexPush(_validator, pendingValidatorsLength());
       pendingValidatorsAdd(_validator);
     }
-
-    setFinalized(false);
-
-    emit InitiateChange(blockhash(block.number - 1), pendingValidators());
   }
 
   function _removeValidator(address _validator) internal {
@@ -169,11 +169,30 @@ contract Consensus is ConsensusStorage, ValidatorSet {
       pendingValidatorsRemove(lastIndex);
       deleteValidatorIndexesAtPosition(_validator, validatorIndexesLength(_validator) - 1);
     }
+  }
 
-    require(pendingValidatorsLength() > 0);
-
-    setFinalized(false);
-
-    emit InitiateChange(blockhash(block.number - 1), pendingValidators());
+  /**
+  * @dev Function to be called by the block reward contract each block to handle cycles and snapshots logic
+  */
+  function cycle() public onlyBlockReward {
+    if (hasCycleEnded()) {
+      uint randomSnapshotId = getRandom(0, getSnapshotsPerCycle() - 1);
+      setNewValidatorSet(getSnapshot(randomSnapshotId));
+      setFinalized(false);
+      emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
+      setCurrentCycleTimeframe();
+    } else if (shouldTakeSnapshot()) {
+      uint256 snapshotId = getNextSnapshotId();
+      if (snapshotId < getSnapshotsPerCycle()) {
+        setNextSnapshotId(snapshotId.add(1));
+      } else {
+        setNextSnapshotId(0);
+      }
+      // TODO shuffle pending validators
+      for (uint i = 0; i < pendingValidatorsLength(); i++) {
+        addToSnapshot(pendingValidatorsAtPosition(i), snapshotId);
+      }
+      setLastSnapshotTakenTime(getTime());
+    }
   }
 }

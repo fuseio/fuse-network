@@ -2,6 +2,8 @@ pragma solidity ^0.4.24;
 
 import "./abstracts/BlockRewardBase.sol";
 import "./BlockRewardStorage.sol";
+import "./ProxyStorage.sol";
+import "./Consensus.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
@@ -47,6 +49,8 @@ contract BlockReward is BlockRewardStorage, BlockRewardBase {
     require(benefactors.length == kind.length);
     require(benefactors.length == 1);
     require(kind[0] == 0);
+
+    Consensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
 
     address[] memory receivers = new address[](benefactors.length);
     uint256[] memory rewards = new uint256[](receivers.length);
