@@ -27,4 +27,12 @@ contract EternalStorage {
     mapping(bytes32 => bool[]) internal boolArrayStorage;
     mapping(bytes32 => int256[]) internal intArrayStorage;
     mapping(bytes32 => bytes32[]) internal bytes32ArrayStorage;
+
+    function isInitialized() public view returns(bool) {
+      return boolStorage[keccak256(abi.encodePacked("isInitialized"))];
+    }
+
+    function setInitialized(bool _status) internal {
+      boolStorage[keccak256(abi.encodePacked("isInitialized"))] = _status;
+    }
 }

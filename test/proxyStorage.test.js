@@ -1,20 +1,16 @@
 const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
-const BallotsStorage = artifacts.require('BallotsStorage.sol')
 const BlockReward = artifacts.require('BlockReward.sol')
-const VotingToChangeBlockReward = artifacts.require('VotingToChangeBlockReward.sol')
-const VotingToChangeMinStake = artifacts.require('VotingToChangeMinStake.sol')
-const VotingToChangeMinThreshold = artifacts.require('VotingToChangeMinThreshold.sol')
-const VotingToChangeProxyAddress = artifacts.require('VotingToChangeProxyAddress.sol')
-const {ERROR_MSG, ZERO_AMOUNT, ZERO_ADDRESS, RANDOM_ADDRESS, CONTRACT_TYPES} = require('./helpers')
-const {toBN, toWei, toChecksumAddress} = web3.utils
+const Voting = artifacts.require('Voting.sol')
+const {ERROR_MSG, ZERO_ADDRESS} = require('./helpers')
+const {toBN, toWei} = web3.utils
 
 contract('ProxyStorage', async (accounts) => {
   let proxyStorageImpl, proxy, proxyStorage
   let owner = accounts[0]
   let nonOwner = accounts[1]
-  let blockReward, ballotsStorage, votingToChangeBlockReward, votingToChangeMinStake, votingToChangeMinThreshold, votingToChangeProxy
+  let blockReward, voting
 
   beforeEach(async () => {
     // Consensus
@@ -28,35 +24,15 @@ contract('ProxyStorage', async (accounts) => {
     proxy = await EternalStorageProxy.new(ZERO_ADDRESS, proxyStorageImpl.address)
     proxyStorage = await ProxyStorage.at(proxy.address)
 
-    // BallotsStorage
-    ballotsStorageImpl = await BallotsStorage.new()
-    proxy = await EternalStorageProxy.new(proxyStorage.address, ballotsStorageImpl.address)
-    ballotsStorage = await BallotsStorage.at(proxy.address)
-
     // BlockReward
     blockRewardImpl = await BlockReward.new()
     proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
     blockReward = await BlockReward.at(proxy.address)
 
-    // VotingToChangeBlockReward
-    votingToChangeBlockRewardImpl = await VotingToChangeBlockReward.new()
-    proxy = await EternalStorageProxy.new(proxyStorage.address, votingToChangeBlockRewardImpl.address)
-    votingToChangeBlockReward = await VotingToChangeBlockReward.at(proxy.address)
-
-    // VotingToChangeMinStake
-    votingToChangeMinStakeImpl = await VotingToChangeMinStake.new()
-    proxy = await EternalStorageProxy.new(proxyStorage.address, votingToChangeMinStakeImpl.address)
-    votingToChangeMinStake = await VotingToChangeMinStake.at(proxy.address)
-
-    // VotingToChangeMinThreshold
-    votingToChangeMinThresholdImpl = await VotingToChangeMinThreshold.new()
-    proxy = await EternalStorageProxy.new(proxyStorage.address, votingToChangeMinThresholdImpl.address)
-    votingToChangeMinThreshold = await VotingToChangeMinThreshold.at(proxy.address)
-
-    // VotingToChangeProxyAddress
-    votingToChangeProxyImpl = await VotingToChangeProxyAddress.new()
-    proxy = await EternalStorageProxy.new(proxyStorage.address, votingToChangeProxyImpl.address)
-    votingToChangeProxy = await VotingToChangeProxyAddress.at(proxy.address)
+    // Voting
+    votingImpl = await Voting.new()
+    proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
+    voting = await Voting.at(proxy.address)
   })
 
   describe('initialize', async () => {
@@ -74,60 +50,36 @@ contract('ProxyStorage', async (accounts) => {
     it('should fail if not called from owner', async () => {
       await proxyStorage.initializeAddresses(
         blockReward.address,
-        ballotsStorage.address,
-        votingToChangeBlockReward.address,
-        votingToChangeMinStake.address,
-        votingToChangeMinThreshold.address,
-        votingToChangeProxy.address,
+        voting.address,
         {from: nonOwner}
       ).should.be.rejectedWith(ERROR_MSG)
     })
     it('should be successful', async () => {
       let {logs} = await proxyStorage.initializeAddresses(
         blockReward.address,
-        ballotsStorage.address,
-        votingToChangeBlockReward.address,
-        votingToChangeMinStake.address,
-        votingToChangeMinThreshold.address,
-        votingToChangeProxy.address,
+        voting.address,
         {from: owner}
       ).should.be.fulfilled
       logs.length.should.be.equal(1)
       logs[0].event.should.be.equal('ProxyInitialized')
       logs[0].args.consensus.should.be.equal(consensus.address)
       logs[0].args.blockReward.should.be.equal(blockReward.address)
-      logs[0].args.ballotsStorage.should.be.equal(ballotsStorage.address)
-      logs[0].args.votingToChangeBlockReward.should.be.equal(votingToChangeBlockReward.address)
-      logs[0].args.votingToChangeMinStake.should.be.equal(votingToChangeMinStake.address)
-      logs[0].args.votingToChangeMinThreshold.should.be.equal(votingToChangeMinThreshold.address)
-      logs[0].args.votingToChangeProxy.should.be.equal(votingToChangeProxy.address)
+      logs[0].args.voting.should.be.equal(voting.address)
 
       consensus.address.should.be.equal(await proxyStorage.getConsensus())
       blockReward.address.should.be.equal(await proxyStorage.getBlockReward())
-      ballotsStorage.address.should.be.equal(await proxyStorage.getBallotsStorage())
-      votingToChangeBlockReward.address.should.be.equal(await proxyStorage.getVotingToChangeBlockReward())
-      votingToChangeMinStake.address.should.be.equal(await proxyStorage.getVotingToChangeMinStake())
-      votingToChangeMinThreshold.address.should.be.equal(await proxyStorage.getVotingToChangeMinThreshold())
-      votingToChangeProxy.address.should.be.equal(await proxyStorage.getVotingToChangeProxy())
+      voting.address.should.be.equal(await proxyStorage.getVoting())
     })
     it('should not be called twice', async () => {
       await proxyStorage.initializeAddresses(
         blockReward.address,
-        ballotsStorage.address,
-        votingToChangeBlockReward.address,
-        votingToChangeMinStake.address,
-        votingToChangeMinThreshold.address,
-        votingToChangeProxy.address,
+        voting.address,
         {from: owner}
       ).should.be.fulfilled
 
       await proxyStorage.initializeAddresses(
         blockReward.address,
-        ballotsStorage.address,
-        votingToChangeBlockReward.address,
-        votingToChangeMinStake.address,
-        votingToChangeMinThreshold.address,
-        votingToChangeProxy.address,
+        voting.address,
         {from: owner}
       ).should.be.rejectedWith(ERROR_MSG)
     })

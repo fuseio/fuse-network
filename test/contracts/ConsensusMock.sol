@@ -27,4 +27,8 @@ contract ConsensusMock is Consensus {
   function addToSnapshotMock(address _address, uint256 _snapshotId) public {
     addToSnapshot(_address, _snapshotId);
   }
+
+  function setSnapshotsPerCycleMock(uint256 _snapshotsPerCycle) public {
+    setSnapshotsPerCycle(_snapshotsPerCycle);
+  }
 }

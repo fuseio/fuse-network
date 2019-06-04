@@ -2,11 +2,10 @@ const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
 const BlockReward = artifacts.require('BlockRewardMock.sol')
-const {ERROR_MSG, ZERO_AMOUNT, ZERO_ADDRESS} = require('./helpers')
+const {ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const REWARD = toWei(toBN(1), 'ether')
-const REWARD_OTHER = toWei(toBN(2), 'ether')
 const SYSTEM_ADDRESS = '0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE'
 
 contract('BlockReward', async (accounts) => {
@@ -14,11 +13,7 @@ contract('BlockReward', async (accounts) => {
   let owner = accounts[0]
   let nonOwner = accounts[1]
   let mockSystemAddress = accounts[2]
-  let ballotsStorage = accounts[3]
-  let votingToChangeBlockReward = accounts[4]
-  let votingToChangeMinStake = accounts[5]
-  let votingToChangeMinThreshold = accounts[6]
-  let votingToChangeProxy = accounts[7]
+  let voting = accounts[3]
 
   beforeEach(async () => {
     // Consensus
@@ -34,7 +29,7 @@ contract('BlockReward', async (accounts) => {
     await proxyStorage.initialize(consensus.address)
     await consensus.setProxyStorage(proxyStorage.address)
 
-    // BallotsStorage
+    // BlockReward
     blockRewardImpl = await BlockReward.new()
     proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
     blockReward = await BlockReward.at(proxy.address)
@@ -42,11 +37,7 @@ contract('BlockReward', async (accounts) => {
     // Initialize ProxyStorage
     await proxyStorage.initializeAddresses(
       blockReward.address,
-      ballotsStorage,
-      votingToChangeBlockReward,
-      votingToChangeMinStake,
-      votingToChangeMinThreshold,
-      votingToChangeProxy
+      voting
     )
   })
 
@@ -54,24 +45,8 @@ contract('BlockReward', async (accounts) => {
     it('default values', async () => {
       await blockReward.initialize(REWARD)
       owner.should.equal(await proxy.getOwner())
-      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await blockReward.systemAddress()))
+      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await blockReward.getSystemAddress()))
       REWARD.should.be.bignumber.equal(await blockReward.getReward())
-    })
-  })
-
-  describe('setReward', async () => {
-    beforeEach(async () => {
-      await blockReward.initialize(REWARD)
-    })
-    it('only owner can set reward', async () => {
-      await blockReward.setReward(REWARD_OTHER, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
-      REWARD.should.be.bignumber.equal(await blockReward.getReward())
-      await blockReward.setReward(REWARD_OTHER, {from: owner})
-      REWARD_OTHER.should.be.bignumber.equal(await blockReward.getReward())
-    })
-    it('can set zero reward', async () => {
-      await blockReward.setReward(ZERO_AMOUNT, {from: owner})
-      ZERO_AMOUNT.should.be.bignumber.equal(await blockReward.getReward())
     })
   })
 
@@ -154,11 +129,11 @@ contract('BlockReward', async (accounts) => {
       proxyStorageStub.should.be.equal(await blockRewardNew.getProxyStorage())
     })
     it('should use same storage after upgrade', async () => {
-      await blockReward.setReward(REWARD_OTHER, {from: owner})
+      await blockReward.setSystemAddressMock(RANDOM_ADDRESS, {from: owner})
       await proxy.setProxyStorageMock(proxyStorageStub)
       await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
       blockRewardNew = await BlockReward.at(proxy.address)
-      REWARD_OTHER.should.be.bignumber.equal(await blockReward.getReward())
+      RANDOM_ADDRESS.should.be.equal(await blockReward.getSystemAddress())
     })
   })
 })

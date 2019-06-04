@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/VotingToChangeMinThreshold.sol";
+import "../../contracts/Voting.sol";
 
-contract VotingToChangeMinThresholdMock is VotingToChangeMinThreshold {
-  function setMinPossibleThresholdMock(uint256 _value) public {
-    uintStorage[keccak256(abi.encodePacked("minPossibleThreshold"))] = _value;
+contract VotingMock is Voting {
+  function setMinBallotDurationMock(uint256 _value) public {
+    uintStorage[keccak256(abi.encodePacked("minBallotDuration"))] = _value;
   }
 
   function setTime(uint256 _newTime) public {

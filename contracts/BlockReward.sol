@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./abstracts/BlockRewardBase.sol";
-import "./BlockRewardStorage.sol";
+import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
 import "./Consensus.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -9,7 +9,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 /**
 * @title Contract handling block reward logic
 */
-contract BlockReward is BlockRewardStorage, BlockRewardBase {
+contract BlockReward is EternalStorage, BlockRewardBase {
   using SafeMath for uint256;
 
   /**
@@ -23,7 +23,15 @@ contract BlockReward is BlockRewardStorage, BlockRewardBase {
   * @dev This modifier verifies that msg.sender is the system address (EIP96)
   */
   modifier onlySystem() {
-    require(msg.sender == systemAddress());
+    require(msg.sender == getSystemAddress());
+    _;
+  }
+
+  /**
+  * @dev This modifier verifies that msg.sender is the owner of the contract
+  */
+  modifier onlyOwner() {
+    require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
     _;
   }
 
@@ -31,12 +39,11 @@ contract BlockReward is BlockRewardStorage, BlockRewardBase {
   * @dev Function to be called on contract initialization
   * @param _reward block reward amount on each block
   */
-  function initialize(uint256 _reward) public returns(bool) {
+  function initialize(uint256 _reward) public onlyOwner {
     require(!isInitialized());
     setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     setReward(_reward);
     setInitialized(true);
-    return isInitialized();
   }
 
   /**
@@ -61,5 +68,26 @@ contract BlockReward is BlockRewardStorage, BlockRewardBase {
     emit Rewarded(receivers, rewards);
 
     return (receivers, rewards);
+  }
+
+  function setSystemAddress(address _newAddress) private {
+    addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))] = _newAddress;
+  }
+
+  function getSystemAddress() public view returns(address) {
+    return addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))];
+  }
+
+  function setReward(uint256 _reward) private {
+    require(_reward >= 0);
+    uintStorage[keccak256(abi.encodePacked("reward"))] = _reward;
+  }
+
+  function getReward() public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("reward"))];
+  }
+
+  function getProxyStorage() public view returns(address) {
+    return addressStorage[keccak256(abi.encodePacked("proxyStorage"))];
   }
 }
