@@ -26,17 +26,31 @@ exports.advanceTime = (seconds) => {
     })
   })
 }
-exports.advanceBlock = () => {
+exports.advanceBlocks = (n) => {
   return new Promise((resolve, reject) => {
-    web3.currentProvider.send({
-      jsonrpc: '2.0',
-      method: 'evm_mine',
-      id: new Date().getTime()
-    }, async (err, result) => {
-      if (err) { return reject(err) }
-      const newBlock = await web3.eth.getBlock('latest')
-      const newBlockNumber = newBlock.number
-      return resolve(newBlockNumber)
+    const tasks = []
+    for (let i = 0; i < n; i++) {
+      tasks.push(new Promise((resolve, reject) => {
+        web3.currentProvider.send({
+          jsonrpc: '2.0',
+          method: 'evm_mine',
+          id: new Date().getTime()
+        }, async (err, result) => {
+          if (err) { return reject(err) }
+          const newBlock = await web3.eth.getBlock('latest')
+          const newBlockNumber = newBlock.number
+          return resolve(newBlockNumber)
+        })
+      }))
+    }
+    return tasks.reduce((promiseChain, currentTask) => {
+      return promiseChain.then(chainResults =>
+        currentTask.then(currentResult =>
+          [ ...chainResults, currentResult ]
+        )
+      )
+    }, Promise.resolve([])).then(results => {
+      resolve(results[results.length - 1])
     })
   })
 }

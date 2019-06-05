@@ -51,16 +51,16 @@ contract Consensus is EternalStorage, ValidatorSet {
   /**
   * @dev Function to be called on contract initialization
   * @param _minStake minimum stake needed to become a validator
-  * @param _cycleDuration time in seconds of cycle, on the end of each cycle a new validator set will be selected
+  * @param _cycleDurationBlocks number of blocks per cycle, on the end of each cycle a new validator set will be selected
   * @param _snapshotsPerCycle number of pending validator snapshots to be saved each cycle
   * @param _initialValidator address of the initial validator. If not set - msg.sender will be the initial validator
   */
-  function initialize(uint256 _minStake, uint256 _cycleDuration, uint256 _snapshotsPerCycle, address _initialValidator) public onlyOwner {
+  function initialize(uint256 _minStake, uint256 _cycleDurationBlocks, uint256 _snapshotsPerCycle, address _initialValidator) public onlyOwner {
     require(!isInitialized());
     setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     setMinStake(_minStake);
-    setCycleDuration(_cycleDuration);
-    setCurrentCycleTimeframe();
+    setCycleDurationBlocks(_cycleDurationBlocks);
+    setCurrentCycle();
     setSnapshotsPerCycle(_snapshotsPerCycle);
     if (_initialValidator == address(0)) {
       currentValidatorsAdd(msg.sender);
@@ -136,7 +136,7 @@ contract Consensus is EternalStorage, ValidatorSet {
       setNewValidatorSet(getSnapshot(randomSnapshotId));
       setFinalized(false);
       emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
-      setCurrentCycleTimeframe();
+      setCurrentCycle();
     } else if (shouldTakeSnapshot()) {
       uint256 snapshotId = getNextSnapshotId();
       if (snapshotId < getSnapshotsPerCycle()) {
@@ -147,7 +147,7 @@ contract Consensus is EternalStorage, ValidatorSet {
       for (uint i = 0; i < pendingValidatorsLength(); i++) {
         addToSnapshot(pendingValidatorsAtPosition(i), snapshotId);
       }
-      setLastSnapshotTakenTime(getTime());
+      setLastSnapshotTakenAtBlock(getCurrentBlockNumber());
     }
   }
 
@@ -201,8 +201,8 @@ contract Consensus is EternalStorage, ValidatorSet {
     }
   }
 
-  function getTime() public view returns(uint256) {
-    return now;
+  function getCurrentBlockNumber() public view returns(uint256) {
+    return block.number;
   }
 
   function setSystemAddress(address _newAddress) private {
@@ -230,38 +230,38 @@ contract Consensus is EternalStorage, ValidatorSet {
     return uintStorage[keccak256(abi.encodePacked("minStake"))];
   }
 
-  function setCycleDuration(uint256 _cycleDuration) private {
-    require(_cycleDuration > 0);
-    uintStorage[keccak256(abi.encodePacked("cycleDuration"))] = _cycleDuration;
+  function setCycleDurationBlocks(uint256 _cycleDurationBlocks) private {
+    require(_cycleDurationBlocks > 0);
+    uintStorage[keccak256(abi.encodePacked("cycleDurationBlocks"))] = _cycleDurationBlocks;
   }
 
-  function getCycleDuration() public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("cycleDuration"))];
+  function getCycleDurationBlocks() public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("cycleDurationBlocks"))];
   }
 
-  function setCurrentCycleTimeframe() private {
-    setCurrentCycleStartTime(getTime());
-    setCurrentCycleEndTime(getTime() + getCycleDuration());
+  function setCurrentCycle() private {
+    setCurrentCycleStartBlock(getCurrentBlockNumber());
+    setCurrentCycleEndBlock(getCurrentBlockNumber() + getCycleDurationBlocks());
   }
 
-  function setCurrentCycleStartTime(uint256 _time) private {
-    uintStorage[keccak256(abi.encodePacked("currentCycleStartTime"))] = _time;
+  function setCurrentCycleStartBlock(uint256 _block) private {
+    uintStorage[keccak256(abi.encodePacked("currentCycleStartBlock"))] = _block;
   }
 
-  function getCurrentCycleStartTime() public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("currentCycleStartTime"))];
+  function getCurrentCycleStartBlock() public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("currentCycleStartBlock"))];
   }
 
-  function setCurrentCycleEndTime(uint256 _time) private {
-    uintStorage[keccak256(abi.encodePacked("currentCycleEndTime"))] = _time;
+  function setCurrentCycleEndBlock(uint256 _block) private {
+    uintStorage[keccak256(abi.encodePacked("currentCycleEndBlock"))] = _block;
   }
 
-  function getCurrentCycleEndTime() public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("currentCycleEndTime"))];
+  function getCurrentCycleEndBlock() public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("currentCycleEndBlock"))];
   }
 
   function hasCycleEnded() public view returns(bool) {
-    return (getTime() >= getCurrentCycleEndTime());
+    return (getCurrentBlockNumber() >= getCurrentCycleEndBlock());
   }
 
   function setSnapshotsPerCycle(uint256 _snapshotsPerCycle) internal {
@@ -273,12 +273,12 @@ contract Consensus is EternalStorage, ValidatorSet {
     return uintStorage[keccak256(abi.encodePacked("snapshotsPerCycle"))];
   }
 
-  function setLastSnapshotTakenTime(uint256 _time) private {
-    uintStorage[keccak256(abi.encodePacked("lastSnapshotTakenTime"))] = _time;
+  function setLastSnapshotTakenAtBlock(uint256 _block) private {
+    uintStorage[keccak256(abi.encodePacked("lastSnapshotTakenAtBlock"))] = _block;
   }
 
-  function getLastSnapshotTakenTime() public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("lastSnapshotTakenTime"))];
+  function getLastSnapshotTakenAtBlock() public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("lastSnapshotTakenAtBlock"))];
   }
 
   function setNextSnapshotId(uint256 _id) private {
@@ -297,12 +297,12 @@ contract Consensus is EternalStorage, ValidatorSet {
     return addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId))];
   }
 
-  function getTimeToSnapshot() public view returns(uint256) {
-    return getCycleDuration().div(getSnapshotsPerCycle());
+  function getBlocksToSnapshot() public view returns(uint256) {
+    return getCycleDurationBlocks().div(getSnapshotsPerCycle());
   }
 
   function shouldTakeSnapshot() public view returns(bool) {
-    return (getTime() - getLastSnapshotTakenTime() >= getTimeToSnapshot());
+    return (getCurrentBlockNumber() - getLastSnapshotTakenAtBlock() >= getBlocksToSnapshot());
   }
 
   function getRandom(uint256 _from, uint256 _to) public view returns(uint256) {

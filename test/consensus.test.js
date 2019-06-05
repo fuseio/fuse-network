@@ -1,7 +1,7 @@
 const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
-const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS, advanceTime, advanceBlock} = require('./helpers')
+const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS, advanceBlocks} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const MIN_STAKE_AMOUNT = 10000
@@ -11,7 +11,7 @@ const ONE_ETHER = toWei(toBN(1), 'ether')
 const LESS_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
 const MORE_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT + 1), 'ether')
 const MULTIPLE_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT), 'ether')
-const CYCLE_DURATION_SECONDS = 24*60*60
+const CYCLE_DURATION_BLOCKS = 100
 const SNAPSHOTS_PER_CYCLE = 10
 
 contract('Consensus', async (accounts) => {
@@ -38,17 +38,17 @@ contract('Consensus', async (accounts) => {
 
   describe('initialize', async () => {
     it('default values', async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.getSystemAddress()))
       false.should.be.equal(await consensus.isFinalized())
       MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
-      toBN(CYCLE_DURATION_SECONDS).should.be.bignumber.equal(await consensus.getCycleDuration())
+      toBN(CYCLE_DURATION_BLOCKS).should.be.bignumber.equal(await consensus.getCycleDurationBlocks())
       toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
-      toBN(CYCLE_DURATION_SECONDS / SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getTimeToSnapshot())
+      toBN(CYCLE_DURATION_BLOCKS / SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getBlocksToSnapshot())
       false.should.be.equal(await consensus.hasCycleEnded())
-      toBN(0).should.be.bignumber.equal(await consensus.getLastSnapshotTakenTime())
+      toBN(0).should.be.bignumber.equal(await consensus.getLastSnapshotTakenAtBlock())
       toBN(0).should.be.bignumber.equal(await consensus.getNextSnapshotId())
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
@@ -57,14 +57,14 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(0)
     })
     it('initial validator address not defined - owner should be initial validator', async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, ZERO_ADDRESS)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, ZERO_ADDRESS)
       await consensus.setProxyStorage(proxyStorage.address)
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(owner)
     })
     it('initial validator address defined', async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(initialValidator)
@@ -73,7 +73,7 @@ contract('Consensus', async (accounts) => {
 
   describe('setProxyStorage', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
     })
     it('setProxyStorage should fail if no address', async () => {
       await consensus.setProxyStorage(ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
@@ -98,7 +98,7 @@ contract('Consensus', async (accounts) => {
 
   describe('finalizeChange', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('should only be called by SYSTEM_ADDRESS', async () => {
@@ -139,7 +139,7 @@ contract('Consensus', async (accounts) => {
 
   describe('stake using payable', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('basic', async () => {
@@ -273,23 +273,23 @@ contract('Consensus', async (accounts) => {
 
   describe('cycles and snapshots', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('hasCycleEnded', async () => {
       false.should.be.equal(await consensus.hasCycleEnded())
-      let currentCycleEndTime = await consensus.getCurrentCycleEndTime()
-      await advanceTime(CYCLE_DURATION_SECONDS)
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      await advanceBlocks(CYCLE_DURATION_BLOCKS)
       true.should.be.equal(await consensus.hasCycleEnded())
     })
     it('shouldTakeSnapshot', async () => {
-      let timeToSnapshot = await consensus.getTimeToSnapshot()
-      let lastSnapshotTakenTime = await consensus.getLastSnapshotTakenTime()
-      let currentTime = await consensus.getTime()
-      let shouldTakeSnapshot = currentTime.sub(lastSnapshotTakenTime).gte(timeToSnapshot)
+      let blocksToSnapshot = await consensus.getBlocksToSnapshot()
+      let lastSnapshotTakenAtBlock = await consensus.getLastSnapshotTakenAtBlock()
+      let currentBlockNumber = await consensus.getCurrentBlockNumber()
+      let shouldTakeSnapshot = currentBlockNumber.sub(lastSnapshotTakenAtBlock).gte(blocksToSnapshot)
       shouldTakeSnapshot.should.be.equal(await consensus.shouldTakeSnapshot())
 
-      await consensus.setSnapshotsPerCycleMock(CYCLE_DURATION_SECONDS, {from: owner})
+      await consensus.setSnapshotsPerCycleMock(CYCLE_DURATION_BLOCKS, {from: owner})
       true.should.be.equal(await consensus.shouldTakeSnapshot())
     })
     it('getSnapshot & addToSnapshot', async () => {
@@ -309,7 +309,7 @@ contract('Consensus', async (accounts) => {
       let randoms = []
       for (let i = 0; i < repeats; i++) {
         randoms.push((await consensus.getRandom(0, SNAPSHOTS_PER_CYCLE)).toNumber())
-        await advanceBlock()
+        await advanceBlocks(1)
       }
       randoms.length.should.be.equal(repeats)
       let distincts = [...new Set(randoms)]
@@ -317,7 +317,7 @@ contract('Consensus', async (accounts) => {
       distincts.length.should.be.most(SNAPSHOTS_PER_CYCLE)
     })
     it('golden flow should work', async () => {
-      let currentValidators, pendingValidators, timeToSnapshot, id, snapshot, randomSnapshotId, randomSnapshot, tx
+      let currentValidators, pendingValidators, blocksToSnapshot, id, snapshot, randomSnapshotId, randomSnapshot, tx
 
       await consensus.setSystemAddressMock(owner)
       await proxyStorage.setBlockRewardMock(owner)
@@ -339,10 +339,9 @@ contract('Consensus', async (accounts) => {
       pendingValidators.should.deep.equal([firstCandidate])
       // console.log('pendingValidators', pendingValidators)
 
-      // advance time to take snapshot
-      timeToSnapshot = (await consensus.getTimeToSnapshot()).toNumber()
-      await advanceTime(timeToSnapshot)
-      await advanceBlock()
+      // advance blocks to take snapshot
+      blocksToSnapshot = (await consensus.getBlocksToSnapshot()).toNumber()
+      await advanceBlocks(blocksToSnapshot)
 
       // call cycle function
       tx = await consensus.cycle({from: owner}).should.be.fulfilled
@@ -361,10 +360,9 @@ contract('Consensus', async (accounts) => {
       pendingValidators.should.deep.equal([firstCandidate, secondCandidate])
       // console.log('pendingValidators', pendingValidators)
 
-      // advance time to take snapshot
-      timeToSnapshot = (await consensus.getTimeToSnapshot()).toNumber()
-      await advanceTime(timeToSnapshot)
-      await advanceBlock()
+      // advance blocks to take snapshot
+      blocksToSnapshot = (await consensus.getBlocksToSnapshot()).toNumber()
+      await advanceBlocks(blocksToSnapshot)
 
       // call cycle function
       tx = await consensus.cycle({from: owner}).should.be.fulfilled
@@ -376,9 +374,8 @@ contract('Consensus', async (accounts) => {
       snapshot.length.should.be.equal(2)
       snapshot.should.deep.equal([firstCandidate, secondCandidate])
 
-      // advance time to end cycle
-      await advanceTime(CYCLE_DURATION_SECONDS - 2 * timeToSnapshot)
-      await advanceBlock()
+      // advance blocks to end cycle
+      await advanceBlocks(CYCLE_DURATION_BLOCKS - 2 * blocksToSnapshot)
 
       // get random snapshot id
       randomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
@@ -408,10 +405,9 @@ contract('Consensus', async (accounts) => {
       pendingValidators.should.deep.equal([firstCandidate, secondCandidate, thirdCandidate])
       // console.log('pendingValidators', pendingValidators)
 
-      // advance time to take snapshot
-      timeToSnapshot = (await consensus.getTimeToSnapshot()).toNumber()
-      await advanceTime(timeToSnapshot)
-      await advanceBlock()
+      // advance blocks to take snapshot
+      blocksToSnapshot = (await consensus.getBlocksToSnapshot()).toNumber()
+      await advanceBlocks(blocksToSnapshot)
 
       // call cycle function
       tx = await consensus.cycle({from: owner}).should.be.fulfilled
@@ -423,14 +419,13 @@ contract('Consensus', async (accounts) => {
       snapshot.length.should.be.equal(3)
       snapshot.should.deep.equal([firstCandidate, secondCandidate, thirdCandidate])
 
-      // advance time to end cycle
-      await advanceTime(CYCLE_DURATION_SECONDS - 1 * timeToSnapshot)
-      await advanceBlock()
+      // advance blocks to end cycle
+      await advanceBlocks(CYCLE_DURATION_BLOCKS - 1 * blocksToSnapshot)
 
       // get random snapshot id
       newRandomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
       while (newRandomSnapshotId == randomSnapshotId) {
-        await advanceBlock()
+        await advanceBlocks(1)
         newRandomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
       }
       randomSnapshotId = newRandomSnapshotId
@@ -457,7 +452,7 @@ contract('Consensus', async (accounts) => {
 
   describe('withdraw', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('cannot withdraw zero', async () => {
@@ -566,7 +561,7 @@ contract('Consensus', async (accounts) => {
       await proxy.setProxyStorageMock(proxyStorage.address)
       consensusNew = await Consensus.at(proxy.address)
       false.should.be.equal(await consensusNew.isInitialized())
-      await consensusNew.initialize(MIN_STAKE, CYCLE_DURATION_SECONDS, SNAPSHOTS_PER_CYCLE, initialValidator).should.be.fulfilled
+      await consensusNew.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator).should.be.fulfilled
       true.should.be.equal(await consensusNew.isInitialized())
     })
     it('should use same proxyStorage after upgrade', async () => {

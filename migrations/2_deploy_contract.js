@@ -14,7 +14,7 @@ const {
   CONSENSUS_ADDRESS,
   INITIAL_VALIDATOR_ADDRESS,
   MIN_STAKE_GWEI,
-  CYCLE_DURATION_SECONDS,
+  CYCLE_DURATION_BLOCKS,
   SNAPSHOTS_PER_CYCLE,
   BLOCK_REWARD_GWEI,
   MIN_BALLOT_DURATION_SECONDS,
@@ -25,7 +25,7 @@ module.exports = function(deployer, network, accounts) {
   if (network !== 'test') {
     let initialValidatorAddress = INITIAL_VALIDATOR_ADDRESS || ZERO_ADDRESS
     let minStake = toWei(toBN(MIN_STAKE_GWEI || 0), 'gwei')
-    let cycleDuration = CYCLE_DURATION_SECONDS || 24*60*60
+    let cycleDurationBlocks = CYCLE_DURATION_BLOCKS || 172800
     let snapshotsPerCycle = SNAPSHOTS_PER_CYCLE || 10
     let blockRewardAmount = toWei(toBN(BLOCK_REWARD_GWEI || 0), 'gwei')
     let minBallotDuration = MIN_BALLOT_DURATION_SECONDS || 172800
@@ -41,7 +41,7 @@ module.exports = function(deployer, network, accounts) {
       consensusImpl = await Consensus.new()
       proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
       consensus = await Consensus.at(proxy.address)
-      await consensus.initialize(minStake, cycleDuration, snapshotsPerCycle, initialValidatorAddress)
+      await consensus.initialize(minStake, cycleDurationBlocks, snapshotsPerCycle, initialValidatorAddress)
 
       // ProxyStorage
       proxyStorageImpl = await ProxyStorage.new()
