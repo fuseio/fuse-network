@@ -18,4 +18,8 @@ contract ConsensusMock is Consensus {
   function setSnapshotsPerCycleMock(uint256 _snapshotsPerCycle) public {
     setSnapshotsPerCycle(_snapshotsPerCycle);
   }
+
+  function setFinalizedMock(bool _status) public {
+    boolStorage[keccak256(abi.encodePacked("isFinalized"))] = _status;
+  }
 }

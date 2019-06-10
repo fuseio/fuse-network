@@ -1,9 +1,9 @@
 pragma solidity ^0.4.24;
 
 import "./abstracts/BlockRewardBase.sol";
+import "./interfaces/IConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
-import "./Consensus.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
@@ -57,7 +57,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     require(benefactors.length == 1);
     require(kind[0] == 0);
 
-    Consensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
 
     address[] memory receivers = new address[](benefactors.length);
     uint256[] memory rewards = new uint256[](receivers.length);

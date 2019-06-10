@@ -17,7 +17,7 @@ const {
   CYCLE_DURATION_BLOCKS,
   SNAPSHOTS_PER_CYCLE,
   BLOCK_REWARD_GWEI,
-  MIN_BALLOT_DURATION_SECONDS,
+  MIN_BALLOT_DURATION_CYCLES,
   SAVE_TO_FILE
 } = process.env
 
@@ -25,10 +25,10 @@ module.exports = function(deployer, network, accounts) {
   if (network !== 'test') {
     let initialValidatorAddress = INITIAL_VALIDATOR_ADDRESS || ZERO_ADDRESS
     let minStake = toWei(toBN(MIN_STAKE_GWEI || 0), 'gwei')
-    let cycleDurationBlocks = CYCLE_DURATION_BLOCKS || 172800
+    let cycleDurationBlocks = CYCLE_DURATION_BLOCKS || 17280
     let snapshotsPerCycle = SNAPSHOTS_PER_CYCLE || 10
     let blockRewardAmount = toWei(toBN(BLOCK_REWARD_GWEI || 0), 'gwei')
-    let minBallotDuration = MIN_BALLOT_DURATION_SECONDS || 172800
+    let minBallotDurationCycles = MIN_BALLOT_DURATION_CYCLES || 2
 
     let proxy
     let blockReward, blockRewardImpl
@@ -60,7 +60,7 @@ module.exports = function(deployer, network, accounts) {
       votingImpl = await Voting.new()
       proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
       voting = await Voting.at(proxy.address)
-      await voting.initialize(minBallotDuration)
+      await voting.initialize(minBallotDurationCycles)
 
       // Initialize ProxyStorage
       await proxyStorage.initializeAddresses(

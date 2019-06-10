@@ -38,18 +38,16 @@ contract VotingBase {
   /**
   * @dev This event will be emitted when a ballot if finalized
   * @param id ballot id
-  * @param finalizer address of the ballot finalizer
   */
-  event BallotFinalized(uint256 indexed id, address indexed finalizer);
+  event BallotFinalized(uint256 indexed id);
 
   /**
   * @dev This event will be emitted on each vote
   * @param id ballot id
   * @param decision voter decision (see VotingBase.ActionChoices)
   * @param voter address of the voter
-  * @param time time of the vote
   */
-  event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time);
+  event Vote(uint256 indexed id, uint256 decision, address indexed voter);
 
   /**
   * @dev Function to be called when voting on a ballot
@@ -57,10 +55,4 @@ contract VotingBase {
   * @param _choice voter decision on the ballot (see VotingBase.ActionChoices)
   */
   function vote(uint256 _id, uint256 _choice) external;
-
-  /**
-  * @dev Function to be called when finalizing a ballot
-  * @param _id ballot id
-  */
-  function finalize(uint256 _id) external;
 }

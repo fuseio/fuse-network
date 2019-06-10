@@ -1,6 +1,8 @@
 const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
+const BlockReward = artifacts.require('BlockReward.sol')
+const Voting = artifacts.require('Voting.sol')
 const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS, advanceBlocks} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
@@ -34,6 +36,23 @@ contract('Consensus', async (accounts) => {
     proxy = await EternalStorageProxy.new(ZERO_ADDRESS, proxyStorageImpl.address)
     proxyStorage = await ProxyStorage.at(proxy.address)
     await proxyStorage.initialize(consensus.address)
+
+    // BlockReward
+    let blockRewardImpl = await BlockReward.new()
+    proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
+    let blockReward = await BlockReward.at(proxy.address)
+    await blockReward.initialize(toWei(toBN(10), 'ether'))
+
+    // Voting
+    let votingImpl = await Voting.new()
+    proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
+    let voting = await Voting.at(proxy.address)
+
+    // Initialize ProxyStorage
+    await proxyStorage.initializeAddresses(
+      blockReward.address,
+      voting.address
+    )
   })
 
   describe('initialize', async () => {
@@ -315,6 +334,11 @@ contract('Consensus', async (accounts) => {
       let distincts = [...new Set(randoms)]
       distincts.length.should.be.greaterThan(1)
       distincts.length.should.be.most(SNAPSHOTS_PER_CYCLE)
+    })
+    it('cycle function should only be called by BlockReward', async () => {
+      await consensus.cycle().should.be.rejectedWith(ERROR_MSG)
+      await proxyStorage.setBlockRewardMock(owner)
+      await consensus.cycle().should.be.fulfilled
     })
     it('golden flow should work', async () => {
       let currentValidators, pendingValidators, blocksToSnapshot, id, snapshot, randomSnapshotId, randomSnapshot, tx

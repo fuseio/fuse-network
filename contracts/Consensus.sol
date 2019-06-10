@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
 import "./abstracts/ValidatorSet.sol";
+import "./interfaces/IConsensus.sol";
+import "./interfaces/IVoting.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -8,7 +10,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 /**
 * @title Contract handling PoS consensus logic
 */
-contract Consensus is EternalStorage, ValidatorSet {
+contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   using SafeMath for uint256;
 
   /**
@@ -48,6 +50,7 @@ contract Consensus is EternalStorage, ValidatorSet {
     require (msg.sender == ProxyStorage(getProxyStorage()).getBlockReward());
     _;
   }
+
   /**
   * @dev Function to be called on contract initialization
   * @param _minStake minimum stake needed to become a validator
@@ -130,9 +133,10 @@ contract Consensus is EternalStorage, ValidatorSet {
   /**
   * @dev Function to be called by the block reward contract each block to handle cycles and snapshots logic
   */
-  function cycle() public onlyBlockReward {
+  function cycle() external onlyBlockReward {
     if (hasCycleEnded()) {
-      uint randomSnapshotId = getRandom(0, getSnapshotsPerCycle() - 1);
+      IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
+      uint256 randomSnapshotId = getRandom(0, getSnapshotsPerCycle() - 1);
       setNewValidatorSet(getSnapshot(randomSnapshotId));
       setFinalized(false);
       emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
@@ -144,7 +148,7 @@ contract Consensus is EternalStorage, ValidatorSet {
       } else {
         setNextSnapshotId(0);
       }
-      for (uint i = 0; i < pendingValidatorsLength(); i++) {
+      for (uint256 i = 0; i < pendingValidatorsLength(); i++) {
         addToSnapshot(pendingValidatorsAtPosition(i), snapshotId);
       }
       setLastSnapshotTakenAtBlock(getCurrentBlockNumber());
@@ -375,7 +379,7 @@ contract Consensus is EternalStorage, ValidatorSet {
   }
 
   function isValidator(address _address) public view returns(bool) {
-    for (uint i = 0; i < currentValidatorsLength(); i++) {
+    for (uint256 i = 0; i < currentValidatorsLength(); i++) {
       if (_address == currentValidatorsAtPosition(i)) {
         return true;
       }
