@@ -12,6 +12,11 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract BlockReward is EternalStorage, BlockRewardBase {
   using SafeMath for uint256;
 
+  bytes32 constant OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
+  bytes32 constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
+  bytes32 constant REWARD = keccak256(abi.encodePacked("reward"));
+
   /**
   * @dev This event will be emitted every block, describing the rewards given
   * @param receivers array of addresses to reward
@@ -31,7 +36,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * @dev This modifier verifies that msg.sender is the owner of the contract
   */
   modifier onlyOwner() {
-    require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
+    require(msg.sender == addressStorage[OWNER]);
     _;
   }
 
@@ -39,7 +44,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * @dev Function to be called on contract initialization
   * @param _reward block reward amount on each block
   */
-  function initialize(uint256 _reward) public onlyOwner {
+  function initialize(uint256 _reward) external onlyOwner {
     require(!isInitialized());
     setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     setReward(_reward);
@@ -71,23 +76,23 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   }
 
   function setSystemAddress(address _newAddress) private {
-    addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))] = _newAddress;
+    addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
 
   function getSystemAddress() public view returns(address) {
-    return addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))];
+    return addressStorage[SYSTEM_ADDRESS];
   }
 
   function setReward(uint256 _reward) private {
     require(_reward >= 0);
-    uintStorage[keccak256(abi.encodePacked("reward"))] = _reward;
+    uintStorage[REWARD] = _reward;
   }
 
   function getReward() public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("reward"))];
+    return uintStorage[REWARD];
   }
 
   function getProxyStorage() public view returns(address) {
-    return addressStorage[keccak256(abi.encodePacked("proxyStorage"))];
+    return addressStorage[PROXY_STORAGE];
   }
 }

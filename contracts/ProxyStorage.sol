@@ -21,6 +21,12 @@ contract ProxyStorage is EternalStorage {
     Voting
   }
 
+  bytes32 constant OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 constant CONSENSUS = keccak256(abi.encodePacked("consensus"));
+  bytes32 constant BLOCK_REWARD = keccak256(abi.encodePacked("blockReward"));
+  bytes32 constant VOTING = keccak256(abi.encodePacked("voting"));
+  bytes32 constant PROXY_STORAGE_ADDRESSES_INITIALIZED = keccak256(abi.encodePacked("proxyStorageAddressesInitialized"));
+
   /**
   * @dev This event will be emitted when all contract addresses have been initialized by the contract owner
   */
@@ -41,7 +47,7 @@ contract ProxyStorage is EternalStorage {
   * @dev This modifier verifies that msg.sender is the owner of the contract
   */
   modifier onlyOwner() {
-    require(msg.sender == addressStorage[keccak256(abi.encodePacked("owner"))]);
+    require(msg.sender == addressStorage[OWNER]);
     _;
   }
 
@@ -57,7 +63,7 @@ contract ProxyStorage is EternalStorage {
   * @dev Function to be called on contract initialization
   * @param _consensus address of the network consensus contract
   */
-  function initialize(address _consensus) public onlyOwner {
+  function initialize(address _consensus) external onlyOwner {
     require(!isInitialized());
     require(_consensus != address(0));
     require(_consensus != address(this));
@@ -68,13 +74,13 @@ contract ProxyStorage is EternalStorage {
   /**
   * @dev Function to be called to initialize all available contract types addresses
   */
-  function initializeAddresses(address _blockReward, address _voting) public onlyOwner {
-    require (!boolStorage[keccak256(abi.encodePacked("proxyStorageAddressesInitialized"))]);
+  function initializeAddresses(address _blockReward, address _voting) external onlyOwner {
+    require (!boolStorage[PROXY_STORAGE_ADDRESSES_INITIALIZED]);
 
-    addressStorage[keccak256(abi.encodePacked("blockReward"))] = _blockReward;
-    addressStorage[keccak256(abi.encodePacked("voting"))] = _voting;
+    addressStorage[BLOCK_REWARD] = _blockReward;
+    addressStorage[VOTING] = _voting;
 
-    boolStorage[keccak256(abi.encodePacked("proxyStorageAddressesInitialized"))] = true;
+    boolStorage[PROXY_STORAGE_ADDRESSES_INITIALIZED] = true;
 
     emit ProxyInitialized(
       getConsensus(),
@@ -88,7 +94,7 @@ contract ProxyStorage is EternalStorage {
   * @param _contractType contract type (See ContractTypes enum)
   * @param _contractAddress contract address set for the contract type
   */
-  function setContractAddress(uint256 _contractType, address _contractAddress) public onlyVoting returns(bool) {
+  function setContractAddress(uint256 _contractType, address _contractAddress) external onlyVoting returns(bool) {
     if (!isInitialized()) return false;
     if (_contractAddress == address(0)) return false;
 
@@ -114,7 +120,7 @@ contract ProxyStorage is EternalStorage {
   * @dev Function checking if a contract type is valid one for proxy usage
   * @param _contractType contract type to check if valid
   */
-  function isValidContractType(uint256 _contractType) public pure returns(bool) {
+  function isValidContractType(uint256 _contractType) external pure returns(bool) {
     return
       _contractType == uint256(ContractTypes.Consensus) ||
       _contractType == uint256(ContractTypes.BlockReward) ||
@@ -123,18 +129,18 @@ contract ProxyStorage is EternalStorage {
   }
 
   function setConsensus(address _consensus) private {
-    addressStorage[keccak256(abi.encodePacked("consensus"))] = _consensus;
+    addressStorage[CONSENSUS] = _consensus;
   }
 
   function getConsensus() public view returns(address){
-    return addressStorage[keccak256(abi.encodePacked("consensus"))];
+    return addressStorage[CONSENSUS];
   }
 
   function getBlockReward() public view returns(address){
-    return addressStorage[keccak256(abi.encodePacked("blockReward"))];
+    return addressStorage[BLOCK_REWARD];
   }
 
   function getVoting() public view returns(address){
-    return addressStorage[keccak256(abi.encodePacked("voting"))];
+    return addressStorage[VOTING];
   }
 }

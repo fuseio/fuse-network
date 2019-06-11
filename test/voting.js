@@ -178,7 +178,7 @@ contract('Voting', async (accounts) => {
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
     })
     it('should vote "accept" successfully', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -192,7 +192,7 @@ contract('Voting', async (accounts) => {
       toBN(ACTION_CHOICES.ACCEPT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[0]))
     })
     it('should vote "reject" successfully', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -206,7 +206,7 @@ contract('Voting', async (accounts) => {
       toBN(ACTION_CHOICES.REJECT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[0]))
     })
     it('multiple voters should vote successfully', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -228,7 +228,7 @@ contract('Voting', async (accounts) => {
     })
     it('should be successful even if called by non validator', async () => {
       let nonValidatorKey = owner
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -237,21 +237,21 @@ contract('Voting', async (accounts) => {
       toBN(ACTION_CHOICES.ACCEPT).should.be.bignumber.equal(await voting.getVoterChoice(id, nonValidatorKey))
     })
     it('should fail if voting before start time', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
-      let blocksToAdvance = voteStartBlock.sub(currentBlock)
-      await advanceBlocks(blocksToAdvance.sub(toBN(1)).toNumber())
+      let blocksToAdvance = voteStartBlock.sub(currentBlock).sub(toBN(1))
+      await advanceBlocks(blocksToAdvance.toNumber())
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should fail if voting after end time', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteEndBlock = await voting.getEndBlock(id)
-      let blocksToAdvance = voteEndBlock.sub(currentBlock)
-      await advanceBlocks(blocksToAdvance.add(toBN(1)).toNumber())
+      let blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
+      await advanceBlocks(blocksToAdvance.toNumber())
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should fail if trying to vote twice', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -259,7 +259,7 @@ contract('Voting', async (accounts) => {
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should fail if trying to vote with invalid choice', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -267,7 +267,7 @@ contract('Voting', async (accounts) => {
       await voting.vote(id, Object.keys(ACTION_CHOICES).length + 1, {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should fail if trying to vote for invalid id', async () => {
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -305,7 +305,7 @@ contract('Voting', async (accounts) => {
       let proposedValue = RANDOM_ADDRESS
       let contractType = CONTRACT_TYPES.CONSENSUS
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -335,7 +335,7 @@ contract('Voting', async (accounts) => {
       await voting.newBallot(voteStartAfterNumberOfCycles*2, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
 
       // advance blocks until 1sr and 2nd ballots are open
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(firstBallotId)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -400,7 +400,7 @@ contract('Voting', async (accounts) => {
       expected.third.rejected.should.be.bignumber.equal(await voting.getRejected(thirdBallotId))
 
       // end cycle and check votes
-      currentBlock = await voting.getCurrentBlockNumber()
+      currentBlock = toBN(await web3.eth.getBlockNumber())
       let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
       await proxyStorage.setConsensusMock(owner)
@@ -427,7 +427,7 @@ contract('Voting', async (accounts) => {
       expected.third.rejected.should.be.bignumber.equal(await voting.getRejected(thirdBallotId))
 
       // advance until 3rd ballot is open
-      currentBlock = await voting.getCurrentBlockNumber()
+      currentBlock = toBN(await web3.eth.getBlockNumber())
       voteStartBlock = await voting.getStartBlock(thirdBallotId)
       await advanceBlocks(voteStartBlock.sub(currentBlock).toNumber())
       true.should.be.equal(await voting.isActiveBallot(firstBallotId))
@@ -484,7 +484,7 @@ contract('Voting', async (accounts) => {
       true.should.be.equal(await voting.isValidVotingKey(validators[8]))
 
       // advance until 1st and 2nd ballots are closed
-      currentBlock = await voting.getCurrentBlockNumber()
+      currentBlock = toBN(await web3.eth.getBlockNumber())
       voteEndBlock = await voting.getEndBlock(firstBallotId)
       await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
       false.should.be.equal(await voting.isActiveBallot(firstBallotId))
@@ -492,7 +492,7 @@ contract('Voting', async (accounts) => {
       true.should.be.equal(await voting.isActiveBallot(thirdBallotId))
 
       // end cycle and check votes
-      currentBlock = await voting.getCurrentBlockNumber()
+      currentBlock = toBN(await web3.eth.getBlockNumber())
       currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
       await proxyStorage.setConsensusMock(owner)
@@ -531,13 +531,13 @@ contract('Voting', async (accounts) => {
       await voting.vote(thirdBallotId, ACTION_CHOICES.REJECT, {from: validators[4]}).should.be.fulfilled
 
       // advance until 3rd ballot is closed
-      currentBlock = await voting.getCurrentBlockNumber()
+      currentBlock = toBN(await web3.eth.getBlockNumber())
       voteEndBlock = await voting.getEndBlock(thirdBallotId)
       await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
       false.should.be.equal(await voting.isActiveBallot(thirdBallotId))
 
       // end cycle and check votes
-      currentBlock = await voting.getCurrentBlockNumber()
+      currentBlock = toBN(await web3.eth.getBlockNumber())
       currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
       await proxyStorage.setConsensusMock(owner)
@@ -584,7 +584,7 @@ contract('Voting', async (accounts) => {
       let proposedValue = RANDOM_ADDRESS
       let contractType = CONTRACT_TYPES.BLOCK_REWARD
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -592,8 +592,8 @@ contract('Voting', async (accounts) => {
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[1]}).should.be.fulfilled
       await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
       let voteEndBlock = await voting.getEndBlock(id)
-      blocksToAdvance = voteEndBlock.sub(currentBlock)
-      await advanceBlocks(blocksToAdvance.add(toBN(1)).toNumber())
+      blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
+      await advanceBlocks(blocksToAdvance.toNumber())
       await proxyStorage.setConsensusMock(owner)
       let {logs} = await voting.onCycleEnd(currentValidators).should.be.fulfilled
       logs.length.should.be.equal(1)
@@ -618,7 +618,7 @@ contract('Voting', async (accounts) => {
       let proposedValue = RANDOM_ADDRESS
       let contractType = CONTRACT_TYPES.BLOCK_REWARD
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
-      let currentBlock = await voting.getCurrentBlockNumber()
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
       let voteStartBlock = await voting.getStartBlock(id)
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
@@ -626,8 +626,8 @@ contract('Voting', async (accounts) => {
       await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[1]}).should.be.fulfilled
       await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
       let voteEndBlock = await voting.getEndBlock(id)
-      blocksToAdvance = voteEndBlock.sub(currentBlock)
-      await advanceBlocks(blocksToAdvance.add(toBN(1)).toNumber())
+      blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
+      await advanceBlocks(blocksToAdvance.toNumber())
       await proxyStorage.setConsensusMock(owner)
       let {logs} = await voting.onCycleEnd(currentValidators).should.be.fulfilled
       logs.length.should.be.equal(1)

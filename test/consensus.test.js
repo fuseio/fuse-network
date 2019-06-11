@@ -304,7 +304,7 @@ contract('Consensus', async (accounts) => {
     it('shouldTakeSnapshot', async () => {
       let blocksToSnapshot = await consensus.getBlocksToSnapshot()
       let lastSnapshotTakenAtBlock = await consensus.getLastSnapshotTakenAtBlock()
-      let currentBlockNumber = await consensus.getCurrentBlockNumber()
+      let currentBlockNumber = toBN(await web3.eth.getBlockNumber())
       let shouldTakeSnapshot = currentBlockNumber.sub(lastSnapshotTakenAtBlock).gte(blocksToSnapshot)
       shouldTakeSnapshot.should.be.equal(await consensus.shouldTakeSnapshot())
 
