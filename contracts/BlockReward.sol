@@ -12,11 +12,6 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract BlockReward is EternalStorage, BlockRewardBase {
   using SafeMath for uint256;
 
-  bytes32 constant OWNER = keccak256(abi.encodePacked("owner"));
-  bytes32 constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
-  bytes32 constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
-  bytes32 constant REWARD = keccak256(abi.encodePacked("reward"));
-
   /**
   * @dev This event will be emitted every block, describing the rewards given
   * @param receivers array of addresses to reward
@@ -74,6 +69,11 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
     return (receivers, rewards);
   }
+
+  bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 internal constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
+  bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
+  bytes32 internal constant REWARD = keccak256(abi.encodePacked("reward"));
 
   function setSystemAddress(address _newAddress) private {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;

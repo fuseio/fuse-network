@@ -15,12 +15,6 @@ contract Voting is EternalStorage, VotingBase, IVoting {
 
   uint256 public constant DECIMALS = 10 ** 18;
 
-  bytes32 constant OWNER = keccak256(abi.encodePacked("owner"));
-  bytes32 constant NEXT_BALLOT_ID = keccak256(abi.encodePacked("nextBallotId"));
-  bytes32 constant MIN_BALLOT_DURATION_CYCLES = keccak256(abi.encodePacked("minBallotDurationCycles"));
-  bytes32 constant ACTIVE_BALLOTS = keccak256(abi.encodePacked("activeBallots"));
-  bytes32 constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
-
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
   */
@@ -266,6 +260,12 @@ contract Voting is EternalStorage, VotingBase, IVoting {
       }
     }
   }
+
+  bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 internal constant NEXT_BALLOT_ID = keccak256(abi.encodePacked("nextBallotId"));
+  bytes32 internal constant MIN_BALLOT_DURATION_CYCLES = keccak256(abi.encodePacked("minBallotDurationCycles"));
+  bytes32 internal constant ACTIVE_BALLOTS = keccak256(abi.encodePacked("activeBallots"));
+  bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
 
   function finalize(uint256 _id) private {
     if (!getFinalizeCalled(_id)) {

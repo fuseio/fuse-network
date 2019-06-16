@@ -21,12 +21,6 @@ contract ProxyStorage is EternalStorage {
     Voting
   }
 
-  bytes32 constant OWNER = keccak256(abi.encodePacked("owner"));
-  bytes32 constant CONSENSUS = keccak256(abi.encodePacked("consensus"));
-  bytes32 constant BLOCK_REWARD = keccak256(abi.encodePacked("blockReward"));
-  bytes32 constant VOTING = keccak256(abi.encodePacked("voting"));
-  bytes32 constant PROXY_STORAGE_ADDRESSES_INITIALIZED = keccak256(abi.encodePacked("proxyStorageAddressesInitialized"));
-
   /**
   * @dev This event will be emitted when all contract addresses have been initialized by the contract owner
   */
@@ -127,6 +121,12 @@ contract ProxyStorage is EternalStorage {
       _contractType == uint256(ContractTypes.ProxyStorage) ||
       _contractType == uint256(ContractTypes.Voting);
   }
+
+  bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 internal constant CONSENSUS = keccak256(abi.encodePacked("consensus"));
+  bytes32 internal constant BLOCK_REWARD = keccak256(abi.encodePacked("blockReward"));
+  bytes32 internal constant VOTING = keccak256(abi.encodePacked("voting"));
+  bytes32 internal constant PROXY_STORAGE_ADDRESSES_INITIALIZED = keccak256(abi.encodePacked("proxyStorageAddressesInitialized"));
 
   function setConsensus(address _consensus) private {
     addressStorage[CONSENSUS] = _consensus;

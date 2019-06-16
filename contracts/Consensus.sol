@@ -8,26 +8,10 @@ import "./ProxyStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
-* @title Contract handling PoS consensus logic
+* @title Contract handling consensus logic
 */
 contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   using SafeMath for uint256;
-
-  bytes32 constant OWNER = keccak256(abi.encodePacked("owner"));
-  bytes32 constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
-  bytes32 constant IS_FINALIZED = keccak256(abi.encodePacked("isFinalized"));
-  bytes32 constant MIN_STAKE = keccak256(abi.encodePacked("minStake"));
-  bytes32 constant CYCLE_DURATION_BLOCKS = keccak256(abi.encodePacked("cycleDurationBlocks"));
-  bytes32 constant CURRENT_CYCLE_START_BLOCK = keccak256(abi.encodePacked("currentCycleStartBlock"));
-  bytes32 constant CURRENT_CYCLE_END_BLOCK = keccak256(abi.encodePacked("currentCycleEndBlock"));
-  bytes32 constant SNAPSHOTS_PER_CYCLE = keccak256(abi.encodePacked("snapshotsPerCycle"));
-  bytes32 constant LAST_SNAPSHOT_TAKEN_AT_BLOCK = keccak256(abi.encodePacked("lastSnapshotTakenAtBlock"));
-  bytes32 constant NEXT_SNAPSHOT_ID = keccak256(abi.encodePacked("nextSnapshotId"));
-  bytes32 constant CURRENT_VALIDATORS = keccak256(abi.encodePacked("currentValidators"));
-  bytes32 constant PENDING_VALIDATORS = keccak256(abi.encodePacked("pendingValidators"));
-  bytes32 constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
-  bytes32 constant WAS_PROXY_STORAGE_SET = keccak256(abi.encodePacked("wasProxyStorageSet"));
-  bytes32 constant NEW_VALIDATOR_SET = keccak256(abi.encodePacked("newValidatorSet"));
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -124,6 +108,21 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   }
 
   /**
+  * @dev stake to become a validator.
+  */
+  function stake() external payable {
+    _stake(msg.sender, msg.value);
+  }
+
+  /**
+  * @dev delegate to a validator
+  * @param _validator the address of the validator msg.sender is delegating to
+  */
+  function delegate(address _validator) external payable {
+    _delegate(msg.sender, msg.value, _validator);
+  }
+
+  /**
   * @dev Function to be called when a staker whishes to withdraw some of his staked funds
   * @param _amount the amount msg.sender wishes to withdraw from the contract
   */
@@ -132,8 +131,27 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     require (_amount <= stakeAmount(msg.sender));
 
     stakeAmountSub(msg.sender, _amount);
-
     _removeValidator(msg.sender);
+
+    msg.sender.transfer(_amount);
+  }
+
+  /**
+  * @dev Function to be called when a delegator whishes to withdraw some of his staked funds for a validator
+  * @param _validator the address of the validator msg.sender has delegating to
+  * @param _amount the amount msg.sender wishes to withdraw from the contract
+  */
+  function withdraw(address _validator, uint256 _amount) external {
+    require (_validator != address(0));
+    require (_amount > 0);
+
+    require (_amount <= stakeAmount(_validator));
+    require (_amount <= delegatedAmount(msg.sender, _validator));
+
+    delegatedAmountSub(msg.sender, _validator, _amount);
+
+    stakeAmountSub(_validator, _amount);
+    _removeValidator(_validator);
 
     msg.sender.transfer(_amount);
   }
@@ -173,6 +191,22 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     }
   }
 
+  bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
+  bytes32 internal constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
+  bytes32 internal constant IS_FINALIZED = keccak256(abi.encodePacked("isFinalized"));
+  bytes32 internal constant MIN_STAKE = keccak256(abi.encodePacked("minStake"));
+  bytes32 internal constant CYCLE_DURATION_BLOCKS = keccak256(abi.encodePacked("cycleDurationBlocks"));
+  bytes32 internal constant CURRENT_CYCLE_START_BLOCK = keccak256(abi.encodePacked("currentCycleStartBlock"));
+  bytes32 internal constant CURRENT_CYCLE_END_BLOCK = keccak256(abi.encodePacked("currentCycleEndBlock"));
+  bytes32 internal constant SNAPSHOTS_PER_CYCLE = keccak256(abi.encodePacked("snapshotsPerCycle"));
+  bytes32 internal constant LAST_SNAPSHOT_TAKEN_AT_BLOCK = keccak256(abi.encodePacked("lastSnapshotTakenAtBlock"));
+  bytes32 internal constant NEXT_SNAPSHOT_ID = keccak256(abi.encodePacked("nextSnapshotId"));
+  bytes32 internal constant CURRENT_VALIDATORS = keccak256(abi.encodePacked("currentValidators"));
+  bytes32 internal constant PENDING_VALIDATORS = keccak256(abi.encodePacked("pendingValidators"));
+  bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
+  bytes32 internal constant WAS_PROXY_STORAGE_SET = keccak256(abi.encodePacked("wasProxyStorageSet"));
+  bytes32 internal constant NEW_VALIDATOR_SET = keccak256(abi.encodePacked("newValidatorSet"));
+
   function _stake(address _staker, uint256 _amount) private {
     require(_staker != address(0));
     require(_amount != 0);
@@ -181,6 +215,19 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
 
     if (stakeAmount(_staker) >= getMinStake()) {
       _addValidator(_staker);
+    }
+  }
+
+  function _delegate(address _staker, uint256 _amount, address _validator) private {
+    require(_staker != address(0));
+    require(_amount != 0);
+    require(_validator != address(0));
+
+    delegatedAmountAdd(_staker, _validator, _amount);
+    stakeAmountAdd(_validator, _amount);
+
+    if (stakeAmount(_validator) >= getMinStake()) {
+      _addValidator(_validator);
     }
   }
 
@@ -388,8 +435,16 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].sub(_amount);
   }
 
-  function setStakeAmount(address _address, uint256 _amount) private {
-    uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = _amount;
+  function delegatedAmount(address _address, address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))];
+  }
+
+  function delegatedAmountAdd(address _address, address _validator, uint256 _amount) private {
+    uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].add(_amount);
+  }
+
+  function delegatedAmountSub(address _address, address _validator, uint256 _amount) private {
+    uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].sub(_amount);
   }
 
   function isValidator(address _address) public view returns(bool) {
