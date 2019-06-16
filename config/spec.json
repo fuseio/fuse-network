@@ -5,7 +5,7 @@
       "params": {
         "stepDuration": "5",
         "blockReward": "0x0",
-        "blockRewardContractAddress": "0x2ae03Bdcd2f6583c8F958d1203202ed41d5716c6",
+        "blockRewardContractAddress": "0x63D4efeD2e3dA070247bea3073BCaB896dFF6C9B",
         "blockRewardContractTransition": 100,
         "validators": {
           "multi": {
@@ -58,6 +58,6 @@
       "0x0000000000000000000000000000000000000006": { "builtin": { "name": "alt_bn128_add", "activate_at": 0, "pricing": { "linear": { "base": 500, "word": 0 } } } },
       "0x0000000000000000000000000000000000000007": { "builtin": { "name": "alt_bn128_mul", "activate_at": 0, "pricing": { "linear": { "base": 40000, "word": 0 } } } },
       "0x0000000000000000000000000000000000000008": { "builtin": { "name": "alt_bn128_pairing", "activate_at": 0, "pricing": { "alt_bn128_pairing": { "base": 100000, "pair": 80000 } } } },
-      "0xd9176e84898a0054680aec3f7c056b200c3d96c3": { "balance": "100000000000000000000000000" }
+      "0xd9176e84898a0054680aec3f7c056b200c3d96c3": { "balance": "300000000000000000000000000" }
   }
 }

@@ -68,3 +68,4 @@ config/keys
 config/pass.pwd
 database
 fusenet
+contracts.json

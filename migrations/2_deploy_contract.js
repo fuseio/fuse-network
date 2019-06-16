@@ -1,4 +1,5 @@
 require('dotenv').config()
+const fs = require('fs')
 
 const EternalStorageProxy = artifacts.require('./eternal-storage/EternalStorageProxy.sol')
 const BlockReward = artifacts.require('./BlockReward.sol')

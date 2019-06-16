@@ -38,7 +38,7 @@ module.exports = {
       provider: walletProvider,
       network_id: '*',
       gasPrice: 1000000000,
-      gas: 4600000
+      gas: 10000000
     }
   },
   compilers: {
