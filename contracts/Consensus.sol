@@ -178,10 +178,10 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
       delete randomSnapshotId;
     } else if (shouldTakeSnapshot()) {
       uint256 snapshotId = getNextSnapshotId();
-      if (snapshotId < getSnapshotsPerCycle()) {
-        setNextSnapshotId(snapshotId.add(1));
-      } else {
+      if (snapshotId == getSnapshotsPerCycle()) {
         setNextSnapshotId(0);
+      } else {
+        setNextSnapshotId(snapshotId.add(1));
       }
       for (uint256 i; i < pendingValidatorsLength(); i++) {
         addToSnapshot(pendingValidatorsAtPosition(i), snapshotId);
