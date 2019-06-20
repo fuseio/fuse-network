@@ -183,9 +183,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
       } else {
         setNextSnapshotId(snapshotId.add(1));
       }
-      for (uint256 i; i < pendingValidatorsLength(); i++) {
-        addToSnapshot(pendingValidatorsAtPosition(i), snapshotId);
-      }
+      setSnapshot(snapshotId, pendingValidators());
       setLastSnapshotTakenAtBlock(block.number);
       delete snapshotId;
     }
@@ -354,8 +352,8 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[NEXT_SNAPSHOT_ID];
   }
 
-  function addToSnapshot(address _address, uint256 _snapshotId) internal {
-    addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId))].push(_address);
+  function setSnapshot(uint256 _snapshotId, address[] _addresses) internal {
+    addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId))] = _addresses;
   }
 
   function getSnapshot(uint256 _snapshotId) public view returns(address[]) {
