@@ -1,7 +1,13 @@
 # General
+.DS_Store
 build
 flats
-.DS_Store
+abis
+config/keys
+config/pass.pwd
+database
+fusenet
+contracts.json
 
 # Logs
 logs
@@ -64,8 +70,3 @@ typings/
 
 # next.js build output
 .next
-config/keys
-config/pass.pwd
-database
-fusenet
-contracts.json
