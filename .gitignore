@@ -67,6 +67,8 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.zeronet
 
 # next.js build output
 .next
