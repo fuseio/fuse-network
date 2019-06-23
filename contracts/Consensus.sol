@@ -20,6 +20,14 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   event ChangeFinalized(address[] newSet);
 
   /**
+  * @dev This modifier verifies that the change initiated has not been finalized yet
+  */
+  modifier notFinalized() {
+    require (!isFinalized());
+    _;
+  }
+
+  /**
   * @dev This modifier verifies that msg.sender is the system address (EIP96)
   */
   modifier onlySystem() {
@@ -87,6 +95,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
       setCurrentValidators(newValidatorSet());
     }
 
+    setFinalized(true);
 
     emit ChangeFinalized(currentValidators());
   }
@@ -174,6 +183,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
       IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
       uint256 randomSnapshotId = getRandom(0, getSnapshotsPerCycle() - 1);
       setNewValidatorSet(getSnapshot(randomSnapshotId));
+      setFinalized(false);
       emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
       setCurrentCycle();
       delete randomSnapshotId;
@@ -182,6 +192,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
 
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
+  bytes32 internal constant IS_FINALIZED = keccak256(abi.encodePacked("isFinalized"));
   bytes32 internal constant MIN_STAKE = keccak256(abi.encodePacked("minStake"));
   bytes32 internal constant CYCLE_DURATION_BLOCKS = keccak256(abi.encodePacked("cycleDurationBlocks"));
   bytes32 internal constant CURRENT_CYCLE_START_BLOCK = keccak256(abi.encodePacked("currentCycleStartBlock"));
@@ -272,6 +283,14 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
 
   function getSystemAddress() public view returns(address) {
     return addressStorage[SYSTEM_ADDRESS];
+  }
+
+  function setFinalized(bool _status) private {
+    boolStorage[IS_FINALIZED] = _status;
+  }
+
+  function isFinalized() public view returns(bool) {
+    return boolStorage[IS_FINALIZED];
   }
 
   function setMinStake(uint256 _minStake) private {

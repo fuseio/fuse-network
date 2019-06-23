@@ -62,6 +62,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setProxyStorage(proxyStorage.address)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.getSystemAddress()))
+      false.should.be.equal(await consensus.isFinalized())
       MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
       toBN(CYCLE_DURATION_BLOCKS).should.be.bignumber.equal(await consensus.getCycleDurationBlocks())
       toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
@@ -124,6 +125,12 @@ contract('Consensus', async (accounts) => {
       await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
       await consensus.setSystemAddressMock(accounts[0], {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
+    })
+    it('should set finalized to true', async () => {
+      false.should.be.equal(await consensus.isFinalized())
+      await consensus.setSystemAddressMock(accounts[0])
+      await consensus.finalizeChange().should.be.fulfilled
+      true.should.be.equal(await consensus.isFinalized())
     })
     it('should not update current validators set if new set is empty', async () => {
       let initialValidators = await consensus.getValidators()

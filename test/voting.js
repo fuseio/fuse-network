@@ -477,6 +477,7 @@ contract('Voting', async (accounts) => {
       await proxyStorage.setConsensusMock(consensus.address)
       await consensus.setNewValidatorSetMock(validators)
       await consensus.setSystemAddressMock(owner, {from: owner})
+      await consensus.setFinalizedMock(false, {from: owner})
       await consensus.finalizeChange().should.be.fulfilled
       currentValidators = await consensus.getValidators()
       currentValidators[8].should.be.equal(nonValidatorKey)
