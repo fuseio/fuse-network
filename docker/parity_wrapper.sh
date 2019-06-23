@@ -69,6 +69,7 @@ declare -a VALID_ROLE_LIST=(
                             bootnode
                             validator
                             participant
+                            explorer
                            )
 
 # Configuration snippets.
@@ -137,6 +138,31 @@ reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
 [account]
 unlock = ["%s"]
 password = ["/home/parity/.local/share/io.parity.ethereum/custom/pass.pwd"]
+'
+
+CONFIG_SNIPPET_EXPLORER_NODE='
+[rpc]
+cors = ["all"]
+port = 8545
+interface = "all"
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+
+[websockets]
+disable = false
+port = 8546
+interface = "all"
+origins = ["all"]
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "rpc", "secretstore"]
+
+[footprint]
+tracing = "on"
+pruning = "archive"
+fat_db = "on"
+
+[network]
+port = 30300
 '
 
 # Make sure some environment variables are defined.
@@ -253,6 +279,11 @@ function adjustConfiguration {
     "participant")
       echo "Run as participant with address ${ADDRESS}"
       printf "$template\n$CONFIG_SNIPPET_PARTICIPANT" "$ADDRESS" > $PARITY_CONFIG_FILE
+      ;;
+
+    "explorer")
+      echo "Run as explorer node"
+      printf "$template\n$CONFIG_SNIPPET_EXPLORER_NODE" > $PARITY_CONFIG_FILE
       ;;
   esac
 }

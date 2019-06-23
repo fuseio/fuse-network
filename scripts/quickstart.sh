@@ -23,6 +23,7 @@ declare -a VALID_ROLE_LIST=(
   bootnode
   validator
   participant
+  explorer
 )
 
 # Function for some checks at the beginning to make sure everything will run well.
@@ -106,7 +107,7 @@ function setup {
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
 
-  if [[ $ROLE != bootnode ]] ; then
+  if [[ $ROLE != bootnode && $ROLE != explorer ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
       while [ -z "$PASSWORD" ] ; do
@@ -230,6 +231,22 @@ function startNode {
         $DOCKER_IMAGE_PARITY \
         --role participant \
         --address $address
+      ;;
+
+    "explorer")
+      ## Start Parity container with all necessary arguments.
+      $PERMISSION_PREFIX docker run \
+        --detach \
+        --name $DOCKER_CONTAINER_PARITY \
+        --volume $DATABASE_DIR:/data \
+        --volume $CONFIG_DIR:/config/custom \
+        -p 30303:30300 \
+        -p 8545:8545 \
+        -p 8546:8546 \
+        --restart=on-failure \
+        $DOCKER_IMAGE_PARITY \
+        --role explorer \
+        --parity-args --node-key $NODE_KEY
       ;;
   esac
 
