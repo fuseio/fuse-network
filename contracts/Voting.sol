@@ -57,7 +57,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
   function initialize(uint256 _minBallotDurationCycles) external onlyOwner {
     require(!isInitialized());
     require(_minBallotDurationCycles < getMaxBallotDurationCycles());
-    setMinBallotDurationCycles(_minBallotDurationCycles);
+    _setMinBallotDurationCycles(_minBallotDurationCycles);
     setInitialized(true);
   }
 
@@ -72,9 +72,9 @@ contract Voting is EternalStorage, VotingBase, IVoting {
   function newBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, uint256 _contractType, address _proposedValue, string _description) external onlyValidVotingKey(msg.sender) onlyValidDuration(_startAfterNumberOfCycles, _cyclesDuration) returns(uint256) {
     require(_proposedValue != address(0));
     require(validContractType(_contractType));
-    uint256 ballotId = createBallot(_startAfterNumberOfCycles, _cyclesDuration, _description);
-    setProposedValue(ballotId, _proposedValue);
-    setContractType(ballotId, _contractType);
+    uint256 ballotId = _createBallot(_startAfterNumberOfCycles, _cyclesDuration, _description);
+    _setProposedValue(ballotId, _proposedValue);
+    _setContractType(ballotId, _contractType);
     return ballotId;
   }
 
@@ -110,7 +110,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return addressStorage[keccak256(abi.encodePacked("votingState", _id, "proposedValue"))];
   }
 
-  function setProposedValue(uint256 _id, address _value) private {
+  function _setProposedValue(uint256 _id, address _value) private {
     addressStorage[keccak256(abi.encodePacked("votingState", _id, "proposedValue"))] = _value;
   }
 
@@ -118,7 +118,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "contractType"))];
   }
 
-  function setContractType(uint256 _id, uint256 _value) private {
+  function _setContractType(uint256 _id, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "contractType"))] = _value;
   }
 
@@ -166,22 +166,22 @@ contract Voting is EternalStorage, VotingBase, IVoting {
   * @param _cyclesDuration number of cycles the ballot will remain open for voting
   * @param _description ballot text description
   */
-  function createBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, string _description) private returns(uint256) {
+  function _createBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, string _description) private returns(uint256) {
     require(isInitialized());
     address creator = msg.sender;
     require(withinLimit(creator));
     uint256 ballotId = getNextBallotId();
-    setNextBallotId(ballotId.add(1));
-    setStartBlock(ballotId, _startAfterNumberOfCycles);
-    setEndBlock(ballotId, _cyclesDuration);
-    setIsFinalized(ballotId, false);
-    setQuorumState(ballotId, uint256(QuorumStates.InProgress));
-    setCreator(ballotId, creator);
-    setDescription(ballotId, _description);
-    setTotalVoters(ballotId, 0);
-    setIndex(ballotId, activeBallotsLength());
-    activeBallotsAdd(ballotId);
-    increaseValidatorLimit(creator);
+    _setNextBallotId(ballotId.add(1));
+    _setStartBlock(ballotId, _startAfterNumberOfCycles);
+    _setEndBlock(ballotId, _cyclesDuration);
+    _setIsFinalized(ballotId, false);
+    _setQuorumState(ballotId, uint256(QuorumStates.InProgress));
+    _setCreator(ballotId, creator);
+    _setDescription(ballotId, _description);
+    _setTotalVoters(ballotId, 0);
+    _setIndex(ballotId, activeBallotsLength());
+    _activeBallotsAdd(ballotId);
+    _increaseValidatorLimit(creator);
     emit BallotCreated(ballotId, creator);
     return ballotId;
   }
@@ -209,8 +209,8 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     require(isActiveBallot(_id));
     require(!hasAlreadyVoted(_id, voter));
     require(_choice == uint(ActionChoices.Accept) || _choice == uint(ActionChoices.Reject));
-    setVoterChoice(_id, voter, _choice);
-    setTotalVoters(_id, getTotalVoters(_id).add(1));
+    _setVoterChoice(_id, voter, _choice);
+    _setTotalVoters(_id, getTotalVoters(_id).add(1));
     emit Vote(_id, _choice, voter);
   }
 
@@ -251,11 +251,11 @@ contract Voting is EternalStorage, VotingBase, IVoting {
         }
         accepts = accepts.mul(DECIMALS).div(numOfValidators);
         rejects = rejects.mul(DECIMALS).div(numOfValidators);
-        setAccepted(ballotId, getAccepted(ballotId).add(accepts));
-        setRejected(ballotId, getRejected(ballotId).add(rejects));
+        _setAccepted(ballotId, getAccepted(ballotId).add(accepts));
+        _setRejected(ballotId, getRejected(ballotId).add(rejects));
 
         if (canBeFinalized(ballotId)) {
-          finalize(ballotId);
+          _finalize(ballotId);
         }
       }
     }
@@ -267,42 +267,42 @@ contract Voting is EternalStorage, VotingBase, IVoting {
   bytes32 internal constant ACTIVE_BALLOTS = keccak256(abi.encodePacked("activeBallots"));
   bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
 
-  function finalize(uint256 _id) private {
+  function _finalize(uint256 _id) private {
     if (!getFinalizeCalled(_id)) {
-      decreaseValidatorLimit(_id);
-      setFinalizeCalled(_id);
+      _decreaseValidatorLimit(_id);
+      _setFinalizeCalled(_id);
     }
 
     if (getAccepted(_id) > getRejected(_id)) {
-      if (finalizeBallot(_id)) {
-        setQuorumState(_id, uint256(QuorumStates.Accepted));
+      if (_finalizeBallot(_id)) {
+        _setQuorumState(_id, uint256(QuorumStates.Accepted));
       } else {
         return;
       }
     } else {
-      setQuorumState(_id, uint256(QuorumStates.Rejected));
+      _setQuorumState(_id, uint256(QuorumStates.Rejected));
     }
 
-    deactivateBallot(_id);
-    setIsFinalized(_id, true);
+    _deactivateBallot(_id);
+    _setIsFinalized(_id, true);
     emit BallotFinalized(_id);
   }
 
-  function deactivateBallot(uint256 _id) private {
+  function _deactivateBallot(uint256 _id) private {
     uint256 removedIndex = getIndex(_id);
     uint256 lastIndex = activeBallotsLength() - 1;
     uint256 lastBallotId = activeBallotsAtIndex(lastIndex);
 
     // Override the removed ballot with the last one.
-    activeBallotsSet(removedIndex, lastBallotId);
+    _activeBallotsSet(removedIndex, lastBallotId);
 
     // Update the index of the last validator.
-    setIndex(lastBallotId, removedIndex);
-    activeBallotsSet(lastIndex, 0);
-    activeBallotsDecreaseLength();
+    _setIndex(lastBallotId, removedIndex);
+    _activeBallotsSet(lastIndex, 0);
+    _activeBallotsDecreaseLength();
   }
 
-  function finalizeBallot(uint256 _id) private returns(bool) {
+  function _finalizeBallot(uint256 _id) private returns(bool) {
     return ProxyStorage(getProxyStorage()).setContractAddress(getContractType(_id), getProposedValue(_id));
   }
 
@@ -314,7 +314,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "quorumState"))];
   }
 
-  function setQuorumState(uint256 _id, uint256 _value) private {
+  function _setQuorumState(uint256 _id, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "quorumState"))] = _value;
   }
 
@@ -322,7 +322,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[NEXT_BALLOT_ID];
   }
 
-  function setNextBallotId(uint256 _id) private {
+  function _setNextBallotId(uint256 _id) private {
     uintStorage[NEXT_BALLOT_ID] = _id;
   }
 
@@ -330,7 +330,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[MIN_BALLOT_DURATION_CYCLES];
   }
 
-  function setMinBallotDurationCycles(uint256 _value) private {
+  function _setMinBallotDurationCycles(uint256 _value) private {
     uintStorage[MIN_BALLOT_DURATION_CYCLES] = _value;
   }
 
@@ -342,7 +342,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "startBlock"))];
   }
 
-  function setStartBlock(uint256 _id, uint256 _startAfterNumberOfCycles) private {
+  function _setStartBlock(uint256 _id, uint256 _startAfterNumberOfCycles) private {
     IConsensus consensus = IConsensus(ProxyStorage(getProxyStorage()).getConsensus());
     uint256 cycleDurationBlocks = consensus.getCycleDurationBlocks();
     uint256 currentCycleEndBlock = consensus.getCurrentCycleEndBlock();
@@ -354,7 +354,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "endBlock"))];
   }
 
-  function setEndBlock(uint256 _id, uint256 _cyclesDuration) private {
+  function _setEndBlock(uint256 _id, uint256 _cyclesDuration) private {
     uint256 cycleDurationBlocks = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getCycleDurationBlocks();
     uint256 startBlock = getStartBlock(_id);
     uint256 endBlock = startBlock.add(_cyclesDuration.mul(cycleDurationBlocks));
@@ -365,7 +365,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return boolStorage[keccak256(abi.encodePacked("votingState", _id, "isFinalized"))];
   }
 
-  function setIsFinalized(uint256 _id, bool _value) private {
+  function _setIsFinalized(uint256 _id, bool _value) private {
     boolStorage[keccak256(abi.encodePacked("votingState", _id, "isFinalized"))] = _value;
   }
 
@@ -373,7 +373,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return stringStorage[keccak256(abi.encodePacked("votingState", _id, "description"))];
   }
 
-  function setDescription(uint256 _id, string _value) private {
+  function _setDescription(uint256 _id, string _value) private {
     stringStorage[keccak256(abi.encodePacked("votingState", _id, "description"))] = _value;
   }
 
@@ -381,7 +381,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return addressStorage[keccak256(abi.encodePacked("votingState", _id, "creator"))];
   }
 
-  function setCreator(uint256 _id, address _value) private {
+  function _setCreator(uint256 _id, address _value) private {
     addressStorage[keccak256(abi.encodePacked("votingState", _id, "creator"))] = _value;
   }
 
@@ -389,7 +389,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalVoters"))];
   }
 
-  function setTotalVoters(uint256 _id, uint256 _value) private {
+  function _setTotalVoters(uint256 _id, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalVoters"))] = _value;
   }
 
@@ -397,7 +397,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "index"))];
   }
 
-  function setIndex(uint256 _id, uint256 _value) private {
+  function _setIndex(uint256 _id, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "index"))] = _value;
   }
 
@@ -413,21 +413,17 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintArrayStorage[ACTIVE_BALLOTS].length;
   }
 
-  function activeBallotsAdd(uint256 _id) private {
+  function _activeBallotsAdd(uint256 _id) private {
     uintArrayStorage[ACTIVE_BALLOTS].push(_id);
   }
 
-  function activeBallotsClear() private {
-    delete uintArrayStorage[ACTIVE_BALLOTS];
-  }
-
-  function activeBallotsDecreaseLength() private {
+  function _activeBallotsDecreaseLength() private {
     if (activeBallotsLength() > 0) {
       uintArrayStorage[ACTIVE_BALLOTS].length--;
     }
   }
 
-  function activeBallotsSet(uint256 _index, uint256 _id) private {
+  function _activeBallotsSet(uint256 _index, uint256 _id) private {
     uintArrayStorage[ACTIVE_BALLOTS][_index] = _id;
   }
 
@@ -435,19 +431,19 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("validatorActiveBallots", _key))];
   }
 
-  function setValidatorActiveBallots(address _key, uint256 _value) private {
+  function _setValidatorActiveBallots(address _key, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("validatorActiveBallots", _key))] = _value;
   }
 
-  function increaseValidatorLimit(address _key) private {
-    setValidatorActiveBallots(_key, validatorActiveBallots(_key).add(1));
+  function _increaseValidatorLimit(address _key) private {
+    _setValidatorActiveBallots(_key, validatorActiveBallots(_key).add(1));
   }
 
-  function decreaseValidatorLimit(uint256 _id) private {
+  function _decreaseValidatorLimit(uint256 _id) private {
     address key = getCreator(_id);
     uint256 ballotsCount = validatorActiveBallots(key);
     if (ballotsCount > 0) {
-      setValidatorActiveBallots(key, ballotsCount - 1);
+      _setValidatorActiveBallots(key, ballotsCount - 1);
     }
   }
 
@@ -455,7 +451,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return boolStorage[keccak256(abi.encodePacked("finalizeCalled", _id))];
   }
 
-  function setFinalizeCalled(uint256 _id) private {
+  function _setFinalizeCalled(uint256 _id) private {
     boolStorage[keccak256(abi.encodePacked("finalizeCalled", _id))] = true;
   }
 
@@ -467,7 +463,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).currentValidatorsLength();
   }
 
-  function setVoterChoice(uint256 _id, address _key, uint256 _choice) private {
+  function _setVoterChoice(uint256 _id, address _key, uint256 _choice) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "voters", _key))] = _choice;
   }
 
@@ -483,7 +479,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "accepted"))];
   }
 
-  function setAccepted(uint256 _id, uint256 _value) private {
+  function _setAccepted(uint256 _id, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "accepted"))] = _value;
   }
 
@@ -491,7 +487,7 @@ contract Voting is EternalStorage, VotingBase, IVoting {
     return uintStorage[keccak256(abi.encodePacked("votingState", _id, "rejected"))];
   }
 
-  function setRejected(uint256 _id, uint256 _value) private {
+  function _setRejected(uint256 _id, uint256 _value) private {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "rejected"))] = _value;
   }
 }

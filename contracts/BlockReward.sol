@@ -41,8 +41,8 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   */
   function initialize(uint256 _reward) external onlyOwner {
     require(!isInitialized());
-    setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
-    setReward(_reward);
+    _setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
+    _setReward(_reward);
     setInitialized(true);
   }
 
@@ -75,7 +75,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
   bytes32 internal constant REWARD = keccak256(abi.encodePacked("reward"));
 
-  function setSystemAddress(address _newAddress) private {
+  function _setSystemAddress(address _newAddress) private {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
 
@@ -83,7 +83,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     return addressStorage[SYSTEM_ADDRESS];
   }
 
-  function setReward(uint256 _reward) private {
+  function _setReward(uint256 _reward) private {
     require(_reward >= 0);
     uintStorage[REWARD] = _reward;
   }

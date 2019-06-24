@@ -52,12 +52,12 @@ contract EternalStorageProxy is EternalStorage {
     constructor(address _proxyStorage, address _implementation) public {
       require(_implementation != address(0));
       if (_proxyStorage != address(0)) {
-        setProxyStorage(_proxyStorage);
+        _setProxyStorage(_proxyStorage);
       } else {
-        setProxyStorage(address(this));
+        _setProxyStorage(address(this));
       }
-      setImplementation(_implementation);
-      setOwner(msg.sender);
+      _setImplementation(_implementation);
+      _setOwner(msg.sender);
     }
 
     /**
@@ -98,8 +98,8 @@ contract EternalStorageProxy is EternalStorage {
       if (_newImplementation == address(0)) return false;
       if (getImplementation() == _newImplementation) return false;
       uint256 _newVersion = getVersion() + 1;
-      setVersion(_newVersion);
-      setImplementation(_newImplementation);
+      _setVersion(_newVersion);
+      _setImplementation(_newImplementation);
       emit Upgraded(_newVersion, _newImplementation);
       return true;
     }
@@ -109,7 +109,7 @@ contract EternalStorageProxy is EternalStorage {
      */
     function renounceOwnership() public onlyOwner {
       emit OwnershipRenounced(getOwner());
-      setOwner(address(0));
+      _setOwner(address(0));
     }
 
     /**
@@ -119,14 +119,14 @@ contract EternalStorageProxy is EternalStorage {
     function transferOwnership(address _newOwner) public onlyOwner {
       require(_newOwner != address(0));
       emit OwnershipTransferred(getOwner(), _newOwner);
-      setOwner(_newOwner);
+      _setOwner(_newOwner);
     }
 
     function getOwner() public view returns(address) {
       return addressStorage[keccak256(abi.encodePacked("owner"))];
     }
 
-    function setOwner(address _owner) private {
+    function _setOwner(address _owner) private {
       addressStorage[keccak256(abi.encodePacked("owner"))] = _owner;
     }
 
@@ -134,7 +134,7 @@ contract EternalStorageProxy is EternalStorage {
       return version;
     }
 
-    function setVersion(uint256 _newVersion) private {
+    function _setVersion(uint256 _newVersion) private {
       version = _newVersion;
     }
 
@@ -142,7 +142,7 @@ contract EternalStorageProxy is EternalStorage {
       return implementation;
     }
 
-    function setImplementation(address _newImplementation) private {
+    function _setImplementation(address _newImplementation) private {
       implementation = _newImplementation;
     }
 
@@ -150,7 +150,7 @@ contract EternalStorageProxy is EternalStorage {
       return addressStorage[keccak256(abi.encodePacked("proxyStorage"))];
     }
 
-    function setProxyStorage(address _proxyStorage) private {
+    function _setProxyStorage(address _proxyStorage) private {
       addressStorage[keccak256(abi.encodePacked("proxyStorage"))] = _proxyStorage;
     }
 }

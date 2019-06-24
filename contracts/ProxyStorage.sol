@@ -61,7 +61,7 @@ contract ProxyStorage is EternalStorage {
     require(!isInitialized());
     require(_consensus != address(0));
     require(_consensus != address(this));
-    setConsensus(_consensus);
+    _setConsensus(_consensus);
     setInitialized(true);
   }
 
@@ -128,7 +128,7 @@ contract ProxyStorage is EternalStorage {
   bytes32 internal constant VOTING = keccak256(abi.encodePacked("voting"));
   bytes32 internal constant PROXY_STORAGE_ADDRESSES_INITIALIZED = keccak256(abi.encodePacked("proxyStorageAddressesInitialized"));
 
-  function setConsensus(address _consensus) private {
+  function _setConsensus(address _consensus) private {
     addressStorage[CONSENSUS] = _consensus;
   }
 

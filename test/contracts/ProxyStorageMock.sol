@@ -4,11 +4,11 @@ import "../../contracts/ProxyStorage.sol";
 
 contract ProxyStorageMock is ProxyStorage {
   function setBlockRewardMock(address _newAddress) public {
-    addressStorage[keccak256(abi.encodePacked("blockReward"))] = _newAddress;
+    addressStorage[BLOCK_REWARD] = _newAddress;
   }
 
   function setConsensusMock(address _newAddress) public {
-    addressStorage[keccak256(abi.encodePacked("consensus"))] = _newAddress;
+    addressStorage[CONSENSUS] = _newAddress;
   }
 
   function upgradeBlockRewardMock(address _implementation) public {

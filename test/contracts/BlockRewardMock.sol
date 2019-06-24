@@ -4,6 +4,6 @@ import "../../contracts/BlockReward.sol";
 
 contract BlockRewardMock is BlockReward {
   function setSystemAddressMock(address _newAddress) public onlyOwner {
-    addressStorage[keccak256(abi.encodePacked("SYSTEM_ADDRESS"))] = _newAddress;
+    addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
 }

@@ -62,7 +62,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setProxyStorage(proxyStorage.address)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.getSystemAddress()))
-      false.should.be.equal(await consensus.isFinalized())
+      true.should.be.equal(await consensus.isFinalized())
       MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
       toBN(CYCLE_DURATION_BLOCKS).should.be.bignumber.equal(await consensus.getCycleDurationBlocks())
       toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
@@ -120,6 +120,7 @@ contract('Consensus', async (accounts) => {
     beforeEach(async () => {
       await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
+      await consensus.setFinalizedMock(false, {from: owner})
     })
     it('should only be called by SYSTEM_ADDRESS', async () => {
       await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
@@ -141,8 +142,7 @@ contract('Consensus', async (accounts) => {
       let currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(1)
       currentValidators.should.deep.equal(initialValidators)
-      logs[0].event.should.be.equal('ChangeFinalized')
-      logs[0].args['newSet'].should.deep.equal(initialValidators)
+      logs.length.should.be.equal(0)
     })
     it('should update current validators set', async () => {
       let mockSet = [firstCandidate, secondCandidate]
@@ -715,8 +715,7 @@ contract('Consensus', async (accounts) => {
       await advanceBlocks(blocksToSnapshot)
 
       // call cycle function
-      tx = await consensus.cycle({from: owner}).should.be.fulfilled
-      tx.logs.length.should.be.equal(0)
+      await consensus.cycle({from: owner}).should.be.fulfilled
 
       // check snapshot created
       id = await consensus.getNextSnapshotId()

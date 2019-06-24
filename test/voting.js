@@ -55,6 +55,7 @@ contract('Voting', async (accounts) => {
     )
 
     await consensus.setNewValidatorSetMock(validators)
+    await consensus.setFinalizedMock(false, {from: owner})
     await consensus.setSystemAddressMock(owner, {from: owner})
     await consensus.finalizeChange().should.be.fulfilled
 

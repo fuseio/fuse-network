@@ -60,16 +60,17 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   */
   function initialize(uint256 _minStake, uint256 _cycleDurationBlocks, uint256 _snapshotsPerCycle, address _initialValidator) external onlyOwner {
     require(!isInitialized());
-    setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
-    setMinStake(_minStake);
-    setCycleDurationBlocks(_cycleDurationBlocks);
-    setCurrentCycle();
-    setSnapshotsPerCycle(_snapshotsPerCycle);
+    _setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
+    _setMinStake(_minStake);
+    _setCycleDurationBlocks(_cycleDurationBlocks);
+    _setCurrentCycle();
+    _setSnapshotsPerCycle(_snapshotsPerCycle);
     if (_initialValidator == address(0)) {
-      currentValidatorsAdd(msg.sender);
+      _currentValidatorsAdd(msg.sender);
     } else {
-      currentValidatorsAdd(_initialValidator);
+      _currentValidatorsAdd(_initialValidator);
     }
+    _setFinalized(true);
     setInitialized(true);
   }
 
@@ -90,14 +91,12 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   /**
   * @dev See ValidatorSet.finalizeChange
   */
-  function finalizeChange() external onlySystem {
+  function finalizeChange() external onlySystem notFinalized {
     if (newValidatorSetLength() > 0) {
-      setCurrentValidators(newValidatorSet());
+      _setCurrentValidators(newValidatorSet());
+      emit ChangeFinalized(currentValidators());
     }
-
-    setFinalized(true);
-
-    emit ChangeFinalized(currentValidators());
+    _setFinalized(true);
   }
 
   /**
@@ -130,7 +129,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     require (_amount > 0);
     require (_amount <= stakeAmount(msg.sender));
 
-    stakeAmountSub(msg.sender, _amount);
+    _stakeAmountSub(msg.sender, _amount);
     _removeValidator(msg.sender);
 
     msg.sender.transfer(_amount);
@@ -148,9 +147,9 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     require (_amount <= stakeAmount(_validator));
     require (_amount <= delegatedAmount(msg.sender, _validator));
 
-    delegatedAmountSub(msg.sender, _validator, _amount);
+    _delegatedAmountSub(msg.sender, _validator, _amount);
 
-    stakeAmountSub(_validator, _amount);
+    _stakeAmountSub(_validator, _amount);
     _removeValidator(_validator);
 
     msg.sender.transfer(_amount);
@@ -171,21 +170,22 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     if (shouldTakeSnapshot()) {
       uint256 snapshotId = getNextSnapshotId();
       if (snapshotId == getSnapshotsPerCycle().sub(1)) {
-        setNextSnapshotId(0);
+        _setNextSnapshotId(0);
       } else {
-        setNextSnapshotId(snapshotId.add(1));
+        _setNextSnapshotId(snapshotId.add(1));
       }
-      setSnapshot(snapshotId, pendingValidators());
-      setLastSnapshotTakenAtBlock(block.number);
+      _setSnapshot(snapshotId, pendingValidators());
+      _setLastSnapshotTakenAtBlock(block.number);
       delete snapshotId;
     }
     if (hasCycleEnded()) {
       IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
       uint256 randomSnapshotId = getRandom(0, getSnapshotsPerCycle() - 1);
-      setNewValidatorSet(getSnapshot(randomSnapshotId));
-      setFinalized(false);
-      emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
-      setCurrentCycle();
+      _setNewValidatorSet(getSnapshot(randomSnapshotId));
+      if (newValidatorSetLength() > 0) {
+        _setFinalized(false);
+        emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
+      }
       delete randomSnapshotId;
     }
   }
@@ -210,7 +210,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     require(_staker != address(0));
     require(_amount != 0);
 
-    stakeAmountAdd(_staker, _amount);
+    _stakeAmountAdd(_staker, _amount);
 
     if (stakeAmount(_staker) >= getMinStake()) {
       _addValidator(_staker);
@@ -222,8 +222,8 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     require(_amount != 0);
     require(_validator != address(0));
 
-    delegatedAmountAdd(_staker, _validator, _amount);
-    stakeAmountAdd(_validator, _amount);
+    _delegatedAmountAdd(_staker, _validator, _amount);
+    _stakeAmountAdd(_validator, _amount);
 
     if (stakeAmount(_validator) >= getMinStake()) {
       _addValidator(_validator);
@@ -238,8 +238,8 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     uint256 appearencesToAdd = stakeMultiplier.sub(currentAppearances);
 
     for (uint256 i; i < appearencesToAdd; i++) {
-      validatorIndexexPush(_validator, pendingValidatorsLength());
-      pendingValidatorsAdd(_validator);
+      _validatorIndexexPush(_validator, pendingValidatorsLength());
+      _pendingValidatorsAdd(_validator);
     }
 
     delete stakeMultiplier;
@@ -259,17 +259,17 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
       uint256 lastIndex = pendingValidatorsLength() - 1;
       address lastValidator = pendingValidatorsAtPosition(lastIndex);
       if (lastValidator != address(0)) {
-        setPendingValidatorsAtPosition(removeIndex, lastValidator);
+        _setPendingValidatorsAtPosition(removeIndex, lastValidator);
       } else {
-        pendingValidatorsRemove(removeIndex);
+        _pendingValidatorsRemove(removeIndex);
       }
       for (uint256 j; j < validatorIndexesLength(lastValidator); j++) {
         if (validatorIndexesAtPosition(lastValidator, j) == lastIndex) {
-          setValidatorIndexesAtPosition(lastValidator, j, removeIndex);
+          _setValidatorIndexesAtPosition(lastValidator, j, removeIndex);
         }
       }
-      pendingValidatorsRemove(lastIndex);
-      deleteValidatorIndexesAtPosition(_validator, validatorIndexesLength(_validator) - 1);
+      _pendingValidatorsRemove(lastIndex);
+      _deleteValidatorIndexesAtPosition(_validator, validatorIndexesLength(_validator) - 1);
     }
 
     delete stakeMultiplier;
@@ -277,7 +277,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     delete appearencesToRemove;
   }
 
-  function setSystemAddress(address _newAddress) private {
+  function _setSystemAddress(address _newAddress) private {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
 
@@ -285,7 +285,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return addressStorage[SYSTEM_ADDRESS];
   }
 
-  function setFinalized(bool _status) private {
+  function _setFinalized(bool _status) private {
     boolStorage[IS_FINALIZED] = _status;
   }
 
@@ -293,7 +293,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return boolStorage[IS_FINALIZED];
   }
 
-  function setMinStake(uint256 _minStake) private {
+  function _setMinStake(uint256 _minStake) private {
     require(_minStake > 0);
     uintStorage[MIN_STAKE] = _minStake;
   }
@@ -302,7 +302,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[MIN_STAKE];
   }
 
-  function setCycleDurationBlocks(uint256 _cycleDurationBlocks) private {
+  function _setCycleDurationBlocks(uint256 _cycleDurationBlocks) private {
     require(_cycleDurationBlocks > 0);
     uintStorage[CYCLE_DURATION_BLOCKS] = _cycleDurationBlocks;
   }
@@ -311,7 +311,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[CYCLE_DURATION_BLOCKS];
   }
 
-  function setCurrentCycle() private {
+  function _setCurrentCycle() private {
     uintStorage[CURRENT_CYCLE_START_BLOCK] = block.number;
     uintStorage[CURRENT_CYCLE_END_BLOCK] = block.number + getCycleDurationBlocks();
   }
@@ -325,10 +325,10 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
   }
 
   function hasCycleEnded() public view returns(bool) {
-    return (block.number >= getCurrentCycleEndBlock());
+    return (block.number > getCurrentCycleEndBlock());
   }
 
-  function setSnapshotsPerCycle(uint256 _snapshotsPerCycle) internal {
+  function _setSnapshotsPerCycle(uint256 _snapshotsPerCycle) private {
     require(_snapshotsPerCycle > 0);
     uintStorage[SNAPSHOTS_PER_CYCLE] = _snapshotsPerCycle;
   }
@@ -337,7 +337,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[SNAPSHOTS_PER_CYCLE];
   }
 
-  function setLastSnapshotTakenAtBlock(uint256 _block) private {
+  function _setLastSnapshotTakenAtBlock(uint256 _block) private {
     uintStorage[LAST_SNAPSHOT_TAKEN_AT_BLOCK] = _block;
   }
 
@@ -345,7 +345,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[LAST_SNAPSHOT_TAKEN_AT_BLOCK];
   }
 
-  function setNextSnapshotId(uint256 _id) private {
+  function _setNextSnapshotId(uint256 _id) private {
     uintStorage[NEXT_SNAPSHOT_ID] = _id;
   }
 
@@ -353,7 +353,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[NEXT_SNAPSHOT_ID];
   }
 
-  function setSnapshot(uint256 _snapshotId, address[] _addresses) internal {
+  function _setSnapshot(uint256 _snapshotId, address[] _addresses) private {
     addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId))] = _addresses;
   }
 
@@ -385,11 +385,11 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return addressArrayStorage[CURRENT_VALIDATORS][_p];
   }
 
-  function currentValidatorsAdd(address _address) private {
+  function _currentValidatorsAdd(address _address) private {
       addressArrayStorage[CURRENT_VALIDATORS].push(_address);
   }
 
-  function setCurrentValidators(address[] _currentValidators) private {
+  function _setCurrentValidators(address[] _currentValidators) private {
     addressArrayStorage[CURRENT_VALIDATORS] = _currentValidators;
   }
 
@@ -405,32 +405,28 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return addressArrayStorage[PENDING_VALIDATORS][_p];
   }
 
-  function setPendingValidatorsAtPosition(uint256 _p, address _address) private {
+  function _setPendingValidatorsAtPosition(uint256 _p, address _address) private {
     addressArrayStorage[PENDING_VALIDATORS][_p] = _address;
   }
 
-  function pendingValidatorsAdd(address _address) private {
+  function _pendingValidatorsAdd(address _address) private {
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
   }
 
-  function pendingValidatorsRemove(uint256 _index) private {
+  function _pendingValidatorsRemove(uint256 _index) private {
     delete addressArrayStorage[PENDING_VALIDATORS][_index];
     addressArrayStorage[PENDING_VALIDATORS].length--;
-  }
-
-  function setPendingValidators(address[] _pendingValidators) private {
-    addressArrayStorage[PENDING_VALIDATORS] = _pendingValidators;
   }
 
   function stakeAmount(address _address) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))];
   }
 
-  function stakeAmountAdd(address _address, uint256 _amount) private {
+  function _stakeAmountAdd(address _address, uint256 _amount) private {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].add(_amount);
   }
 
-  function stakeAmountSub(address _address, uint256 _amount) private {
+  function _stakeAmountSub(address _address, uint256 _amount) private {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].sub(_amount);
   }
 
@@ -438,11 +434,11 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))];
   }
 
-  function delegatedAmountAdd(address _address, address _validator, uint256 _amount) private {
+  function _delegatedAmountAdd(address _address, address _validator, uint256 _amount) private {
     uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].add(_amount);
   }
 
-  function delegatedAmountSub(address _address, address _validator, uint256 _amount) private {
+  function _delegatedAmountSub(address _address, address _validator, uint256 _amount) private {
     uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].sub(_amount);
   }
 
@@ -467,21 +463,17 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))][_p];
   }
 
-  function setValidatorIndexesAtPosition(address _address, uint256 _p, uint256 _i) private {
+  function _setValidatorIndexesAtPosition(address _address, uint256 _p, uint256 _i) private {
     uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))][_p] = _i;
   }
 
-  function deleteValidatorIndexesAtPosition(address _address, uint256 _p) private {
+  function _deleteValidatorIndexesAtPosition(address _address, uint256 _p) private {
     delete uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))][_p];
     uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))].length--;
   }
 
-  function validatorIndexexPush(address _address, uint256 _i) private {
+  function _validatorIndexexPush(address _address, uint256 _i) private {
     uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))].push(_i);
-  }
-
-  function setValidatorIndexes(address _address, uint256[] _indexes) private {
-    uintArrayStorage[keccak256(abi.encodePacked("validatorIndexes", _address))] = _indexes;
   }
 
   function getProxyStorage() public view returns(address) {
@@ -503,7 +495,7 @@ contract Consensus is EternalStorage, ValidatorSet, IConsensus {
     return addressArrayStorage[NEW_VALIDATOR_SET].length;
   }
 
-  function setNewValidatorSet(address[] _newSet) private {
+  function _setNewValidatorSet(address[] _newSet) private {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
   }
 }
