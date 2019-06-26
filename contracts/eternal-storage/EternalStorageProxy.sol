@@ -40,7 +40,7 @@ contract EternalStorageProxy is EternalStorage {
     * @dev This modifier verifies that msg.sender is the owner of the contract
     */
     modifier onlyOwner() {
-      require (msg.sender == getOwner());
+      require(msg.sender == getOwner());
       _;
     }
 

@@ -150,7 +150,7 @@ contract('Voting', async (accounts) => {
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should fail if creating ballot over the ballots limit', async () => {
-      let maxLimitOfBallots = (await voting.getMaxLimitOfBallots()).toNumber()
+      let maxLimitOfBallots = (await voting.MAX_LIMIT_OF_BALLOTS()).toNumber()
       let validatorsCount = (await consensus.currentValidatorsLength()).toNumber()
       let ballotLimitPerValidator = (await voting.getBallotLimitPerValidator()).toNumber()
       ballotLimitPerValidator.should.be.equal(Math.floor(maxLimitOfBallots / validatorsCount))

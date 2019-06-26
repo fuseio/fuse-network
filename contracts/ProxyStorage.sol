@@ -69,7 +69,7 @@ contract ProxyStorage is EternalStorage {
   * @dev Function to be called to initialize all available contract types addresses
   */
   function initializeAddresses(address _blockReward, address _voting) external onlyOwner {
-    require (!boolStorage[PROXY_STORAGE_ADDRESSES_INITIALIZED]);
+    require(!boolStorage[PROXY_STORAGE_ADDRESSES_INITIALIZED]);
 
     addressStorage[BLOCK_REWARD] = _blockReward;
     addressStorage[VOTING] = _voting;
