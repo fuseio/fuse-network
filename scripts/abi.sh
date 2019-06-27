@@ -6,8 +6,8 @@ fi
 
 mkdir abis
 
-cat build/contracts/EternalStorageProxy.json | jq '.abi' > abis/EternalStorageProxy_abi.json
-cat build/contracts/Consensus.json | jq '.abi' > abis/Consensus_abi.json
-cat build/contracts/BlockReward.json | jq '.abi' > abis/BlockReward_abi.json
-cat build/contracts/ProxyStorage.json | jq '.abi' > abis/ProxyStorage_abi.json
-cat build/contracts/Voting.json | jq '.abi' > abis/Voting_abi.json
+./node_modules/node-jq/bin/jq '.abi' build/contracts/EternalStorageProxy.json > abis/EternalStorageProxy_abi.json
+./node_modules/node-jq/bin/jq '.abi' build/contracts/Consensus.json > abis/Consensus_abi.json
+./node_modules/node-jq/bin/jq '.abi' build/contracts/BlockReward.json > abis/BlockReward_abi.json
+./node_modules/node-jq/bin/jq '.abi' build/contracts/ProxyStorage.json > abis/ProxyStorage_abi.json
+./node_modules/node-jq/bin/jq '.abi' build/contracts/Voting.json > abis/Voting_abi.json

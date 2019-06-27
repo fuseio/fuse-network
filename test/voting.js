@@ -1,4 +1,3 @@
-const moment = require('moment')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
 const BlockReward = artifacts.require('BlockReward.sol')
 const Consensus = artifacts.require('ConsensusMock.sol')

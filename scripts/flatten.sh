@@ -11,4 +11,3 @@ mkdir flats
 ./node_modules/.bin/truffle-flattener contracts/BlockReward.sol > flats/BlockReward_flat.sol
 ./node_modules/.bin/truffle-flattener contracts/ProxyStorage.sol > flats/ProxyStorage_flat.sol
 ./node_modules/.bin/truffle-flattener contracts/Voting.sol > flats/Voting_flat.sol
-
