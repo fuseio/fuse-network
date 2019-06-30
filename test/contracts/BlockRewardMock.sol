@@ -6,4 +6,11 @@ contract BlockRewardMock is BlockReward {
   function setSystemAddressMock(address _newAddress) public onlyOwner {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
+
+  function initializeMock(uint256 _supply, uint256 _blocksPerYear, uint256 _inflation) public {
+    uintStorage[TOTAL_SUPPLY] = _supply;
+    uintStorage[BLOCKS_PER_YEAR] = _blocksPerYear;
+    uintStorage[INFLATION] = _inflation;
+    uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply().mul(getInflation().mul(DECIMALS).div(100))).div(getBlocksPerYear()).div(DECIMALS);
+  }
 }

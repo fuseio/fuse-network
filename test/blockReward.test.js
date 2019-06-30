@@ -5,7 +5,9 @@ const BlockReward = artifacts.require('BlockRewardMock.sol')
 const {ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
-const REWARD = toWei(toBN(1), 'ether')
+const INITIAL_SUPPLY = toWei(toBN(300000000000000000 || 0), 'gwei')
+const BLOCKS_PER_YEAR = 6307200
+const YEARLY_INFLATION_PERCENTAGE = 5
 const SYSTEM_ADDRESS = '0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE'
 
 contract('BlockReward', async (accounts) => {
@@ -43,16 +45,26 @@ contract('BlockReward', async (accounts) => {
 
   describe('initialize', async () => {
     it('default values', async () => {
-      await blockReward.initialize(REWARD)
+      await blockReward.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await blockReward.getSystemAddress()))
-      REWARD.should.be.bignumber.equal(await blockReward.getReward())
+      let decimals = await blockReward.DECIMALS()
+      let initialSupply = await blockReward.getTotalSupply()
+      let blocksPerYear = await blockReward.getBlocksPerYear()
+      let inflation = await blockReward.getInflation()
+
+      INITIAL_SUPPLY.should.be.bignumber.equal(initialSupply)
+      toBN(BLOCKS_PER_YEAR).should.be.bignumber.equal(blocksPerYear)
+      toBN(YEARLY_INFLATION_PERCENTAGE).should.be.bignumber.equal(inflation)
+
+      let blockRewardAmount = (initialSupply.mul(decimals).mul(inflation).div(toBN(100))).div(blocksPerYear).div(decimals)
+      blockRewardAmount.should.be.bignumber.equal(await blockReward.getBlockRewardAmount())
     })
   })
 
   describe('reward', async () => {
     beforeEach(async () => {
-      await blockReward.initialize(REWARD)
+      await blockReward.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE)
     })
     it('can only be called by system address', async () => {
       await blockReward.reward([accounts[3]], [0]).should.be.rejectedWith(ERROR_MSG)
@@ -71,13 +83,51 @@ contract('BlockReward', async (accounts) => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await blockReward.reward([accounts[3]], [1], {from: mockSystemAddress}).should.be.rejectedWith(ERROR_MSG)
     })
-    it('should give reward and balance should be updated', async () => {
+    it('should give reward and total supply should be updated', async () => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+      let initialSupply = await blockReward.getTotalSupply()
+      let blockRewardAmount = await blockReward.getBlockRewardAmount()
       let {logs} = await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
       logs.length.should.be.equal(1)
       logs[0].event.should.be.equal('Rewarded')
       logs[0].args['receivers'].should.deep.equal([accounts[3]])
-      logs[0].args['rewards'][0].should.be.bignumber.equal(REWARD)
+      logs[0].args['rewards'][0].should.be.bignumber.equal(blockRewardAmount)
+      let expectedSupply = initialSupply.add(blockRewardAmount)
+      expectedSupply.should.be.bignumber.equal(await blockReward.getTotalSupply())
+    })
+    it('reward amount should update after BLOCKS_PER_YEAR and total yearly inflation should be calculated correctly', async () => {
+      let BLOCKS_PER_YEAR_MOCK = 3
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+      await blockReward.initializeMock(INITIAL_SUPPLY, BLOCKS_PER_YEAR_MOCK, YEARLY_INFLATION_PERCENTAGE)
+
+      let decimals = await blockReward.DECIMALS()
+      let initialSupply = await blockReward.getTotalSupply()
+      let blocksPerYear = await blockReward.getBlocksPerYear()
+      let inflation = await blockReward.getInflation()
+      let blockRewardAmount = await blockReward.getBlockRewardAmount()
+      // console.log(`initialSupply: ${initialSupply.div(decimals).toNumber()}, blockRewardAmount: ${blockRewardAmount.div(decimals).toNumber()}`)
+
+      // each of the following calls advances a block
+      let i = 0
+      let blockNumber = await web3.eth.getBlockNumber()
+      while (blockNumber % BLOCKS_PER_YEAR_MOCK !== 0) {
+        // console.log('block #', blockNumber)
+        await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
+        blockNumber = await web3.eth.getBlockNumber()
+        i++
+      }
+      // console.log('i', i)
+
+      let totalSupply = await blockReward.getTotalSupply()
+      let newBlockRewardAmount = await blockReward.getBlockRewardAmount()
+      // console.log(`totalSupply: ${totalSupply.div(decimals).toNumber()}, newBlockRewardAmount: ${newBlockRewardAmount.div(decimals).toNumber()}`)
+      let expectedSupply = initialSupply
+      for (let j = 0; j < i; j++) {
+        expectedSupply = expectedSupply.add(blockRewardAmount)
+      }
+      // console.log(`expectedSupply: ${expectedSupply.div(decimals).toNumber()}`)
+      totalSupply.should.be.bignumber.equal(expectedSupply)
+      newBlockRewardAmount.should.be.bignumber.equal((totalSupply.mul(decimals).mul(inflation).div(toBN(100))).div(blocksPerYear).div(decimals))
     })
   })
 
@@ -119,7 +169,7 @@ contract('BlockReward', async (accounts) => {
       await proxy.setProxyStorageMock(proxyStorage.address)
       blockRewardNew = await BlockReward.at(proxy.address)
       false.should.be.equal(await blockRewardNew.isInitialized())
-      await blockRewardNew.initialize(REWARD).should.be.fulfilled
+      await blockRewardNew.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE).should.be.fulfilled
       true.should.be.equal(await blockRewardNew.isInitialized())
     })
     it('should use same proxyStorage after upgrade', async () => {

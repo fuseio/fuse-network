@@ -42,7 +42,7 @@ contract('Consensus', async (accounts) => {
     let blockRewardImpl = await BlockReward.new()
     proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
     let blockReward = await BlockReward.at(proxy.address)
-    await blockReward.initialize(toWei(toBN(10), 'ether'))
+    await blockReward.initialize(toWei(toBN(300000000000000000 || 0), 'gwei'), 6307200, 5)
 
     // Voting
     let votingImpl = await Voting.new()
