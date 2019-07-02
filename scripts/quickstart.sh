@@ -8,6 +8,8 @@ IFS=' ' read -r -a ARG_VEC <<< "$@"
 # Variables
 DOCKER_IMAGE_PARITY="fusenetwork/fusenet"
 DOCKER_CONTAINER_PARITY="fusenet"
+DOCKER_IMAGE_APP="fusenetwork/fuseapp"
+DOCKER_CONTAINER_APP="fuseapp"
 PERMISSION_PREFIX="" # In case `sudo` is needed
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
@@ -212,6 +214,14 @@ function startNode {
         $DOCKER_IMAGE_PARITY \
         --role validator \
         --address $address
+
+      ## Start App container with all necessary arguments.
+      $PERMISSION_PREFIX docker run \
+        --detach \
+        --name $DOCKER_CONTAINER_APP \
+        --volume $CONFIG_DIR:/config \
+        --restart=on-failure \
+        $DOCKER_IMAGE_APP
       ;;
 
     "participant")

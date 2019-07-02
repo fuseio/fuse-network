@@ -3,11 +3,9 @@
 build
 flats
 abis
-config/keys
-config/pass.pwd
-database
-fusenet
+fusenet*
 contracts.json
+runlocal.txt
 
 # Logs
 logs

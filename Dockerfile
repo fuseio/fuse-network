@@ -22,7 +22,7 @@ COPY config/bootnodes.txt $PARITY_CONFIG_FILE_BOOTNODES
 COPY config/config.toml $PARITY_CONFIG_FILE_TEMPLATE
 
 ### Wrapper script for Parity.
-COPY docker/parity_wrapper.sh $PARITY_WRAPPER_SCRIPT
+COPY scripts/parity_wrapper.sh $PARITY_WRAPPER_SCRIPT
 RUN chmod +x $PARITY_WRAPPER_SCRIPT
 
 ### Shorthand links

@@ -7,15 +7,16 @@
     "test": "scripts/test.sh",
     "compile": "truffle compile",
     "abi": "scripts/abi.sh",
-    "flatten": "scripts/flatten.sh"
+    "flatten": "scripts/flatten.sh",
+    "app": "node app/index.js"
   },
   "author": "Lior Rabin",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^7.0.0",
+    "dotenv": "^8.0.0",
     "ethereumjs-wallet": "^0.6.3",
-    "openzeppelin-solidity": "^2.0.1",
-    "truffle-hdwallet-provider": "^1.0.8"
+    "openzeppelin-solidity": "2.1.0",
+    "truffle-hdwallet-provider": "^1.0.12"
   },
   "devDependencies": {
     "chai": "^4.2.0",
