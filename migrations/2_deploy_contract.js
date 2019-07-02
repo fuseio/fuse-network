@@ -21,8 +21,11 @@ const {
   BLOCKS_PER_YEAR,
   YEARLY_INFLATION_PERCENTAGE,
   MIN_BALLOT_DURATION_CYCLES,
-  SAVE_TO_FILE
+  SAVE_TO_FILE,
+  DEBUG
 } = process.env
+
+const debug = msg => { if (DEBUG) console.log(msg) }
 
 module.exports = function(deployer, network, accounts) {
   if (network !== 'test') {
@@ -44,34 +47,52 @@ module.exports = function(deployer, network, accounts) {
     deployer.then(async function() {
       // Consensus
       consensusImpl = await Consensus.new()
+      debug(`consensusImpl: ${consensusImpl.address}`)
       proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
+      debug(`proxy: ${proxy.address}`)
       consensus = await Consensus.at(proxy.address)
+      debug(`consensus: ${consensus.address}`)
       await consensus.initialize(minStake, cycleDurationBlocks, snapshotsPerCycle, initialValidatorAddress)
+      debug(`consensus.initialize: ${minStake}, ${cycleDurationBlocks}, ${snapshotsPerCycle}, ${initialValidatorAddress}`)
 
       // ProxyStorage
       proxyStorageImpl = await ProxyStorage.new()
+      debug(`proxyStorageImpl: ${proxyStorageImpl.address}`)
       proxy = await EternalStorageProxy.new(ZERO_ADDRESS, proxyStorageImpl.address)
+      debug(`proxy: ${proxy.address}`)
       proxyStorage = await ProxyStorage.at(proxy.address)
+      debug(`proxyStorage: ${proxyStorage.address}`)
       await proxyStorage.initialize(consensus.address)
+      debug(`proxyStorage.initialize: ${consensus.address}`)
       await consensus.setProxyStorage(proxyStorage.address)
+      debug(`consensus.setProxyStorage: ${proxyStorage.address}`)
 
       // BlockReward
       blockRewardImpl = await BlockReward.new()
+      debug(`blockRewardImpl: ${blockRewardImpl.address}`)
       proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
+      debug(`proxy: ${proxy.address}`)
       blockReward = await BlockReward.at(proxy.address)
+      debug(`blockReward: ${blockReward.address}`)
       await blockReward.initialize(initialSupply, blocksPerYear, yearlyInflationPercentage)
+      debug(`blockReward.initialize: ${initialSupply}, ${blocksPerYear}, ${yearlyInflationPercentage}`)
 
       // Voting
       votingImpl = await Voting.new()
+      debug(`votingImpl: ${votingImpl.address}`)
       proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
+      debug(`proxy: ${proxy.address}`)
       voting = await Voting.at(proxy.address)
+      debug(`voting: ${voting.address}`)
       await voting.initialize(minBallotDurationCycles)
+      debug(`voting.initialize: ${minBallotDurationCycles}`)
 
       // Initialize ProxyStorage
       await proxyStorage.initializeAddresses(
         blockReward.address,
         voting.address
       )
+      console.log(`proxyStorage.initializeAddresses: ${blockReward.address}, ${voting.address}`)
 
       if (!!SAVE_TO_FILE === true) {
         const contracts = {
