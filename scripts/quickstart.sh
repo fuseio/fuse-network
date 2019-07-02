@@ -102,8 +102,13 @@ function setup {
   echo -e "\nSetup node..."
 
   # Pull the Docker images.
-  echo -e "\nPull the Docker image..."
+  echo -e "\nPull the Docker images..."
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
+
+  if [[ $role == validator ]] ; then
+    echo -e "\nPull the Docker images..."
+  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
+  fi
 
   # Create directories.
   mkdir -p $DATABASE_DIR
@@ -178,9 +183,23 @@ function startNode {
     $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_PARITY
   fi
 
+  if [[ $ROLE == "validator" ]] ; then
+    # Check if container is already running.
+    if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_APP"* ]] ; then
+      echo -e "\nThe validator app is already running as container with name '$DOCKER_CONTAINER_APP', stopping it..."
+      $PERMISSION_PREFIX docker stop $DOCKER_CONTAINER_APP
+    fi
+
+    # Check if the container does already exist and restart it.
+    if [[ $($PERMISSION_PREFIX docker ps -a) == *"$DOCKER_CONTAINER_APP"* ]] ; then
+      echo -e "\nThe validator app already exists, deleting it..."
+      $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_APP
+    fi
+  fi
+
 
   # Create and start a new container.
-  echo -e "\nStart the Parity client as ${ROLE}..."
+  echo -e "\nStart as ${ROLE}..."
 
   case $ROLE in
     "bootnode")
