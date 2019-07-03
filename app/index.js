@@ -52,6 +52,7 @@ function emitInitiateChange() {
       logger.debug(`nonce: ${nonce}`)
       consensus.methods.emitInitiateChange().send({
         from: account,
+        gas: 1000000,
         gasPrice: 0
       })
       .on('transactionHash', hash => {
