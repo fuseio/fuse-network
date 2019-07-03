@@ -64,7 +64,7 @@ function emitInitiateChange() {
         resolve()
       })
       .on('error', error => {
-        logger.error(`error: ${error}`)
+        logger.error(`error: ${JSON.stringify(error)}`)
         resolve()
       })
     } else {
