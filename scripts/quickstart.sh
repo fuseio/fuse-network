@@ -24,7 +24,6 @@ NODE_KEY=""
 declare -a VALID_ROLE_LIST=(
   bootnode
   validator
-  participant
   explorer
 )
 
@@ -241,25 +240,6 @@ function startNode {
         --volume $CONFIG_DIR:/config \
         --restart=on-failure \
         $DOCKER_IMAGE_APP
-      ;;
-
-    "participant")
-      ## Read in the stored address file.
-      local address=$(cat $ADDRESS_FILE)
-
-      ## Start Parity container with all necessary arguments.
-      $PERMISSION_PREFIX docker run \
-        --detach \
-        --name $DOCKER_CONTAINER_PARITY \
-        --volume $DATABASE_DIR:/data \
-        --volume $CONFIG_DIR:/config/custom \
-        -p 30303:30300 \
-        -p 8545:8545 \
-        -p 8546:8546 \
-        --restart=on-failure \
-        $DOCKER_IMAGE_PARITY \
-        --role participant \
-        --address $address
       ;;
 
     "explorer")

@@ -39,12 +39,6 @@
 #     - Requires the address argument.
 #     - Needs the password file and the key-set. (see FILES)
 #
-#   participant
-#     - Connects to an account to being able to create transactions.
-#     - No mining.
-#     - RPC ports open.
-#     - Requires the address argument.
-#     - Needs the password file and the key-set. (see FILES)
 #
 # FILES
 #   The configuration folder for Parity takes place at /home/parity/.local/share/io.parity.ethereum.
@@ -68,7 +62,6 @@ PARITY_ARGS="--no-color"
 declare -a VALID_ROLE_LIST=(
                             bootnode
                             validator
-                            participant
                             explorer
                            )
 
@@ -115,31 +108,6 @@ min_gas_price = 1000000000
 gas_floor_target = "10000000"
 '
 
-CONFIG_SNIPPET_PARTICIPANT='
-[rpc]
-cors = ["all"]
-port = 8545
-interface = "all"
-hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore", "personal"]
-
-[websockets]
-disable = false
-port = 8546
-interface = "all"
-origins = ["all"]
-hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore", "personal"]
-
-[network]
-port = 30300
-reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
-
-[account]
-unlock = ["%s"]
-password = ["/home/parity/.local/share/io.parity.ethereum/custom/pass.pwd"]
-'
-
 CONFIG_SNIPPET_EXPLORER_NODE='
 [rpc]
 cors = ["all"]
@@ -163,6 +131,7 @@ fat_db = "on"
 
 [network]
 port = 30300
+reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
 '
 
 # Make sure some environment variables are defined.
@@ -254,7 +223,7 @@ function adjustConfiguration {
   fi
 
   # Make sure an address is given if needed.
-  if ( [[ $ROLE = 'participant' ]] || [[ $ROLE = 'validator' ]] ) && [[ -z "$ADDRESS" ]] ; then
+  if ( [[ $ROLE = 'validator' ]] ) && [[ -z "$ADDRESS" ]] ; then
     echo "Missing or empty address but required by selected role!"
     echo "Make sure the argument order is correct (parity arguments at the end)."
     exit 1
@@ -274,11 +243,6 @@ function adjustConfiguration {
     "validator")
       echo "Run as validator with address ${ADDRESS}"
       printf "$template\n$CONFIG_SNIPPET_VALIDATOR" "$ADDRESS" > $PARITY_CONFIG_FILE
-      ;;
-
-    "participant")
-      echo "Run as participant with address ${ADDRESS}"
-      printf "$template\n$CONFIG_SNIPPET_PARTICIPANT" "$ADDRESS" > $PARITY_CONFIG_FILE
       ;;
 
     "explorer")

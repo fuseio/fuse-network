@@ -14,14 +14,12 @@
     - [Usage](#Usage)
     - [Examples](#Examples)
     - [Bootnode](#Bootnode)
-    - [Participant](#Participant)
     - [Validator](#Validator)
     - [Create New Account](#create-new-account)
   - [Without Docker](#without-docker)
     - [Pre-Requisites](#pre-requisites)
     - [Creating An Account](#creating-an-account)
     - [Setup For Bootnodes Using Only CLI](#setup-for-bootnodes-using-only-cli)
-    - [Setup For Participants Using Only CLI](#setup-for-participants-using-only-cli)
     - [Setup For Validators Using Only CLI](#setup-for-validators-using-only-cli)
 - [Development](#development)
   - [Build Own Image](#build-own-image)
@@ -98,7 +96,7 @@ The following instructions explain how to start a local node with the _Docker_ i
 
 In fact it uses a pre-configured [Parity Ethereum](https://www.parity.io/) client, combined with a set-up wrapper, to make connecting as easy as possible.
 
-The image is prepared to be used in three different scenarios: as bootnode, as validator or as participant.
+The image is prepared to be used as bootnode or as validator.
 
 #### Pre-Requisites
 
@@ -162,13 +160,6 @@ $ docker run fusenetwork/fusenet --help
      - Requires the address argument.
      - Needs the password file and the key-set. (see FILES)
 
-   participant
-     - Connects to an account to being able to create transactions.
-     - No mining.
-     - RPC ports open.
-     - Requires the address argument.
-     - Needs the password file and the key-set. (see FILES)
-
  FILES
    The configuration folder for Parity takes place at /home/parity/.local/share/io.parity.ethereum.
    Alternately the shorthand symbolic link at /config can be used.
@@ -191,9 +182,9 @@ If you want to run a bootnode for the network, it only needs to have RPC and WS 
 $ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenetwork/fusenet --role bootnode --parity-args --node-key UNIQUE_NAME_FOR_NODE
 ```
 
-##### Participant
+##### Validator
 
-If the client should be connected with an account to sign transactions and interact with the blockchain, the help output states that the accounts key-pair, address and the related password is necessary to provide.
+The validator should be connected with an account to sign transactions and interact with the blockchain, the help output states that the accounts key-pair, address and the related password is necessary to provide.
 
 To make all files accessible to the _Docker_ container needs a binded volume.
 
@@ -222,17 +213,6 @@ $ mkdir -p ./config/keys/FuseNetwork
 $ cp /path/to/my/key ./config/keys/FuseNetwork/
 $ echo "mysupersecretpassphrase" > ./config/pass.pwd
 $ mkdir ./database
-$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenetwork/fusenet --role participant --address MY_ADDRESS
-```
-
-##### Validator
-
-If you are an authority of the FuseNetwork and want to use the client as validator, follow the instructions to run as [participant](#participant) except starting the _Docker_ container.
-
-As soon as you have set up the `config` folder with your account that is registered as authority, simply start the client with the role `validator` and the wrapper will make sure to set up everything required to do so.
-
-```sh
-...
 $ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 fusenetwork/fusenet --role validator --address MY_ADDRESS
 ```
 
@@ -242,7 +222,7 @@ If you have no existing account or a new one should be created anyway, _Parity_ 
 
 Please consider other options like [MetaMask](https://metamask.io/), [Mist](https://github.com/ethereum/mist) or any other (online) wallet tool.
 
-In relation to the instructions for the [participant](#participant) and [validator](#validator) roles, we use the folder called `config` to bind as _Docker_ volume to _Parity_. 
+In relation to the instructions for the [validator](#validator) role, we use the folder called `config` to bind as _Docker_ volume to _Parity_. 
 
 Afterwards the key will be placed there and the first steps of these instructions can be skipped.
 
@@ -307,9 +287,6 @@ echo [mypassword] > password.pwd
 ```
 
 #### Setup For Bootnodes Using Only CLI
-> TODO
-
-#### Setup For Participants Using Only CLI
 > TODO
 
 #### Setup For Validators Using Only CLI
