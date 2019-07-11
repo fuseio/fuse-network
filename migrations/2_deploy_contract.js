@@ -92,7 +92,7 @@ module.exports = function(deployer, network, accounts) {
         blockReward.address,
         voting.address
       )
-      console.log(`proxyStorage.initializeAddresses: ${blockReward.address}, ${voting.address}`)
+      debug(`proxyStorage.initializeAddresses: ${blockReward.address}, ${voting.address}`)
 
       if (!!SAVE_TO_FILE === true) {
         const contracts = {

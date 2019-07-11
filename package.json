@@ -8,6 +8,7 @@
     "compile": "truffle compile",
     "abi": "scripts/abi.sh",
     "flatten": "scripts/flatten.sh",
+    "deploy:fuse": "truffle migrate --reset --network fuse",
     "app": "node app/index.js"
   },
   "author": "Lior Rabin",

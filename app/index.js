@@ -44,33 +44,22 @@ function emitInitiateChange() {
   return new Promise(async (resolve, reject) => {
     logger.info(`emitInitiateChange`)
     let currentBlockNumber = await web3.eth.getBlockNumber()
-    let currentCycleEndBlock = await consensus.methods.getCurrentCycleEndBlock.call()
+    let currentCycleEndBlock = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
     let shouldEmitInitiateChange = await consensus.methods.shouldEmitInitiateChange.call()
     logger.info(`block #${currentBlockNumber}\n\tcurrentCycleEndBlock: ${currentCycleEndBlock}\n\tshouldEmitInitiateChange: ${shouldEmitInitiateChange}`)
-    if (shouldEmitInitiateChange) {
-      let nonce = await web3.eth.getTransactionCount(account)
-      logger.debug(`nonce: ${nonce}`)
-      consensus.methods.emitInitiateChange().send({
-        from: account,
-        gas: 1000000,
-        gasPrice: 0
-      })
-      .on('transactionHash', hash => {
-        logger.debug(`transactionHash: ${hash}`)
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        if (confirmationNumber == 1) {
-          logger.debug(`receipt: ${JSON.stringify(receipt)}`)
-        }
-        resolve()
-      })
-      .on('error', error => {
-        logger.error(`error: ${JSON.stringify(error)}`)
-        resolve()
-      })
-    } else {
-      resolve()
+    if (!shouldEmitInitiateChange) {
+      return resolve()
     }
+    let count = (await consensus.methods.getEmitInitiateChangeCount(account).call()).toNumber()
+    logger.info(`${account} emitInitiateChangeCount: ${count}`)
+    if (count === 0) {
+      return resolve()
+    }
+    logger.info(`${account} sending 1 emitInitiateChange transaction`)
+    consensus.methods.emitInitiateChange().send({ from: account, gas: 1000000, gasPrice: 0 })
+      .on('transactionHash', hash => { logger.info(`transactionHash: ${hash}`) })
+      .on('confirmation', (confirmationNumber, receipt) => { if (confirmationNumber == 1) logger.debug(`receipt: ${JSON.stringify(receipt)}`); resolve() })
+      .on('error', error => { logger.error(error); resolve() })
   })
 }
 
@@ -90,7 +79,7 @@ async function runMain() {
 
   setTimeout(() => {
     runMain()
-  }, process.env.POLLING_INTERVAL || 5000)
+  }, process.env.POLLING_INTERVAL || 2500)
 }
 
 runMain()

@@ -41,6 +41,7 @@ contract Consensus is ConsensusUtils {
   * @dev See ValidatorSet.finalizeChange
   */
   function finalizeChange() external onlySystem notFinalized {
+    _setShouldEmitInitiateChange(false);
     if (newValidatorSetLength() > 0) {
       _setCurrentValidators(newValidatorSet());
       emit ChangeFinalized(currentValidators());
@@ -112,7 +113,7 @@ contract Consensus is ConsensusUtils {
   * @dev Function to be called by the block reward contract each block to handle cycles and snapshots logic
   */
   function cycle() external onlyBlockReward {
-    if (shouldTakeSnapshot()) {
+    if (_shouldTakeSnapshot()) {
       uint256 snapshotId = getNextSnapshotId();
       if (snapshotId == getSnapshotsPerCycle().sub(1)) {
         _setNextSnapshotId(0);
@@ -123,31 +124,34 @@ contract Consensus is ConsensusUtils {
       _setLastSnapshotTakenAtBlock(block.number);
       delete snapshotId;
     }
-    if (hasCycleEnded()) {
-      IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
-      _setCurrentCycle();
-      uint256 randomSnapshotId = getRandom(0, getSnapshotsPerCycle() - 1);
-      address[] memory newSet = getValidatorSetFromSnapshot(randomSnapshotId);
+    if (_shouldPrepareForCycleEnd()) {
+      uint256 randomSnapshotId = _getRandom(0, getSnapshotsPerCycle() - 1);
+      address[] memory newSet = _getValidatorSetFromSnapshot(randomSnapshotId);
       if (newSet.length > 0) {
         _setNewValidatorSet(newSet);
       }
       if (newValidatorSetLength() > 0) {
         _setFinalized(false);
+        _setEmitInitiateChangeCount();
         _setShouldEmitInitiateChange(true);
         emit ShouldEmitInitiateChange();
       }
       delete randomSnapshotId;
     }
+    if (_hasCycleEnded()) {
+      IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
+      _setCurrentCycle();
+    }
   }
 
   /**
-  * @dev Function to be called by validators to emit InitiateChange event (only if `shouldEmitInitiateChange` returns true)
+  * @dev Function to be called by validators only to emit InitiateChange event (only if `shouldEmitInitiateChange` returns true)
   */
   function emitInitiateChange() external onlyValidator {
     require(shouldEmitInitiateChange());
     require(newValidatorSetLength() > 0);
-
+    require(getEmitInitiateChangeCount(msg.sender) > 0);
+    _subEmitInitiateChangeCount(msg.sender, 1);
     emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
-    _setShouldEmitInitiateChange(false);
   }
 }

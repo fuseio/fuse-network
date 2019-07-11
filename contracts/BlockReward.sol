@@ -25,7 +25,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * @dev This modifier verifies that msg.sender is the system address (EIP96)
   */
   modifier onlySystem() {
-    require(msg.sender == getSystemAddress());
+    require(msg.sender == addressStorage[SYSTEM_ADDRESS]);
     _;
   }
 
@@ -93,10 +93,6 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   function _setSystemAddress(address _newAddress) private {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
-  }
-
-  function getSystemAddress() public view returns(address) {
-    return addressStorage[SYSTEM_ADDRESS];
   }
 
   function _setTotalSupply(uint256 _supply) private {
