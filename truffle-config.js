@@ -39,7 +39,7 @@ module.exports = {
     fuse: {
       provider: walletProvider,
       network_id: 122,
-      gas: 10000000,
+      // gas: 10000000,
       gasPrice: 1000000000 // 1 gwei
     }
   },

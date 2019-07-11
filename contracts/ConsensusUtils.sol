@@ -12,7 +12,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   using SafeMath for uint256;
 
   uint256 public constant DECIMALS = 10 ** 18;
-  uint256 public constant VALIDATOR_SLOTS = 100;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -104,50 +103,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
       _pendingValidatorsAdd(_validator);
     }
-  }
-
-  function _getValidatorSetFromSnapshot(uint256 _snapshotId) internal view returns(address[]) {
-    address[] memory addresses = getSnapshotAddresses(_snapshotId);
-    if (addresses.length == 0) {
-      return new address[](0);
-    }
-
-    uint256[] memory stakeAmounts = new uint256[](addresses.length);
-    uint256 totalStakeAmount;
-    for (uint256 i = 0; i < addresses.length; i++) {
-      stakeAmounts[i] = _getSnapshotStakeAmountForAddress(_snapshotId, addresses[i]);
-      totalStakeAmount = totalStakeAmount.add(stakeAmounts[i]);
-    }
-    if (totalStakeAmount == 0) {
-      return new address[](0);
-    }
-
-    uint256 slotAmount = (VALIDATOR_SLOTS.mul(DECIMALS.mul(DECIMALS))).div(totalStakeAmount);
-    uint256[] memory slots = new uint256[](addresses.length);
-    address[] memory result = new address[](VALIDATOR_SLOTS);
-    uint256 index = 0;
-    for (uint256 j = 0; j < addresses.length; j++) {
-      slots[j] = (slotAmount.mul(stakeAmounts[j])).div(DECIMALS.mul(DECIMALS));
-      for (uint256 k = 0; k < slots[j]; k++) {
-        if (index.mod(addresses.length) == 0) {
-          result[index] = addresses[j];
-        } else {
-          result[VALIDATOR_SLOTS.sub(index).sub(1)] = addresses[j];
-        }
-        index++;
-      }
-    }
-    delete index;
-    for (uint256 l = 0; l < VALIDATOR_SLOTS; l++) {
-      if (result[l] == address(0)) {
-        if (addresses.length == 1) {
-          result[l] = addresses[0];
-        } else {
-          result[l] = addresses[_getRandom(0, addresses.length - 1)];
-        }
-      }
-    }
-    return result;
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -378,36 +333,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return (block.number - getLastSnapshotTakenAtBlock() >= _getBlocksToSnapshot());
   }
 
-  function _shouldPrepareForCycleEnd() internal view returns(bool) {
-    return (block.number == getCurrentCycleEndBlock().sub(currentValidatorsLength().div(2).add(1)));
-  }
-
   function _hasCycleEnded() internal view returns(bool) {
-    return (block.number == getCurrentCycleEndBlock());
+    return (block.number >= getCurrentCycleEndBlock());
   }
 
   function _getRandom(uint256 _from, uint256 _to) internal view returns(uint256) {
     return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1)))).mod(_to).add(_from);
-  }
-
-  function _setEmitInitiateChangeCount() internal {
-    uint i;
-    for (i = 0; i < currentValidatorsLength(); i++) {
-      uintStorage[keccak256(abi.encodePacked("countInCurrentValidators", currentValidatorsAtPosition(i)))] = uintStorage[keccak256(abi.encodePacked("countInCurrentValidators", currentValidatorsAtPosition(i)))].add(1);
-    }
-    for (i = 0; i < currentValidatorsLength(); i++) {
-      uintStorage[keccak256(abi.encodePacked("emitInitiateChangeCount", currentValidatorsAtPosition(i)))] = uintStorage[keccak256(abi.encodePacked("countInCurrentValidators", currentValidatorsAtPosition(i)))].div(2).add(1);
-    }
-    for (i = 0; i < currentValidatorsLength(); i++) {
-      delete uintStorage[keccak256(abi.encodePacked("countInCurrentValidators", currentValidatorsAtPosition(i)))];
-    }
-  }
-
-  function _subEmitInitiateChangeCount(address _address, uint256 _amount) internal {
-    uintStorage[keccak256(abi.encodePacked("emitInitiateChangeCount", _address))] = uintStorage[keccak256(abi.encodePacked("emitInitiateChangeCount", _address))].sub(_amount);
-  }
-
-  function getEmitInitiateChangeCount(address _address) public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("emitInitiateChangeCount", _address))];
   }
 }

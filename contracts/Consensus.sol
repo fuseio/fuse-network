@@ -41,7 +41,6 @@ contract Consensus is ConsensusUtils {
   * @dev See ValidatorSet.finalizeChange
   */
   function finalizeChange() external onlySystem notFinalized {
-    _setShouldEmitInitiateChange(false);
     if (newValidatorSetLength() > 0) {
       _setCurrentValidators(newValidatorSet());
       emit ChangeFinalized(currentValidators());
@@ -124,23 +123,20 @@ contract Consensus is ConsensusUtils {
       _setLastSnapshotTakenAtBlock(block.number);
       delete snapshotId;
     }
-    if (_shouldPrepareForCycleEnd()) {
+    if (_hasCycleEnded()) {
+      IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
+      _setCurrentCycle();
       uint256 randomSnapshotId = _getRandom(0, getSnapshotsPerCycle() - 1);
-      address[] memory newSet = _getValidatorSetFromSnapshot(randomSnapshotId);
+      address[] memory newSet = getSnapshotAddresses(randomSnapshotId);
       if (newSet.length > 0) {
         _setNewValidatorSet(newSet);
       }
       if (newValidatorSetLength() > 0) {
         _setFinalized(false);
-        _setEmitInitiateChangeCount();
         _setShouldEmitInitiateChange(true);
         emit ShouldEmitInitiateChange();
       }
       delete randomSnapshotId;
-    }
-    if (_hasCycleEnded()) {
-      IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
-      _setCurrentCycle();
     }
   }
 
@@ -150,8 +146,7 @@ contract Consensus is ConsensusUtils {
   function emitInitiateChange() external onlyValidator {
     require(shouldEmitInitiateChange());
     require(newValidatorSetLength() > 0);
-    require(getEmitInitiateChangeCount(msg.sender) > 0);
-    _subEmitInitiateChangeCount(msg.sender, 1);
     emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
+    _setShouldEmitInitiateChange(false);
   }
 }

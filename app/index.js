@@ -50,16 +50,20 @@ function emitInitiateChange() {
     if (!shouldEmitInitiateChange) {
       return resolve()
     }
-    let count = (await consensus.methods.getEmitInitiateChangeCount(account).call()).toNumber()
-    logger.info(`${account} emitInitiateChangeCount: ${count}`)
-    if (count === 0) {
-      return resolve()
-    }
-    logger.info(`${account} sending 1 emitInitiateChange transaction`)
+    logger.info(`${account} sending emitInitiateChange transaction`)
     consensus.methods.emitInitiateChange().send({ from: account, gas: 1000000, gasPrice: 0 })
-      .on('transactionHash', hash => { logger.info(`transactionHash: ${hash}`) })
-      .on('confirmation', (confirmationNumber, receipt) => { if (confirmationNumber == 1) logger.debug(`receipt: ${JSON.stringify(receipt)}`); resolve() })
-      .on('error', error => { logger.error(error); resolve() })
+      .on('transactionHash', hash => {
+        logger.info(`transactionHash: ${hash}`)
+      })
+      .on('confirmation', (confirmationNumber, receipt) => {
+        if (confirmationNumber == 1) {
+          logger.debug(`receipt: ${JSON.stringify(receipt)}`)
+        }
+        resolve()
+      })
+      .on('error', error => {
+        logger.error(error); resolve()
+      })
   })
 }
 

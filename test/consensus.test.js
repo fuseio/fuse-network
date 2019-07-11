@@ -138,8 +138,8 @@ contract('Consensus', async (accounts) => {
       await consensus.setShouldEmitInitiateChangeMock(true)
       let mockSet = [firstCandidate, secondCandidate]
       await consensus.setNewValidatorSetMock(mockSet)
-      await consensus.setEmitInitiateChangeCountMock(initialValidator, 1)
       let {logs} = await consensus.emitInitiateChange({from: initialValidator}).should.be.fulfilled
+      false.should.be.equal(await consensus.shouldEmitInitiateChange())
       logs.length.should.be.equal(1)
       logs[0].event.should.be.equal('InitiateChange')
       logs[0].args['newSet'].should.deep.equal(mockSet)
@@ -595,36 +595,6 @@ contract('Consensus', async (accounts) => {
       await consensus.setSnapshotsPerCycleMock(CYCLE_DURATION_BLOCKS, {from: owner})
       true.should.be.equal(await consensus.shouldTakeSnapshot())
     })
-    it('getValidatorSetFromSnapshot', async () => {
-      let id = await consensus.getNextSnapshotId()
-      let set = await consensus.getValidatorSetFromSnapshot(id)
-      set.length.should.be.equal(0)
-      set.should.deep.equal([])
-      let addresses = [accounts[1], accounts[2], accounts[3]]
-      let amountsWei = [MULTIPLE_MIN_STAKE, MIN_STAKE, MULTIPLE_MIN_STAKE]
-      let amounts = [MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT, MIN_STAKE_AMOUNT, MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT]
-      let totalAmount = amounts.reduce((a,b) => a + b, 0)
-      // console.log('totalAmount', totalAmount)
-      let slots = (await consensus.VALIDATOR_SLOTS()).toNumber()
-      let appearences = {}
-      appearences[addresses[0]] = Math.floor(slots / totalAmount * amounts[0])
-      appearences[addresses[1]] = Math.floor(slots / totalAmount * amounts[1])
-      appearences[addresses[2]] = Math.floor(slots / totalAmount * amounts[2])
-      // console.log('appearences', appearences)
-      await consensus.setSnapshotMock(id, addresses, amountsWei)
-      set = await consensus.getValidatorSetFromSnapshot(id)
-      // console.log('set', set)
-      toBN(set.length).should.be.bignumber.equal(await consensus.VALIDATOR_SLOTS())
-      for (let i = 0; i < set.length; i++) {
-        set[i].should.not.be.equal(ZERO_ADDRESS)
-        if (appearences[set[i]] > 0) {
-          appearences[set[i]]--;
-        }
-      }
-      appearences[addresses[0]].should.be.equal(0)
-      appearences[addresses[1]].should.be.equal(0)
-      appearences[addresses[2]].should.be.equal(0)
-    })
     it('getRandom', async () => {
       let repeats = 25
       let randoms = []
@@ -642,8 +612,8 @@ contract('Consensus', async (accounts) => {
       await proxyStorage.setBlockRewardMock(owner)
       await consensus.cycle().should.be.fulfilled
     })
-    it.skip('golden flow should work', async () => { // TODO fix
-      let currentValidators, pendingValidators, blocksToSnapshot, id, totalAmount, slots, appearences, set, randomSnapshotId, rendomSet, tx
+    it('golden flow should work', async () => {
+      let currentValidators, pendingValidators, blocksToSnapshot, id, snapshot, randomSnapshotId, randomSnapshot, tx, currentBlockNumber, currentCycleEndBlock, blocksToAdvance
 
       await consensus.setSystemAddressMock(owner)
       await proxyStorage.setBlockRewardMock(owner)
@@ -657,7 +627,6 @@ contract('Consensus', async (accounts) => {
       pendingValidators = await consensus.pendingValidators()
       pendingValidators.length.should.be.equal(0)
       // console.log('pendingValidators', pendingValidators)
-      totalAmount = 0
 
       // 1st staker added to pending validators
       await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
@@ -665,7 +634,6 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(1)
       pendingValidators.should.deep.equal([firstCandidate])
       // console.log('pendingValidators', pendingValidators)
-      totalAmount += MORE_THAN_MIN_STAKE
 
       // advance blocks to take snapshot
       blocksToSnapshot = (await consensus.getBlocksToSnapshot()).toNumber()
@@ -675,22 +643,11 @@ contract('Consensus', async (accounts) => {
       tx = await consensus.cycle({from: owner}).should.be.fulfilled
       tx.logs.length.should.be.equal(0)
 
-      // validator slots
-      slots = await consensus.VALIDATOR_SLOTS()
-
       // check snapshot created
       id = await consensus.getNextSnapshotId()
-      set = await consensus.getValidatorSetFromSnapshot(id - 1)
-      toBN(set.length).should.be.bignumber.equal(slots)
-      appearences = {}
-      appearences[firstCandidate] = Math.floor(slots / totalAmount * MORE_THAN_MIN_STAKE)
-      for (let i = 0; i < set.length; i++) {
-        set[i].should.not.be.equal(ZERO_ADDRESS)
-        if (appearences[set[i]] > 0) {
-          appearences[set[i]]--;
-        }
-      }
-      appearences[firstCandidate].should.be.equal(0)
+      snapshot = await consensus.getSnapshotAddresses(0)
+      snapshot.length.should.be.equal(1)
+      snapshot.should.deep.equal([firstCandidate])
 
       // 2nd staker added to pending validators
       await consensus.sendTransaction({from: secondCandidate, value: MORE_THAN_MIN_STAKE}).should.be.fulfilled
@@ -698,7 +655,6 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(2)
       pendingValidators.should.deep.equal([firstCandidate, secondCandidate])
       // console.log('pendingValidators', pendingValidators)
-      totalAmount += MORE_THAN_MIN_STAKE
 
       // advance blocks to take snapshot
       blocksToSnapshot = (await consensus.getBlocksToSnapshot()).toNumber()
@@ -710,43 +666,35 @@ contract('Consensus', async (accounts) => {
 
       // check snapshot created
       id = await consensus.getNextSnapshotId()
-      set = await consensus.getValidatorSetFromSnapshot(id - 1)
-      toBN(set.length).should.be.bignumber.equal(slots)
-      appearences = {}
-      appearences[firstCandidate] = Math.floor(slots / totalAmount * MORE_THAN_MIN_STAKE)
-      appearences[secondCandidate] = Math.floor(slots / totalAmount * MORE_THAN_MIN_STAKE)
-      for (let i = 0; i < set.length; i++) {
-        set[i].should.not.be.equal(ZERO_ADDRESS)
-        if (appearences[set[i]] > 0) {
-          appearences[set[i]]--;
-        }
-      }
-      appearences[firstCandidate].should.be.equal(0)
-      appearences[secondCandidate].should.be.equal(0)
+      snapshot = await consensus.getSnapshotAddresses(1)
+      snapshot.length.should.be.equal(2)
+      snapshot.should.deep.equal([firstCandidate, secondCandidate])
 
       // advance blocks to end cycle
-      await advanceBlocks(CYCLE_DURATION_BLOCKS - 2 * blocksToSnapshot)
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
 
       // get random snapshot id
       randomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
       // console.log('randomSnapshotId', randomSnapshotId)
-      randomSet = await consensus.getValidatorSetFromSnapshot(randomSnapshotId)
-      // console.log('randomSet', randomSet)
+      randomSnapshot = await consensus.getSnapshotAddresses(randomSnapshotId)
+      // console.log('randomSnapshot', randomSnapshot)
 
       // call cycle function
       tx = await consensus.cycle({from: owner}).should.be.fulfilled
-      true.should.be.equal(await consensus.shouldEmitInitiateChange())
       tx.logs.length.should.be.equal(1)
       tx.logs[0].event.should.be.equal('ShouldEmitInitiateChange')
-      randomSet.should.be.deep.equal(await consensus.newValidatorSet())
+      randomSnapshot.should.be.deep.equal(await consensus.newValidatorSet())
 
       // call finalizeChange
       tx = await consensus.finalizeChange().should.be.fulfilled
       currentValidators = await consensus.getValidators()
-      currentValidators.length.should.be.equal(randomSet.length)
-      currentValidators.should.deep.equal(randomSet)
+      currentValidators.length.should.be.equal(randomSnapshot.length)
+      currentValidators.should.deep.equal(randomSnapshot)
       tx.logs[0].event.should.be.equal('ChangeFinalized')
-      tx.logs[0].args['newSet'].should.deep.equal(randomSet)
+      tx.logs[0].args['newSet'].should.deep.equal(randomSnapshot)
       // console.log('currentValidators', currentValidators)
 
       // 3rd staker added to pending validators
@@ -755,35 +703,26 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(3)
       pendingValidators.should.deep.equal([firstCandidate, secondCandidate, thirdCandidate])
       // console.log('pendingValidators', pendingValidators)
-      totalAmount += MORE_THAN_MIN_STAKE
 
       // advance blocks to take snapshot
       blocksToSnapshot = (await consensus.getBlocksToSnapshot()).toNumber()
       await advanceBlocks(blocksToSnapshot)
 
       // call cycle function
-      await consensus.cycle({from: owner}).should.be.fulfilled
+      tx = await consensus.cycle({from: owner}).should.be.fulfilled
+      tx.logs.length.should.be.equal(0)
 
       // check snapshot created
       id = await consensus.getNextSnapshotId()
-      set = await consensus.getValidatorSetFromSnapshot(id - 1)
-      toBN(set.length).should.be.bignumber.equal(slots)
-      appearences = {}
-      appearences[firstCandidate] = Math.floor(slots / totalAmount * MORE_THAN_MIN_STAKE)
-      appearences[secondCandidate] = Math.floor(slots / totalAmount * MORE_THAN_MIN_STAKE)
-      appearences[thirdCandidate] = Math.floor(slots / totalAmount * MORE_THAN_MIN_STAKE)
-      for (let i = 0; i < set.length; i++) {
-        set[i].should.not.be.equal(ZERO_ADDRESS)
-        if (appearences[set[i]] > 0) {
-          appearences[set[i]]--;
-        }
-      }
-      appearences[firstCandidate].should.be.equal(0)
-      appearences[secondCandidate].should.be.equal(0)
-      appearences[thirdCandidate].should.be.equal(0)
+      snapshot = await consensus.getSnapshotAddresses(2)
+      snapshot.length.should.be.equal(3)
+      snapshot.should.deep.equal([firstCandidate, secondCandidate, thirdCandidate])
 
       // advance blocks to end cycle
-      await advanceBlocks(CYCLE_DURATION_BLOCKS - 1 * blocksToSnapshot)
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
 
       // get random snapshot id
       newRandomSnapshotId = (await consensus.getRandom(0, (await consensus.getSnapshotsPerCycle()).toNumber() - 1)).toNumber()
@@ -793,23 +732,22 @@ contract('Consensus', async (accounts) => {
       }
       randomSnapshotId = newRandomSnapshotId
       // console.log('randomSnapshotId', randomSnapshotId)
-      randomSet = await consensus.getValidatorSetFromSnapshot(randomSnapshotId)
-      // console.log('randomSet', randomSet)
+      randomSnapshot = await consensus.getSnapshotAddresses(randomSnapshotId)
+      // console.log('randomSnapshot', randomSnapshot)
 
       // call cycle function
       tx = await consensus.cycle({from: owner}).should.be.fulfilled
-      true.should.be.equal(await consensus.shouldEmitInitiateChange())
       tx.logs.length.should.be.equal(1)
       tx.logs[0].event.should.be.equal('ShouldEmitInitiateChange')
-      randomSet.should.be.deep.equal(await consensus.newValidatorSet())
+      randomSnapshot.should.be.deep.equal(await consensus.newValidatorSet())
 
       // call finalizeChange
       tx = await consensus.finalizeChange().should.be.fulfilled
       currentValidators = await consensus.getValidators()
-      currentValidators.length.should.be.equal(randomSet.length)
-      currentValidators.should.deep.equal(randomSet)
+      currentValidators.length.should.be.equal(randomSnapshot.length)
+      currentValidators.should.deep.equal(randomSnapshot)
       tx.logs[0].event.should.be.equal('ChangeFinalized')
-      tx.logs[0].args['newSet'].should.deep.equal(randomSet)
+      tx.logs[0].args['newSet'].should.deep.equal(randomSnapshot)
       // console.log('currentValidators', currentValidators)
     })
   })

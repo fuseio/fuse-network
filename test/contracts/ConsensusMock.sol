@@ -19,10 +19,6 @@ contract ConsensusMock is Consensus {
     return _shouldTakeSnapshot();
   }
 
-  function getValidatorSetFromSnapshot(uint256 _snapshotId) public view returns(address[]) {
-    return _getValidatorSetFromSnapshot(_snapshotId);
-  }
-
   function getRandom(uint256 _from, uint256 _to) public view returns(uint256) {
     return _getRandom(_from, _to);
   }
@@ -35,14 +31,6 @@ contract ConsensusMock is Consensus {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
   }
 
-  function setSnapshotMock(uint256 _snapshotId, address[] _addresses, uint256[] _amounts) public {
-    _setSnapshotAddresses(_snapshotId, _addresses);
-    for (uint256 i; i < _addresses.length; i++) {
-      uintStorage[keccak256(abi.encodePacked("stakeAmount", _addresses[i]))] = _amounts[i];
-      _setSnapshotStakeAmountForAddress(_snapshotId, _addresses[i]);
-    }
-  }
-
   function setSnapshotsPerCycleMock(uint256 _snapshotsPerCycle) public {
     uintStorage[SNAPSHOTS_PER_CYCLE] = _snapshotsPerCycle;
   }
@@ -53,9 +41,5 @@ contract ConsensusMock is Consensus {
 
   function setShouldEmitInitiateChangeMock(bool _status) public {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
-  }
-
-  function setEmitInitiateChangeCountMock(address _address, uint256 cnt) public {
-    uintStorage[keccak256(abi.encodePacked("emitInitiateChangeCount", _address))] = cnt;
   }
 }

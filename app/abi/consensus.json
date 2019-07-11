@@ -146,55 +146,8 @@
   },
   {
     "constant": true,
-    "inputs": [
-      {
-        "name": "_address",
-        "type": "address"
-      }
-    ],
-    "name": "getEmitInitiateChangeCount",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
     "inputs": [],
     "name": "currentValidatorsLength",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "VALIDATOR_SLOTS",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "getBlocksToSnapshot",
     "outputs": [
       {
         "name": "",
