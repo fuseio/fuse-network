@@ -4,6 +4,7 @@ import "./VotingUtils.sol";
 
 /**
 * @title Contract handling vote to change implementations network contracts
+* @author LiorRabin
 */
 contract Voting is VotingUtils {
   /**

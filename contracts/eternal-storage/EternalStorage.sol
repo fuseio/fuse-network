@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 
 /**
  * @title EternalStorage
+ * @author LiorRabin
  * @dev This contract holds all the necessary state variables to carry out the storage of any contract and to support the upgrade functionality.
  */
 contract EternalStorage {

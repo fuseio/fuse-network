@@ -7,6 +7,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Consensus utility contract
+* @author LiorRabin
 */
 contract ConsensusUtils is EternalStorage, ValidatorSet {
   using SafeMath for uint256;

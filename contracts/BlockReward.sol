@@ -8,6 +8,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Contract handling block reward logic
+* @author LiorRabin
 */
 contract BlockReward is EternalStorage, BlockRewardBase {
   using SafeMath for uint256;

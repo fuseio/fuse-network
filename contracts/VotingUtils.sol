@@ -8,6 +8,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Voting utility contract
+* @author LiorRabin
 */
 contract VotingUtils is EternalStorage, VotingBase {
   using SafeMath for uint256;

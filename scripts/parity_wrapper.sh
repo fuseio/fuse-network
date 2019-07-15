@@ -39,11 +39,17 @@
 #     - Requires the address argument.
 #     - Needs the password file and the key-set. (see FILES)
 #
+#   explorer
+#     - No mining.
+#     - RPC ports open.
+#     - Does not require the address argument.
+#     - Does not need the password file and the key-set. (see FILES)
+#     - Some of Parity's settings are configured specifically for the use of blockscout explorer.
 #
 # FILES
 #   The configuration folder for Parity takes place at /home/parity/.local/share/io.parity.ethereum.
 #   Alternately the shorthand symbolic link at /config can be used.
-#   Parity's data base is at /home/parity/.local/share/io.parity.ethereum/chains or available trough /data as well.
+#   Parity's database is at /home/parity/.local/share/io.parity.ethereum/chains or available trough /data as well.
 #   To provide custom files in addition bind a volume through Docker to the sub-folder called 'custom'.
 #   The password file is expected to be placed in the custom configuration folder names 'pass.pwd'.
 #   The key-set is expected to to be placed in the custom configuration folder under 'keys/FuseNetwork/'

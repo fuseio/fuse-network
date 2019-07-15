@@ -6,6 +6,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Contract used for access and upgradeability to all network contracts
+* @author LiorRabin
 */
 contract ProxyStorage is EternalStorage {
   using SafeMath for uint256;

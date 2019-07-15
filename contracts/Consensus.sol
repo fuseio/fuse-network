@@ -5,6 +5,7 @@ import "./ConsensusUtils.sol";
 
 /**
 * @title Contract handling consensus logic
+* @author LiorRabin
 */
 contract Consensus is ConsensusUtils {
   /**

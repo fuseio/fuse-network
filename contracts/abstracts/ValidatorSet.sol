@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 /**
  * @title Interface to be implemented by consensus contract
+ * @author LiorRabin
  * @dev abstract contract
  */
 contract ValidatorSet {
