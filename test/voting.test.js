@@ -103,7 +103,6 @@ contract('Voting', async (accounts) => {
       let ballotInfo = await voting.getBallotInfo(id, validators[0])
       ballotInfo.startBlock.should.be.bignumber.equal(startBlock)
       ballotInfo.endBlock.should.be.bignumber.equal(endBlock)
-      ballotInfo.totalVoters.should.be.bignumber.equal(toBN(0))
       ballotInfo.isFinalized.should.be.equal(false)
       ballotInfo.proposedValue.should.be.equal(proposedValue)
       ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))
@@ -188,7 +187,6 @@ contract('Voting', async (accounts) => {
       logs[0].args['id'].should.be.bignumber.equal(id)
       logs[0].args['decision'].should.be.bignumber.equal(toBN(ACTION_CHOICES.ACCEPT))
       logs[0].args['voter'].should.be.equal(validators[0])
-      toBN(1).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.ACCEPT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[0]))
     })
     it('should vote "reject" successfully', async () => {
@@ -202,7 +200,6 @@ contract('Voting', async (accounts) => {
       logs[0].args['id'].should.be.bignumber.equal(id)
       logs[0].args['decision'].should.be.bignumber.equal(toBN(ACTION_CHOICES.REJECT))
       logs[0].args['voter'].should.be.equal(validators[0])
-      toBN(1).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.REJECT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[0]))
     })
     it('multiple voters should vote successfully', async () => {
@@ -211,19 +208,15 @@ contract('Voting', async (accounts) => {
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
-      toBN(1).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.ACCEPT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[0]))
 
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[1]}).should.be.fulfilled
-      toBN(2).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.ACCEPT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[1]))
 
       await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
-      toBN(3).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.REJECT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[2]))
 
       await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[3]}).should.be.fulfilled
-      toBN(4).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.REJECT).should.be.bignumber.equal(await voting.getVoterChoice(id, validators[3]))
     })
     it('should be successful even if called by non validator', async () => {
@@ -233,7 +226,6 @@ contract('Voting', async (accounts) => {
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
       await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: nonValidatorKey}).should.be.fulfilled
-      toBN(1).should.be.bignumber.equal(await voting.getTotalVoters(id))
       toBN(ACTION_CHOICES.ACCEPT).should.be.bignumber.equal(await voting.getVoterChoice(id, nonValidatorKey))
     })
     it('should fail if voting before start time', async () => {
@@ -602,7 +594,6 @@ contract('Voting', async (accounts) => {
       let ballotInfo = await voting.getBallotInfo(id, validators[0])
       ballotInfo.startBlock.should.be.bignumber.equal(voteStartBlock)
       ballotInfo.endBlock.should.be.bignumber.equal(voteEndBlock)
-      ballotInfo.totalVoters.should.be.bignumber.equal(toBN(3))
       ballotInfo.isFinalized.should.be.equal(true)
       ballotInfo.proposedValue.should.be.equal(proposedValue)
       ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))
@@ -636,7 +627,6 @@ contract('Voting', async (accounts) => {
       let ballotInfo = await voting.getBallotInfo(id, validators[0])
       ballotInfo.startBlock.should.be.bignumber.equal(voteStartBlock)
       ballotInfo.endBlock.should.be.bignumber.equal(voteEndBlock)
-      ballotInfo.totalVoters.should.be.bignumber.equal(toBN(3))
       ballotInfo.isFinalized.should.be.equal(true)
       ballotInfo.proposedValue.should.be.equal(proposedValue)
       ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))

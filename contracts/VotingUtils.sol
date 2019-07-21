@@ -154,7 +154,6 @@ contract VotingUtils is EternalStorage, VotingBase {
     _setQuorumState(ballotId, uint256(QuorumStates.InProgress));
     _setCreator(ballotId, creator);
     _setDescription(ballotId, _description);
-    _setTotalVoters(ballotId, 0);
     _setIndex(ballotId, activeBallotsLength());
     _activeBallotsAdd(ballotId);
     _increaseValidatorLimit(creator);
@@ -278,14 +277,6 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   function _setCreator(uint256 _id, address _value) internal {
     addressStorage[keccak256(abi.encodePacked("votingState", _id, "creator"))] = _value;
-  }
-
-  function getTotalVoters(uint256 _id) public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalVoters"))];
-  }
-
-  function _setTotalVoters(uint256 _id, uint256 _value) internal {
-    uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalVoters"))] = _value;
   }
 
   function getIndex(uint256 _id) public view returns(uint256) {

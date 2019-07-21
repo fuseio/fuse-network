@@ -82,17 +82,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   bytes32 internal constant NEW_VALIDATOR_SET = keccak256(abi.encodePacked("newValidatorSet"));
   bytes32 internal constant SHOULD_EMIT_INITIATE_CHANGE = keccak256(abi.encodePacked("shouldEmitInitiateChange"));
 
-  function _stake(address _staker, uint256 _amount) internal {
-    require(_staker != address(0));
-    require(_amount != 0);
-
-    _stakeAmountAdd(_staker, _amount);
-
-    if (stakeAmount(_staker) >= getMinStake() && !isPendingValidator(_staker)) {
-      _pendingValidatorsAdd(_staker);
-    }
-  }
-
   function _delegate(address _staker, uint256 _amount, address _validator) internal {
     require(_staker != address(0));
     require(_amount != 0);

@@ -40,10 +40,9 @@ contract Voting is VotingUtils {
   * @param _id ballot id to get info of
   * @param _key voter key to get if voted already
   */
-  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, uint256 totalVoters, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted) {
+  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted) {
     startBlock = getStartBlock(_id);
     endBlock = getEndBlock(_id);
-    totalVoters = getTotalVoters(_id);
     isFinalized = getIsFinalized(_id);
     proposedValue = getProposedValue(_id);
     contractType = getContractType(_id);
@@ -52,7 +51,7 @@ contract Voting is VotingUtils {
     canBeFinalizedNow = canBeFinalized(_id);
     alreadyVoted = hasAlreadyVoted(_id, _key);
 
-    return (startBlock, endBlock, totalVoters, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted);
+    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted);
   }
 
   /**
@@ -67,7 +66,6 @@ contract Voting is VotingUtils {
     require(!hasAlreadyVoted(_id, voter));
     require(_choice == uint(ActionChoices.Accept) || _choice == uint(ActionChoices.Reject));
     _setVoterChoice(_id, voter, _choice);
-    _setTotalVoters(_id, getTotalVoters(_id).add(1));
     emit Vote(_id, _choice, voter);
   }
 
