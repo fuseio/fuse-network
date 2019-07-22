@@ -98,7 +98,7 @@ _Parity_ will restart automatically on fails.
 ```sh
 $ wget -O quickstart.sh https://raw.githubusercontent.com/ColuLocalNetwork/fuse-network/master/scripts/quickstart.sh
 $ chmod 777 quickstart.sh
-$ ./quickstart.sh
+$ ./quickstart.sh --role <ROLE>
 ```
 
 Follow the instructions emitted by the script.

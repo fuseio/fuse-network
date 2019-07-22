@@ -48,7 +48,7 @@ function sanityChecks {
 #
 function parseArguments {
   if [[ ${#ARG_VEC[@]} < 2 ]] ; then
-    echo "Missing arguments"
+    echo "Missing role argument"
     exit 1
   fi
 
