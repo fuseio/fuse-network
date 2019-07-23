@@ -118,15 +118,15 @@ The image is prepared to be used as bootnode, validator or explorer node.
 #### Usage
 
 To run the parity client for the FuseNetwork you first have to pull the image from
-[DockerHub](https://hub.docker.com/r/fusenetwork/fusenet).
+[DockerHub](https://hub.docker.com/r/fusenet/node).
 
 It does not matter in which directory your are working this step, cause it will be added to _Docker_'s very own database.
 
 Afterwards calling the help should give a first basic overview how to use.
 
 ```
-$ docker pull fusenetwork/fusenet
-$ docker run fusenetwork/fusenet --help
+$ docker pull fusenet/node
+$ docker run fusenet/node --help
 
  	# NAME
 	#   Parity Wrapper
@@ -192,7 +192,7 @@ Besides the original help, the following sections provide some example instructi
 If you want to run a bootnode for the network, it only needs to have RPC and WS ports mapped out of the docker to the local machine, no account address is needed.
 
 ```
-$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenetwork/fusenet --role bootnode --parity-args --node-key UNIQUE_NAME_FOR_NODE
+$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenet/node --role bootnode --parity-args --node-key UNIQUE_NAME_FOR_NODE
 ```
 
 ##### Validator
@@ -226,7 +226,7 @@ $ mkdir -p ./config/keys/FuseNetwork
 $ cp /path/to/my/key ./config/keys/FuseNetwork/
 $ echo "mysupersecretpassphrase" > ./config/pass.pwd
 $ mkdir ./database
-$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 fusenetwork/fusenet --role validator --address MY_ADDRESS
+$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 fusenet/node --role validator --address MY_ADDRESS
 ```
 
 ##### Create New Account
@@ -241,7 +241,7 @@ Afterwards the key will be placed there and the first steps of these instruction
 
 ```sh
 $ mkdir ./config
-$ docker run -ti -v $(pwd)/config/:/config/custom fusenetwork/fusenet --parity-args account new
+$ docker run -ti -v $(pwd)/config/:/config/custom fusenet/node --parity-args account new
 ```
 
 _Parity_ will ask for a password, that should be stored by you into `./config/pass.pwd` afterwards.
@@ -254,7 +254,7 @@ Please copy it for the later use. It will be needed for the `--address` argument
 If you want to run a node to be used by the [blockscout explorer](https://github.com/ColuLocalNetwork/blockscout/tree/fuse) run the following command:
 
 ```
-$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenetwork/fusenet --role explorer --parity-args --node-key UNIQUE_NAME_FOR_EXPLORER_NODE
+$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenet/node --role explorer --parity-args --node-key UNIQUE_NAME_FOR_EXPLORER_NODE
 ```
 ---
 
@@ -342,6 +342,6 @@ If you want to provide an additional tag (e.g. for sub-versions), adjust the nam
 
 ```sh
 $ echo "yoursecretpassword" | docker login --username USERNAME --password-stdin
-$ docker tag LOCAL_IMAGE fusenetwork/fusenet:latest
-$ docker push fusenetwork/fusenet:latest
+$ docker tag LOCAL_IMAGE fusenet/node:latest
+$ docker push fusenet/node:latest
 ```

@@ -13,7 +13,7 @@ When running the [quickstart script](https://github.com/ColuLocalNetwork/fuse-ne
 
 It can be started manually as well:
 ```
-$ docker run --detach --name fuseapp --volume /home/fuse/fusenet/config:/config --restart=on-failure fusenetwork/fuseapp
+$ docker run --detach --name fuseapp --volume /home/fuse/fusenet/config:/config --restart=on-failure fusenet/validator-app
 ```
 
 Note that `/home/fuse/fusenet/config` is the folder where the key file and `pass.pwd` of the validator account should be placed. This is the default location for the quickstart script so there shouldn't be any problems there.

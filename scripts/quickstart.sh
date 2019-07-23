@@ -6,9 +6,9 @@ set -e
 IFS=' ' read -r -a ARG_VEC <<< "$@"
 
 # Variables
-DOCKER_IMAGE_PARITY="fusenetwork/fusenet"
+DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
-DOCKER_IMAGE_APP="fusenetwork/fuseapp"
+DOCKER_IMAGE_APP="fusenet/validator-app"
 DOCKER_CONTAINER_APP="fuseapp"
 PERMISSION_PREFIX="" # In case `sudo` is needed
 BASE_DIR=$(pwd)/fusenet
