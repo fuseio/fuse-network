@@ -1,3 +1,12 @@
+# General
+.DS_Store
+build
+flats
+abis
+fusenet*
+contracts.json
+runlocal.txt
+
 # Logs
 logs
 *.log
@@ -56,6 +65,8 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.zeronet
 
 # next.js build output
 .next
