@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/colulocalnetwork/fuse-network.git"
+    "url": "git+https://github.com/fuseio/fuse-network.git"
   },
   "author": "Lior Rabin",
   "license": "MIT",

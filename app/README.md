@@ -9,7 +9,7 @@ After this function is called successfully the validator set changes to a new on
 
 All the validators call this function and only the first call is successful, but there's no loss of gas because this function is called using a zero-gas transaction.
 
-When running the [quickstart script](https://github.com/ColuLocalNetwork/fuse-network/blob/master#quickstart) as valiadtor, this app is run automatically.
+When running the [quickstart script](https://github.com/fuseio/fuse-network/blob/master#quickstart) as valiadtor, this app is run automatically.
 
 It can be started manually as well:
 ```

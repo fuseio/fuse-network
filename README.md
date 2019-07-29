@@ -5,7 +5,7 @@
   - [Install Dependencies](#install-dependencies)
   - [Run Unit Tests](#run-unit-tests)
 - [Contracts](#contracts)
-  - [Documentation](https://github.com/ColuLocalNetwork/fuse-network/blob/master/CONTRACTS.md)
+  - [Documentation](https://github.com/fuseio/fuse-network/blob/master/CONTRACTS.md)
   - [Compile](#compile)
   - [Flatten](#flatten)
   - [Deploy](#deploy)
@@ -24,7 +24,7 @@
     - [Setup For Bootnodes Using Only CLI](#setup-for-bootnodes-using-only-cli)
     - [Setup For Validators Using Only CLI](#setup-for-validators-using-only-cli)
     - [Setup For Explorer Node Using Only CLI](#setup-for-explorer-node-using-only-cli)
-- [Validators App](https://github.com/ColuLocalNetwork/fuse-network/tree/master/app/README.md)
+- [Validators App](https://github.com/fuseio/fuse-network/tree/master/app/README.md)
 - [Development](#development)
   - [Build Own Image](#build-own-image)
   - [Upload Image](#upload-image)
@@ -32,7 +32,7 @@
 ## General
 ### Clone Repository
 ```
-$ git clone https://github.com/ColuLocalNetwork/fuse-network.git ~/Dev/fuse-network
+$ git clone https://github.com/fuseio/fuse-network.git ~/Dev/fuse-network
 ```
 
 ### Install Dependencies
@@ -62,9 +62,9 @@ $ npm run flatten
 ```
 
 ### Deploy
-Make sure `NETWORK_NAME` is defined in [`truffle-config`](https://github.com/ColuLocalNetwork/fuse-network/blob/master/truffle-config.js)
+Make sure `NETWORK_NAME` is defined in [`truffle-config`](https://github.com/fuseio/fuse-network/blob/master/truffle-config.js)
 
-Make sure you've created an `.env` using the template [`env.example`](https://github.com/ColuLocalNetwork/fuse-network/blob/master/.env.example)
+Make sure you've created an `.env` using the template [`env.example`](https://github.com/fuseio/fuse-network/blob/master/.env.example)
 
 Run:
 
@@ -136,7 +136,7 @@ The script can be called multiple times without problems, so it checks what is a
 _Parity_ will restart automatically on fails.
 
 ```sh
-$ wget -O quickstart.sh https://raw.githubusercontent.com/ColuLocalNetwork/fuse-network/master/scripts/quickstart.sh
+$ wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh
 $ chmod 777 quickstart.sh
 $ ./quickstart.sh --role <ROLE>
 ```
@@ -291,7 +291,7 @@ The address corresponding to the generated private key gets printed out on the C
 Please copy it for the later use. It will be needed for the `--address` argument where it will be added in plain text.
 
 ##### Explorer node
-If you want to run a node to be used by the [blockscout explorer](https://github.com/ColuLocalNetwork/blockscout/tree/fuse) run the following command:
+If you want to run a node to be used by the [blockscout explorer](https://github.com/fuseio/blockscout/tree/fuse) run the following command:
 
 ```
 $ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenet/node --role explorer --parity-args --node-key UNIQUE_NAME_FOR_EXPLORER_NODE
@@ -305,7 +305,7 @@ This section explains how to start a local node without using the _Docker_ image
 #### Pre-Requisites
 
 - [Parity version 2.4.5](https://github.com/paritytech/parity-ethereum/releases/tag/v2.4.5)
-- [spec.json](https://github.com/ColuLocalNetwork/fuse-post-network/blob/master/config/spec.json) file
+- [spec.json](https://github.com/fuseio/fuse-post-network/blob/master/config/spec.json) file
 
 #### Creating An Account
 
@@ -361,7 +361,7 @@ echo [mypassword] > password.pwd
 To build the _Docker_ image, checkout this repository and run `docker build` with your preferred tag name. As the context of the build must be the project root, the path to the `Dockerfile` has to be specified manually.
 
 ```sh
-$ git clone https://github.com/ColuLocalNetwork/fuse-network
+$ git clone https://github.com/fuseio/fuse-network
 $ docker build -f docker/Dockerfile -t MY_TAGNAME .
 $ docker run ... MY_TAGNAME ...
 ```
