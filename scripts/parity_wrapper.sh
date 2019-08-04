@@ -35,7 +35,7 @@
 #   validator
 #     - Connect as authority to the network for validating blocks.
 #     - Miner.
-#     - RPC ports closed.
+#     - RPC ports open.
 #     - Requires the address argument.
 #     - Needs the password file and the key-set. (see FILES)
 #
@@ -94,7 +94,11 @@ port = 30300
 
 CONFIG_SNIPPET_VALIDATOR='
 [rpc]
-disable = true
+cors = ["all"]
+port = 8545
+interface = "all"
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
 
 [websockets]
 disable = true

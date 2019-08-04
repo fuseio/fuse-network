@@ -228,6 +228,7 @@ function startNode {
         --volume $DATABASE_DIR:/data \
         --volume $CONFIG_DIR:/config/custom \
         -p 30303:30300 \
+        -p 8545:8545 \
         --restart=on-failure \
         $DOCKER_IMAGE_PARITY \
         --role validator \
