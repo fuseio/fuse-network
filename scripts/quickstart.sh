@@ -274,6 +274,7 @@ function startNode {
   $PERMISSION_PREFIX docker run \
     --detach \
     --name $DOCKER_CONTAINER_NETSTAT \
+    --net=container:$DOCKER_CONTAINER_PARITY \
     --restart=on-failure \
     $DOCKER_IMAGE_NETSTAT \
     --instance-name "$INSTANCE_NAME"
