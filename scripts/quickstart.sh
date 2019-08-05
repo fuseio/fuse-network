@@ -25,7 +25,7 @@ NODE_KEY=""
 INSTANCE_NAME=""
 
 declare -a VALID_ROLE_LIST=(
-  bootnode
+  node
   validator
   explorer
 )
@@ -117,7 +117,7 @@ function setup {
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
 
-  if [[ $ROLE != bootnode && $ROLE != explorer ]] ; then
+  if [[ $ROLE != node && $ROLE != explorer ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
       while [ -z "$PASSWORD" ] ; do
@@ -161,10 +161,10 @@ function setup {
     fi
   else
     if [[ -z "$NODE_KEY" ]] ; then
-      echo "Missing node-key for bootnode"
+      echo "Missing node-key"
       exit 1
     fi
-    echo Running bootnode - no need to create account
+    echo Running node - no need to create account
   fi
 }
 
@@ -205,7 +205,7 @@ function startNode {
   echo -e "\nStart as ${ROLE}..."
 
   case $ROLE in
-    "bootnode")
+    "node")
       INSTANCE_NAME=$NODE_KEY
 
       ## Start Parity container with all necessary arguments.
@@ -219,7 +219,7 @@ function startNode {
         -p 8546:8546 \
         --restart=on-failure \
         $DOCKER_IMAGE_PARITY \
-        --role bootnode \
+        --role node \
         --parity-args --node-key $NODE_KEY
       ;;
 

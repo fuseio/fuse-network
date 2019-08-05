@@ -16,13 +16,13 @@
   - [Using Docker](#using-docker)
     - [Usage](#usage)
     - [Examples](#examples)
-    - [Bootnode](#bootnode)
+    - [Node](#node)
     - [Validator](#validator)
     - [Create New Account](#create-new-account)
     - [Explorer node](#explorer-node)
   - [Without Docker](#without-docker)
     - [Creating An Account](#creating-an-account)
-    - [Setup For Bootnodes Using Only CLI](#setup-for-bootnodes-using-only-cli)
+    - [Setup For Nodes Using Only CLI](#setup-for-nodes-using-only-cli)
     - [Setup For Validators Using Only CLI](#setup-for-validators-using-only-cli)
     - [Setup For Explorer Node Using Only CLI](#setup-for-explorer-node-using-only-cli)
 - [Validators App](https://github.com/fuseio/fuse-network/tree/master/app/README.md)
@@ -88,7 +88,7 @@ Make sure that your user is added to the `docker` user-group on _Unix_ systems, 
 ### Hardware
 *Note: specified for [Microsoft Azure](https://portal.azure.com), but similar on other providers as well*
 
-##### Bootnode (or Explorer Node)
+##### Node (or Explorer Node)
 
 * OS - `Linux (ubuntu 18.04)`
 * Size - `Standard B2ms (2 vcpus, 8 GiB memory)`
@@ -154,7 +154,7 @@ The following instructions explain how to start a local node with the _Docker_ i
 
 In fact it uses a pre-configured [Parity Ethereum](https://www.parity.io/) client, combined with a set-up wrapper, to make connecting as easy as possible.
 
-The image is prepared to be used as bootnode, validator or explorer node.
+The image is prepared to be used as node, validator or explorer node.
 
 #### Usage
 
@@ -195,7 +195,7 @@ $ docker run fusenet/node --help
 	# ROLES
 	#   The list of available roles is:
 	#
-	#   bootnode
+	#   node
 	#     - No mining.
 	#     - RPC ports open.
 	#     - Does not require the address argument.
@@ -229,11 +229,11 @@ $ docker run fusenet/node --help
 
 Besides the original help, the following sections provide some example instructions how to get started for the different roles.
 
-##### Bootnode
-If you want to run a bootnode for the network, it only needs to have RPC and WS ports mapped out of the docker to the local machine, no account address is needed.
+##### Node
+If you want to run a node for the network, it only needs to have RPC and WS ports mapped out of the docker to the local machine, no account address is needed.
 
 ```
-$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenet/node --role bootnode --parity-args --node-key UNIQUE_NAME_FOR_NODE
+$ docker run -ti -v $(pwd)/database:/data -v $(pwd)/config:/config/custom -p 30300:30300 -p 8545:8545 -p 8546:8546 fusenet/node --role node --parity-args --node-key UNIQUE_NAME_FOR_NODE
 ```
 
 ##### Validator
@@ -346,7 +346,7 @@ For running a node as a validator, you will need to store your password in a fil
 echo [mypassword] > password.pwd
 ```
 
-#### Setup For Bootnode Using Only CLI
+#### Setup For node Using Only CLI
 > TODO
 
 #### Setup For Validator Using Only CLI
