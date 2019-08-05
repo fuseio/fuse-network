@@ -10,6 +10,8 @@ DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
 DOCKER_IMAGE_APP="fusenet/validator-app"
 DOCKER_CONTAINER_APP="fuseapp"
+DOCKER_IMAGE_NETSTAT="fusenet/netstat"
+DOCKER_CONTAINER_NETSTAT="fusenetstat"
 PERMISSION_PREFIX="" # In case `sudo` is needed
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
@@ -20,6 +22,7 @@ PASSWORD=""
 ADDRESS_FILE=$CONFIG_DIR/address
 ADDRESS=""
 NODE_KEY=""
+INSTANCE_NAME=""
 
 declare -a VALID_ROLE_LIST=(
   bootnode
@@ -103,6 +106,7 @@ function setup {
   # Pull the Docker images.
   echo -e "\nPull the Docker images..."
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
+  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
 
   if [[ $role == validator ]] ; then
     echo -e "\nPull the Docker images..."
@@ -202,6 +206,8 @@ function startNode {
 
   case $ROLE in
     "bootnode")
+      INSTANCE_NAME=$NODE_KEY
+
       ## Start Parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         --detach \
@@ -220,6 +226,8 @@ function startNode {
     "validator")
       ## Read in the stored address file.
       local address=$(cat $ADDRESS_FILE)
+
+      INSTANCE_NAME=$address
 
       ## Start Parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
@@ -244,6 +252,8 @@ function startNode {
       ;;
 
     "explorer")
+      INSTANCE_NAME=$NODE_KEY
+
       ## Start Parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         --detach \
@@ -259,6 +269,14 @@ function startNode {
         --parity-args --node-key $NODE_KEY
       ;;
   esac
+
+  ## Start Ethereum Network Intelligence API
+  $PERMISSION_PREFIX docker run \
+    --detach \
+    --name $DOCKER_CONTAINER_NETSTAT \
+    --restart=on-failure \
+    $DOCKER_IMAGE_NETSTAT \
+    --instance-name "$INSTANCE_NAME"
 
   echo -e "\nParity node as started and is running in background!"
 }
