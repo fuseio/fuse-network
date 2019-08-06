@@ -23,6 +23,12 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   event Rewarded(address[] receivers, uint256[] rewards);
 
   /**
+  * @dev This event will be emitted on cycle end, describing the amount of rewards distributed on the cycle
+  * @param amount total rewards distributed on this cycle
+  */
+  event RewardedOnCycle(uint256 amount);
+
+  /**
   * @dev This modifier verifies that msg.sender is the system address (EIP96)
   */
   modifier onlySystem() {
@@ -39,6 +45,22 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   }
 
   /**
+  * @dev This modifier verifies that msg.sender is the consensus contract
+  */
+  modifier onlyConsensus() {
+    require(msg.sender == ProxyStorage(getProxyStorage()).getConsensus());
+    _;
+  }
+
+  /**
+  * @dev This modifier verifies that msg.sender is a validator
+  */
+  modifier onlyValidator() {
+    require(IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).isValidator(msg.sender));
+    _;
+  }
+
+  /**
   * @dev Function to be called on contract initialization
   * @param _supply initial total supply
   * @param _inflation yearly inflation rate (percentage)
@@ -47,6 +69,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     require(!isInitialized());
     _setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     _setTotalSupply(_supply);
+    _initRewardedOnCycle();
     _setBlocksPerYear(_blocksPerYear);
     _setInflation(_inflation);
     _setBlockRewardAmount();
@@ -71,6 +94,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
     uint256 blockRewardAmount = getBlockRewardAmount();
 
+    _setRewardedOnCycle(getRewardedOnCycle().add(blockRewardAmount));
     _setTotalSupply(getTotalSupply().add(blockRewardAmount));
 
     receivers[0] = benefactors[0];
@@ -84,13 +108,29 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     return (receivers, rewards);
   }
 
+  function onCycleEnd() external onlyConsensus {
+    _setShouldEmitRewardedOnCycle(true);
+  }
+
+  /**
+  * @dev Function to be called by validators only to emit RewardedOnCycle event (only if `shouldEmitRewardedOnCycle` returns true)
+  */
+  function emitRewardedOnCycle() external onlyValidator {
+    require(shouldEmitRewardedOnCycle());
+    emit RewardedOnCycle(getRewardedOnCycle());
+    _setShouldEmitRewardedOnCycle(false);
+    _setRewardedOnCycle(0);
+  }
+
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
   bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
   bytes32 internal constant TOTAL_SUPPLY = keccak256(abi.encodePacked("totalSupply"));
+  bytes32 internal constant REWARDED_THIS_CYCLE = keccak256(abi.encodePacked("rewardedOnCycle"));
   bytes32 internal constant INFLATION = keccak256(abi.encodePacked("inflation"));
   bytes32 internal constant BLOCKS_PER_YEAR = keccak256(abi.encodePacked("blocksPerYear"));
   bytes32 internal constant BLOCK_REWARD_AMOUNT = keccak256(abi.encodePacked("blockRewardAmount"));
+  bytes32 internal constant SHOULD_EMIT_REWARDED_ON_CYCLE = keccak256(abi.encodePacked("shouldEmitRewardedOnCycle"));
 
   function _setSystemAddress(address _newAddress) private {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
@@ -103,6 +143,19 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   function getTotalSupply() public view returns(uint256) {
     return uintStorage[TOTAL_SUPPLY];
+  }
+
+  function _initRewardedOnCycle() private {
+    _setRewardedOnCycle(0);
+  }
+
+  function _setRewardedOnCycle(uint256 _amount) private {
+    require(_amount >= 0);
+    uintStorage[REWARDED_THIS_CYCLE] = _amount;
+  }
+
+  function getRewardedOnCycle() public view returns(uint256) {
+    return uintStorage[REWARDED_THIS_CYCLE];
   }
 
   function _setInflation(uint256 _inflation) private {
@@ -132,5 +185,13 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   function getProxyStorage() public view returns(address) {
     return addressStorage[PROXY_STORAGE];
+  }
+
+  function shouldEmitRewardedOnCycle() public view returns(bool) {
+    return boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE];
+  }
+
+  function _setShouldEmitRewardedOnCycle(bool _status) internal {
+    boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE] = _status;
   }
 }

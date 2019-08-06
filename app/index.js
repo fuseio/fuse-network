@@ -11,7 +11,7 @@ const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 let web3
 let walletProvider
 let account
-let consensus
+let consensus, blockReward
 
 function initWalletProvider() {
   logger.info(`initWalletProvider`)
@@ -38,6 +38,11 @@ function initWalletProvider() {
 function initConsensusContract() {
   logger.info(`initConsensusContract`, process.env.CONSENSUS_ADDRESS)
   consensus = new web3.eth.Contract(require(path.join(cwd, 'abi/consensus')), process.env.CONSENSUS_ADDRESS)
+}
+
+function initBlockRewardContract() {
+  logger.info(`initBlockRewardContract`, process.env.BLOCK_REWARD_ADDRESS)
+  blockReward = new web3.eth.Contract(require(path.join(cwd, 'abi/blockReward')), process.env.BLOCK_REWARD_ADDRESS)
 }
 
 function emitInitiateChange() {
@@ -67,6 +72,33 @@ function emitInitiateChange() {
   })
 }
 
+function emitRewardedOnCycle() {
+  return new Promise(async (resolve, reject) => {
+    logger.info(`emitRewardedOnCycle`)
+    let currentBlockNumber = await web3.eth.getBlockNumber()
+    let currentCycleEndBlock = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+    let shouldEmitRewardedOnCycle = await blockReward.methods.shouldEmitRewardedOnCycle.call()
+    logger.info(`block #${currentBlockNumber}\n\tcurrentCycleEndBlock: ${currentCycleEndBlock}\n\tshouldEmitRewardedOnCycle: ${shouldEmitRewardedOnCycle}`)
+    if (!shouldEmitRewardedOnCycle) {
+      return resolve()
+    }
+    logger.info(`${account} sending emitRewardedOnCycle transaction`)
+    blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: 1000000, gasPrice: 0 })
+      .on('transactionHash', hash => {
+        logger.info(`transactionHash: ${hash}`)
+      })
+      .on('confirmation', (confirmationNumber, receipt) => {
+        if (confirmationNumber == 1) {
+          logger.debug(`receipt: ${JSON.stringify(receipt)}`)
+        }
+        resolve()
+      })
+      .on('error', error => {
+        logger.error(error); resolve()
+      })
+  })
+}
+
 async function runMain() {
   try {
     logger.info(`runMain`)
@@ -76,7 +108,11 @@ async function runMain() {
     if (!consensus) {
       initConsensusContract()
     }
+    if (!blockReward) {
+      initBlockRewardContract()
+    }
     await emitInitiateChange()
+    await emitRewardedOnCycle()
   } catch (e) {
     logger.error(e)
   }
