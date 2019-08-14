@@ -17,4 +17,8 @@ contract BlockRewardMock is BlockReward {
     uintStorage[INFLATION] = _inflation;
     uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply().mul(getInflation().mul(DECIMALS).div(100))).div(getBlocksPerYear()).div(DECIMALS);
   }
+
+  function setShouldEmitRewardedOnCycleMock(bool _status) public {
+    boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE] = _status;
+  }
 }
