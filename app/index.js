@@ -35,6 +35,17 @@ function initWalletProvider() {
   }
 }
 
+async function getNonce() {
+  try {
+    logger.debug(`getNonce for ${account}`)
+    const transactionCount = await web3.eth.getTransactionCount(account)
+    logger.debug(`transactionCount for ${account} is ${transactionCount}`)
+    return transactionCount
+  } catch (e) {
+    throw new Error(`Could not get nonce`)
+  }
+}
+
 function initConsensusContract() {
   logger.info(`initConsensusContract`, process.env.CONSENSUS_ADDRESS)
   consensus = new web3.eth.Contract(require(path.join(cwd, 'abi/consensus')), process.env.CONSENSUS_ADDRESS)
@@ -56,7 +67,8 @@ function emitInitiateChange() {
       return resolve()
     }
     logger.info(`${account} sending emitInitiateChange transaction`)
-    consensus.methods.emitInitiateChange().send({ from: account, gas: 1000000, gasPrice: 0 })
+    let nonce = await getNonce()
+    consensus.methods.emitInitiateChange().send({ from: account, gas: 1000000, gasPrice: 0, nonce: nonce })
       .on('transactionHash', hash => {
         logger.info(`transactionHash: ${hash}`)
       })
@@ -83,7 +95,8 @@ function emitRewardedOnCycle() {
       return resolve()
     }
     logger.info(`${account} sending emitRewardedOnCycle transaction`)
-    blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: 1000000, gasPrice: 0 })
+    let nonce = await getNonce()
+    blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: 1000000, gasPrice: 0, nonce: nonce })
       .on('transactionHash', hash => {
         logger.info(`transactionHash: ${hash}`)
       })
