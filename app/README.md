@@ -7,7 +7,9 @@ This app is responsible for calling the `emitInitiateChange` function on the `Co
 The function is responsible for emitting the `InitiateChange` event [described in Parity Wiki](https://wiki.parity.io/Validator-Set.html#non-reporting-contract).
 After this function is called successfully the validator set changes to a new one.
 
-All the validators call this function and only the first call is successful, but there's no loss of gas because this function is called using a zero-gas transaction.
+This app is also responsible for calling the `emitRewardedOnCycle` function on the `BlockReward` contract.
+
+All the validators call those functions and only the first call is successful, but there's no loss of gas because they're called using a zero-gas transactions.
 
 When running the [quickstart script](https://github.com/fuseio/fuse-network/blob/master#quickstart) as valiadtor, this app is run automatically.
 

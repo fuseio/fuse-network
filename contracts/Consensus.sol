@@ -1,5 +1,6 @@
 pragma solidity ^0.4.24;
 
+import "./interfaces/IBlockReward.sol";
 import "./interfaces/IVoting.sol";
 import "./ConsensusUtils.sol";
 
@@ -138,6 +139,7 @@ contract Consensus is ConsensusUtils {
         emit ShouldEmitInitiateChange();
       }
       delete randomSnapshotId;
+      IBlockReward(ProxyStorage(getProxyStorage()).getBlockReward()).onCycleEnd();
     }
   }
 

@@ -131,6 +131,35 @@ contract('BlockReward', async (accounts) => {
     })
   })
 
+  describe('emitRewardedOnCycle', function() {
+    beforeEach(async () => {
+      await blockReward.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE)
+    })
+    it('should fail if not called by validator', async () => {
+      await blockReward.emitRewardedOnCycle({from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('should fail if `shouldEmitRewardedOnCycle` is false', async () => {
+      await blockReward.emitRewardedOnCycle({from: owner}).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('should be successful and emit event', async () => {
+      let BLOCKS_TO_REWARD = 10
+      let blockRewardAmount = await blockReward.getBlockRewardAmount()
+      let expectedAmount = blockRewardAmount.mul(toBN(BLOCKS_TO_REWARD))
+
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+      for (let i = 0; i < BLOCKS_TO_REWARD; i++) {
+        await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
+      }
+
+      await blockReward.setShouldEmitRewardedOnCycleMock(true)
+      let {logs} = await blockReward.emitRewardedOnCycle({from: owner}).should.be.fulfilled
+      false.should.be.equal(await blockReward.shouldEmitRewardedOnCycle())
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('RewardedOnCycle')
+      logs[0].args['amount'].should.be.bignumber.equal(expectedAmount)
+    })
+  })
+
   describe('upgradeTo', async () => {
     let blockRewardOldImplementation, blockRewardNew
     let proxyStorageStub = accounts[3]

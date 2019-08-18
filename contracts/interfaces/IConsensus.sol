@@ -6,4 +6,5 @@ interface IConsensus {
     function getCycleDurationBlocks() external view returns(uint256);
     function getCurrentCycleEndBlock() external view returns(uint256);
     function cycle() external;
+    function isValidator(address _address) external view returns(bool);
 }
