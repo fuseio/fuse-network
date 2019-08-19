@@ -68,7 +68,7 @@ function emitInitiateChange() {
     }
     logger.info(`${account} sending emitInitiateChange transaction`)
     let nonce = await getNonce()
-    consensus.methods.emitInitiateChange().send({ from: account, gas: 1000000, gasPrice: 0, nonce: nonce })
+    consensus.methods.emitInitiateChange().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || 0, nonce: nonce })
       .on('transactionHash', hash => {
         logger.info(`transactionHash: ${hash}`)
       })
@@ -96,7 +96,7 @@ function emitRewardedOnCycle() {
     }
     logger.info(`${account} sending emitRewardedOnCycle transaction`)
     let nonce = await getNonce()
-    blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: 1000000, gasPrice: 0, nonce: nonce })
+    blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || 0, nonce: nonce })
       .on('transactionHash', hash => {
         logger.info(`transactionHash: ${hash}`)
       })
