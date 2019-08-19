@@ -218,6 +218,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return false;
   }
 
+  function requiredSignatures() public view returns(uint256) {
+    return currentValidatorsLength().div(2).add(1);
+  }
+
   function _currentValidatorsAdd(address _address) internal {
     addressArrayStorage[CURRENT_VALIDATORS].push(_address);
   }
