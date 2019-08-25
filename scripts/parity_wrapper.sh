@@ -90,7 +90,6 @@ apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
 
 [network]
 port = 30300
-reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
 '
 
 CONFIG_SNIPPET_VALIDATOR='
