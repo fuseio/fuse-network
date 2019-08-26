@@ -221,7 +221,7 @@ function startNode {
         --restart=on-failure \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --node-key $NODE_KEY
+        --parity-args --no-warp --node-key $NODE_KEY
       ;;
 
     "validator")
