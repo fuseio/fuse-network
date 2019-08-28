@@ -23,6 +23,7 @@ NODE_KEY=""
 INSTANCE_NAME=""
 
 declare -a VALID_ROLE_LIST=(
+  bootnode
   node
   validator
   explorer
@@ -67,6 +68,12 @@ function parseArguments {
     if ! [[ "$NODE_KEY" ]] ; then
       echo "Missing NODE_KEY argument!"
       exit 1
+    fi
+  fi
+
+  if [[ $ROLE == bootnode ]] ; then
+    if ! [[ "$BOOTNODES" ]] ; then
+      echo "Warning! trying to run a bootnode without BOOTNODES argument!"
     fi
   fi
 }
@@ -213,6 +220,25 @@ function run {
   echo -e "\nStarting as ${ROLE}..."
 
   case $ROLE in
+    "bootnode")
+      INSTANCE_NAME=$NODE_KEY
+
+      ## Start parity container with all necessary arguments.
+      $PERMISSION_PREFIX docker run \
+        --detach \
+        --name $DOCKER_CONTAINER_PARITY \
+        --volume $DATABASE_DIR:/data \
+        --volume $CONFIG_DIR:/config/custom \
+        -p 30303:30300/tcp \
+        -p 30303:30300/udp \
+        -p 8545:8545 \
+        -p 8546:8546 \
+        --restart=on-failure \
+        $DOCKER_IMAGE_PARITY \
+        --role node \
+        --parity-args --no-warp --node-key $NODE_KEY --bootnodes=$BOOTNODES
+      ;;
+
     "node")
       INSTANCE_NAME=$NODE_KEY
 
