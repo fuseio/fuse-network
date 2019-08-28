@@ -9,9 +9,7 @@ DOCKER_IMAGE_APP="fusenet/validator-app"
 DOCKER_CONTAINER_APP="fuseapp"
 DOCKER_IMAGE_NETSTAT="fusenet/netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
-###### TODO change to master ######
-DOCKER_COMPOSE_FILE_ORACLE="https://raw.githubusercontent.com/fuseio/bridge-oracle/docker/docker-compose.yml"
-###################################
+DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/bridge-oracle/master/docker-compose.keystore.yml"
 DOCKER_IMAGE_ORACLE="fusenet/oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 BASE_DIR=$(pwd)/fusenet
@@ -101,7 +99,7 @@ function setup {
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
-    wget $DOCKER_COMPOSE_FILE_ORACLE
+    wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
   fi
 
   # Create directories.
