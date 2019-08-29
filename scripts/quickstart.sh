@@ -2,21 +2,19 @@
 
 set -e
 
-# Create an array by the argument string.
-IFS=' ' read -r -a ARG_VEC <<< "$@"
-
-# Variables
+ENV_FILE=".env"
 DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
 DOCKER_IMAGE_APP="fusenet/validator-app"
 DOCKER_CONTAINER_APP="fuseapp"
 DOCKER_IMAGE_NETSTAT="fusenet/netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
-PERMISSION_PREFIX="" # In case `sudo` is needed
+DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/bridge-oracle/master/docker-compose.keystore.yml"
+DOCKER_IMAGE_ORACLE="fusenet/oracle"
+DOCKER_CONTAINER_ORACLE="fuseoracle"
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
-ROLE=""
 PASSWORD_FILE=$CONFIG_DIR/pass.pwd
 PASSWORD=""
 ADDRESS_FILE=$CONFIG_DIR/address
@@ -25,65 +23,64 @@ NODE_KEY=""
 INSTANCE_NAME=""
 
 declare -a VALID_ROLE_LIST=(
+  bootnode
   node
   validator
   explorer
 )
 
-# Function for some checks at the beginning to make sure everything will run well.
-# This includes the check for commands, permissions and the environment.
-# The checks can close the process with an error message or set additional options.
-#
 function sanityChecks {
-  # Check if Docker is ready to use.
+  echo -e "\nSanity checks..."
+
+  # Check if docker is ready to use.
   if ! command -v docker>/dev/null ; then
-    echo "Docker is not available!"
+    echo "docker is not available!"
+    exit 1
+  fi
+
+  # Check if docker-compose is ready to use.
+  if ! command -v docker-compose>/dev/null ; then
+    echo "docker-compose is not available!"
+    exit 1
+  fi
+
+  # Check if .env file exists.
+  if [[ ! -f "$ENV_FILE" ]] ; then
+    echo "$ENV_FILE does not exist!"
     exit 1
   fi
 }
 
-# Parse the arguments, given to the script by the caller.
-# Not defined configuration values stay with their default values.
-# A not known argument leads to an exit with status code 1.
-#
-# Arguments:
-#   $1 - all arguments by the caller
-#
 function parseArguments {
-  if [[ ${#ARG_VEC[@]} < 2 ]] ; then
-    echo "Missing role argument"
+  echo -e "\nParse arguments..."
+
+  export $(grep -v '^#' "$ENV_FILE" | xargs)
+
+  # Check if ROLE arg exists.
+  if ! [[ "$ROLE" ]] ; then
+    echo "Missing ROLE argument!"
     exit 1
   fi
 
-  for (( i=0; i<${#ARG_VEC[@]}; i++ )) ; do
-    arg="${ARG_VEC[i]}"
-    nextIndex=$((i + 1))
+  checkRoleArgument
 
-    # Define the role for the client.
-    if [[ $arg == --role ]] || [[ $arg == -r ]] ; then
-      ROLE="${ARG_VEC[$nextIndex]}"
-      checkRoleArgument # Make sure to have a valid role.
-      i=$nextIndex
-
-    # Define the node-key to bind.
-    elif [[ $arg == --node-key ]] || [[ $arg == -nk ]] ; then
-      # Take the next argument as the address and jump other it.
-      NODE_KEY="${ARG_VEC[$nextIndex]}"
-      i=$nextIndex
-
-    # A not known argument.
-    else
-      echo Unkown argument: $arg
+  if [[ $ROLE != validator ]] ; then
+    if ! [[ "$NODE_KEY" ]] ; then
+      echo "Missing NODE_KEY argument!"
       exit 1
     fi
-  done
+  fi
+
+  if [[ $ROLE == bootnode ]] ; then
+    if ! [[ "$BOOTNODES" ]] ; then
+      echo "Warning! trying to run a bootnode without BOOTNODES argument!"
+    fi
+  fi
 }
 
-# Check if the defined role for the client is valid.
-# Use a list of predefined roles to check for.
-# In case the selected role is invalid, it prints our the error message and exits.
-#
 function checkRoleArgument {
+  echo -e "\nCheck role argument..."
+
   # Check each known role and end if it match.
   for i in "${VALID_ROLE_LIST[@]}" ; do
     [[ $i == $ROLE ]] && return
@@ -95,29 +92,28 @@ function checkRoleArgument {
   exit 1
 }
 
-# Initial preparations for the node.
-# This will pull the images, create necessary directories and create an account.
-# The user will be requested to type in the password again, as well as insert the generated address.
-# Both will be stored for later (re)use.
-#
 function setup {
-  echo -e "\nSetup node..."
+  echo -e "\nSetup..."
 
-  # Pull the Docker images.
-  echo -e "\nPull the Docker images..."
+  # Pull the docker images.
+  echo -e "\nPull the docker images..."
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
 
-  if [[ $role == validator ]] ; then
-    echo -e "\nPull the Docker images..."
-  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
+  if [[ $ROLE == validator ]] ; then
+    echo -e "\nPull additional docker images..."
+    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
+    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
+
+    echo -e "\nDownload oracle docker-compose.yml"
+    wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
   fi
 
   # Create directories.
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
 
-  if [[ $ROLE != node && $ROLE != explorer ]] ; then
+  if [[ $ROLE == validator ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
       while [ -z "$PASSWORD" ] ; do
@@ -137,6 +133,9 @@ function setup {
       PASSWORD=$(<$PASSWORD_FILE)
     fi
 
+    export VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD
+    echo "VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD" >> $ENV_FILE
+
     # Create a new account if not already done.
     if [[ ! -d "$CONFIG_DIR/keys" ]] ; then
       echo -e "\nGenerate a new account..."
@@ -147,6 +146,7 @@ function setup {
         $DOCKER_IMAGE_PARITY \
         --parity-args account new |\
         grep -o "0x.*")
+      VALIDATOR_ADDRESS=$ADDRESS
       echo -en "Your new address is $ADDRESS"
     fi
 
@@ -156,59 +156,93 @@ function setup {
         echo -en "\nPlease insert/copy the address of the previously generated address of the account. It should look like '0x84adaf5fd30843eba497ae8022cac42b19a572bb':"
         read ADDRESS
       done
-
       echo "$ADDRESS" > $ADDRESS_FILE
+    else
+      VALIDATOR_ADDRESS=$(<$ADDRESS_FILE)
     fi
+
+    export VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork
+    echo "VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork" >> $ENV_FILE
   else
-    if [[ -z "$NODE_KEY" ]] ; then
-      echo "Missing node-key"
-      exit 1
-    fi
     echo Running node - no need to create account
   fi
 }
 
-# Start of the Parity node within its Docker container.
-# It checks if the container is already running and do nothing, is stopped and restart it or create a new one.
-# This reads in the stored address first.
-# The whole container setup plus arguments will be handled automatically.
-#
-function startNode {
-  # Check if container is already running.
+function run {
+  echo -e "\nRun..."
+
+  # Check if the parity container is already running.
   if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_PARITY"* ]] ; then
-    echo -e "\nThe Parity client is already running as container with name '$DOCKER_CONTAINER_PARITY', stopping it..."
+    echo -e "\nThe parity client is already running as container with name '$DOCKER_CONTAINER_PARITY', stopping it..."
     $PERMISSION_PREFIX docker stop $DOCKER_CONTAINER_PARITY
   fi
 
-  # Check if the container does already exist and restart it.
+  # Check if the the parity container does already exist and restart it.
   if [[ $($PERMISSION_PREFIX docker ps -a) == *"$DOCKER_CONTAINER_PARITY"* ]] ; then
-    echo -e "\nThe Parity container already exists, deleting it..."
+    echo -e "\nThe parity container already exists, deleting it..."
     $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_PARITY
   fi
 
+  # Check if the netstat container is already running.
+  if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_NETSTAT"* ]] ; then
+    echo -e "\nThe netstat client is already running as container with name '$DOCKER_CONTAINER_NETSTAT', stopping it..."
+    $PERMISSION_PREFIX docker stop $DOCKER_CONTAINER_NETSTAT
+  fi
+
+  # Check if the the netstat container does already exist and restart it.
+  if [[ $($PERMISSION_PREFIX docker ps -a) == *"$DOCKER_CONTAINER_NETSTAT"* ]] ; then
+    echo -e "\nThe netstat container already exists, deleting it..."
+    $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_NETSTAT
+  fi
+
   if [[ $ROLE == "validator" ]] ; then
-    # Check if container is already running.
+    # Check if the validator-app container is already running.
     if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_APP"* ]] ; then
       echo -e "\nThe validator app is already running as container with name '$DOCKER_CONTAINER_APP', stopping it..."
       $PERMISSION_PREFIX docker stop $DOCKER_CONTAINER_APP
     fi
 
-    # Check if the container does already exist and restart it.
+    # Check if the validator-app container does already exist and restart it.
     if [[ $($PERMISSION_PREFIX docker ps -a) == *"$DOCKER_CONTAINER_APP"* ]] ; then
       echo -e "\nThe validator app already exists, deleting it..."
       $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_APP
+    fi
+
+    # Check if the oracle container is already running.
+    if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_ORACLE"* ]] ; then
+      echo -e "\nThe oracle is already running as container with name '$DOCKER_CONTAINER_ORACLE', stopping it..."
+      $PERMISSION_PREFIX docker-compose down
     fi
   fi
 
 
   # Create and start a new container.
-  echo -e "\nStart as ${ROLE}..."
+  echo -e "\nStarting as ${ROLE}..."
 
   case $ROLE in
+    "bootnode")
+      INSTANCE_NAME=$NODE_KEY
+
+      ## Start parity container with all necessary arguments.
+      $PERMISSION_PREFIX docker run \
+        --detach \
+        --name $DOCKER_CONTAINER_PARITY \
+        --volume $DATABASE_DIR:/data \
+        --volume $CONFIG_DIR:/config/custom \
+        -p 30303:30300/tcp \
+        -p 30303:30300/udp \
+        -p 8545:8545 \
+        -p 8546:8546 \
+        --restart=on-failure \
+        $DOCKER_IMAGE_PARITY \
+        --role node \
+        --parity-args --no-warp --node-key $NODE_KEY --bootnodes=$BOOTNODES
+      ;;
+
     "node")
       INSTANCE_NAME=$NODE_KEY
 
-      ## Start Parity container with all necessary arguments.
+      ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
@@ -230,7 +264,7 @@ function startNode {
 
       INSTANCE_NAME=$address
 
-      ## Start Parity container with all necessary arguments.
+      ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
@@ -244,19 +278,24 @@ function startNode {
         --role validator \
         --address $address
 
-      ## Start App container with all necessary arguments.
+      ## Start validator-app container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         --detach \
         --name $DOCKER_CONTAINER_APP \
         --volume $CONFIG_DIR:/config \
         --restart=on-failure \
         $DOCKER_IMAGE_APP
+
+      ## Start oracle container with all necessary arguments.
+      $PERMISSION_PREFIX docker-compose up \
+        --build \
+        -d
       ;;
 
     "explorer")
       INSTANCE_NAME=$NODE_KEY
 
-      ## Start Parity container with all necessary arguments.
+      ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
@@ -273,7 +312,7 @@ function startNode {
       ;;
   esac
 
-  ## Start Ethereum Network Intelligence API
+  ## Start netstat container with all necessary arguments.
   $PERMISSION_PREFIX docker run \
     --detach \
     --name $DOCKER_CONTAINER_NETSTAT \
@@ -282,12 +321,12 @@ function startNode {
     $DOCKER_IMAGE_NETSTAT \
     --instance-name "$INSTANCE_NAME"
 
-  echo -e "\nParity node as started and is running in background!"
+  echo -e "\nContainers started and running in background!"
 }
 
 
-# Getting Started
+# Go :)
 sanityChecks
 parseArguments
 setup
-startNode
+run

@@ -26,6 +26,11 @@
 # ROLES
 #   The list of available roles is:
 #
+#   bootnode
+#     - No mining.
+#     - RPC ports open.
+#     - Does not require the address argument.
+#     - Does not need the password file and the key-set. (see FILES)
 #   node
 #     - No mining.
 #     - RPC ports open.
@@ -66,12 +71,33 @@ PARITY_ARGS="--no-color"
 
 # Internal stuff.
 declare -a VALID_ROLE_LIST=(
+                            bootnode
                             node
                             validator
                             explorer
                            )
 
 # Configuration snippets.
+CONFIG_SNIPPET_BOOTNODE='
+[rpc]
+cors = ["all"]
+port = 8545
+interface = "all"
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+
+[websockets]
+disable = false
+port = 8546
+interface = "all"
+origins = ["all"]
+hosts = ["all"]
+apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+
+[network]
+port = 30300
+'
+
 CONFIG_SNIPPET_NODE='
 [rpc]
 cors = ["all"]
@@ -90,6 +116,7 @@ apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
 
 [network]
 port = 30300
+reserved_peers="/home/parity/.local/share/io.parity.ethereum/bootnodes.txt"
 '
 
 CONFIG_SNIPPET_VALIDATOR='
@@ -245,6 +272,11 @@ function adjustConfiguration {
   # Handle the different roles.
   # Append the respective configuration snippet with the necessary variable to the default configuration file.
   case $ROLE in
+    "bootnode")
+      echo "Run as bootnode"
+      printf "$template\n$CONFIG_SNIPPET_BOOTNODE" > $PARITY_CONFIG_FILE
+      ;;
+
     "node")
       echo "Run as node"
       printf "$template\n$CONFIG_SNIPPET_NODE" > $PARITY_CONFIG_FILE
