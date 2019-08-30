@@ -6,7 +6,7 @@ const {ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const INITIAL_SUPPLY = toWei(toBN(300000000000000000 || 0), 'gwei')
-const BLOCKS_PER_YEAR = 6307200
+const BLOCKS_PER_YEAR = 100
 const YEARLY_INFLATION_PERCENTAGE = 5
 const SYSTEM_ADDRESS = '0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE'
 
@@ -22,7 +22,7 @@ contract('BlockReward', async (accounts) => {
     consensusImpl = await Consensus.new()
     proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
     consensus = await Consensus.at(proxy.address)
-    await consensus.initialize(toWei(toBN(10000), 'ether'), 24*60*60, 10, owner)
+    await consensus.initialize(owner)
 
     // ProxyStorage
     proxyStorageImpl = await ProxyStorage.new()
@@ -45,7 +45,7 @@ contract('BlockReward', async (accounts) => {
 
   describe('initialize', async () => {
     it('default values', async () => {
-      await blockReward.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE)
+      await blockReward.initialize(INITIAL_SUPPLY)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await blockReward.getSystemAddress()))
       let decimals = await blockReward.DECIMALS()
@@ -64,7 +64,7 @@ contract('BlockReward', async (accounts) => {
 
   describe('reward', async () => {
     beforeEach(async () => {
-      await blockReward.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE)
+      await blockReward.initialize(INITIAL_SUPPLY)
     })
     it('can only be called by system address', async () => {
       await blockReward.reward([accounts[3]], [0]).should.be.rejectedWith(ERROR_MSG)
@@ -96,9 +96,7 @@ contract('BlockReward', async (accounts) => {
       expectedSupply.should.be.bignumber.equal(await blockReward.getTotalSupply())
     })
     it('reward amount should update after BLOCKS_PER_YEAR and total yearly inflation should be calculated correctly', async () => {
-      let BLOCKS_PER_YEAR_MOCK = 3
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
-      await blockReward.initializeMock(INITIAL_SUPPLY, BLOCKS_PER_YEAR_MOCK, YEARLY_INFLATION_PERCENTAGE)
 
       let decimals = await blockReward.DECIMALS()
       let initialSupply = await blockReward.getTotalSupply()
@@ -110,7 +108,7 @@ contract('BlockReward', async (accounts) => {
       // each of the following calls advances a block
       let i = 0
       let blockNumber = await web3.eth.getBlockNumber()
-      while (blockNumber % BLOCKS_PER_YEAR_MOCK !== 0) {
+      while (blockNumber % BLOCKS_PER_YEAR !== 0) {
         // console.log('block #', blockNumber)
         await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
         blockNumber = await web3.eth.getBlockNumber()
@@ -133,7 +131,7 @@ contract('BlockReward', async (accounts) => {
 
   describe('emitRewardedOnCycle', function() {
     beforeEach(async () => {
-      await blockReward.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE)
+      await blockReward.initialize(INITIAL_SUPPLY)
     })
     it('should fail if not called by validator', async () => {
       await blockReward.emitRewardedOnCycle({from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
@@ -198,7 +196,7 @@ contract('BlockReward', async (accounts) => {
       await proxy.setProxyStorageMock(proxyStorage.address)
       blockRewardNew = await BlockReward.at(proxy.address)
       false.should.be.equal(await blockRewardNew.isInitialized())
-      await blockRewardNew.initialize(INITIAL_SUPPLY, BLOCKS_PER_YEAR, YEARLY_INFLATION_PERCENTAGE).should.be.fulfilled
+      await blockRewardNew.initialize(INITIAL_SUPPLY).should.be.fulfilled
       true.should.be.equal(await blockRewardNew.isInitialized())
     })
     it('should use same proxyStorage after upgrade', async () => {

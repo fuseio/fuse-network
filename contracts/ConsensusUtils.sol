@@ -68,11 +68,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
   bytes32 internal constant IS_FINALIZED = keccak256(abi.encodePacked("isFinalized"));
-  bytes32 internal constant MIN_STAKE = keccak256(abi.encodePacked("minStake"));
-  bytes32 internal constant CYCLE_DURATION_BLOCKS = keccak256(abi.encodePacked("cycleDurationBlocks"));
   bytes32 internal constant CURRENT_CYCLE_START_BLOCK = keccak256(abi.encodePacked("currentCycleStartBlock"));
   bytes32 internal constant CURRENT_CYCLE_END_BLOCK = keccak256(abi.encodePacked("currentCycleEndBlock"));
-  bytes32 internal constant SNAPSHOTS_PER_CYCLE = keccak256(abi.encodePacked("snapshotsPerCycle"));
   bytes32 internal constant LAST_SNAPSHOT_TAKEN_AT_BLOCK = keccak256(abi.encodePacked("lastSnapshotTakenAtBlock"));
   bytes32 internal constant NEXT_SNAPSHOT_ID = keccak256(abi.encodePacked("nextSnapshotId"));
   bytes32 internal constant CURRENT_VALIDATORS = keccak256(abi.encodePacked("currentValidators"));
@@ -118,22 +115,18 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return boolStorage[IS_FINALIZED];
   }
 
-  function _setMinStake(uint256 _minStake) internal {
-    require(_minStake > 0);
-    uintStorage[MIN_STAKE] = _minStake;
+  /**
+  * returns minimum stake (wei) needed to become a validator
+  */
+  function getMinStake() public pure returns(uint256) {
+    return 3e24;
   }
 
-  function getMinStake() public view returns(uint256) {
-    return uintStorage[MIN_STAKE];
-  }
-
-  function _setCycleDurationBlocks(uint256 _cycleDurationBlocks) internal {
-    require(_cycleDurationBlocks > 0);
-    uintStorage[CYCLE_DURATION_BLOCKS] = _cycleDurationBlocks;
-  }
-
-  function getCycleDurationBlocks() public view returns(uint256) {
-    return uintStorage[CYCLE_DURATION_BLOCKS];
+  /**
+  * returns number of blocks per cycle (block time is 5 seconds)
+  */
+  function getCycleDurationBlocks() public pure returns(uint256) {
+    return 120;
   }
 
   function _setCurrentCycle() internal {
@@ -149,13 +142,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return uintStorage[CURRENT_CYCLE_END_BLOCK];
   }
 
-  function _setSnapshotsPerCycle(uint256 _snapshotsPerCycle) internal {
-    require(_snapshotsPerCycle > 0);
-    uintStorage[SNAPSHOTS_PER_CYCLE] = _snapshotsPerCycle;
-  }
-
-  function getSnapshotsPerCycle() public view returns(uint256) {
-    return uintStorage[SNAPSHOTS_PER_CYCLE];
+  /**
+  * returns number of pending validator snapshots to be saved each cycle
+  */
+  function getSnapshotsPerCycle() public pure returns(uint256) {
+    return 10;
   }
 
   function _setLastSnapshotTakenAtBlock(uint256 _block) internal {
@@ -319,7 +310,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
   }
 
-  function _getBlocksToSnapshot() internal view returns(uint256) {
+  function _getBlocksToSnapshot() internal pure returns(uint256) {
     return getCycleDurationBlocks().div(getSnapshotsPerCycle());
   }
 

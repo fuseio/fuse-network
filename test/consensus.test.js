@@ -13,7 +13,7 @@ const ONE_ETHER = toWei(toBN(1), 'ether')
 const LESS_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
 const MORE_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT + 1), 'ether')
 const MULTIPLE_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT * MULTIPLY_AMOUNT), 'ether')
-const CYCLE_DURATION_BLOCKS = 100
+const CYCLE_DURATION_BLOCKS = 120
 const SNAPSHOTS_PER_CYCLE = 10
 
 contract('Consensus', async (accounts) => {
@@ -42,7 +42,7 @@ contract('Consensus', async (accounts) => {
     let blockRewardImpl = await BlockReward.new()
     proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
     let blockReward = await BlockReward.at(proxy.address)
-    await blockReward.initialize(toWei(toBN(300000000000000000 || 0), 'gwei'), 6307200, 5)
+    await blockReward.initialize(toWei(toBN(300000000000000000 || 0), 'gwei'))
 
     // Voting
     let votingImpl = await Voting.new()
@@ -58,7 +58,7 @@ contract('Consensus', async (accounts) => {
 
   describe('initialize', async () => {
     it('default values', async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
       owner.should.equal(await proxy.getOwner())
       toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.getSystemAddress()))
@@ -77,14 +77,14 @@ contract('Consensus', async (accounts) => {
       pendingValidators.length.should.be.equal(0)
     })
     it('initial validator address not defined - owner should be initial validator', async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, ZERO_ADDRESS)
+      await consensus.initialize(ZERO_ADDRESS)
       await consensus.setProxyStorage(proxyStorage.address)
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(owner)
     })
     it('initial validator address defined', async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       let validators = await consensus.getValidators()
       validators.length.should.be.equal(1)
       validators[0].should.be.equal(initialValidator)
@@ -93,7 +93,7 @@ contract('Consensus', async (accounts) => {
 
   describe('setProxyStorage', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
     })
     it('setProxyStorage should fail if no address', async () => {
       await consensus.setProxyStorage(ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
@@ -118,7 +118,7 @@ contract('Consensus', async (accounts) => {
 
   describe('emitInitiateChange', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
       await consensus.setFinalizedMock(false, {from: owner})
     })
@@ -148,7 +148,7 @@ contract('Consensus', async (accounts) => {
 
   describe('finalizeChange', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
       await consensus.setFinalizedMock(false, {from: owner})
     })
@@ -189,7 +189,7 @@ contract('Consensus', async (accounts) => {
 
   describe('stake (fallback function)', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('basic', async () => {
@@ -313,7 +313,7 @@ contract('Consensus', async (accounts) => {
 
   describe('stake', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('basic', async () => {
@@ -437,7 +437,7 @@ contract('Consensus', async (accounts) => {
 
   describe('delegate', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('basic', async () => {
@@ -574,7 +574,7 @@ contract('Consensus', async (accounts) => {
 
   describe('cycles and snapshots', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('hasCycleEnded', async () => {
@@ -587,13 +587,14 @@ contract('Consensus', async (accounts) => {
     })
     it('shouldTakeSnapshot', async () => {
       let blocksToSnapshot = await consensus.getBlocksToSnapshot()
+      // console.log('blocksToSnapshot', blocksToSnapshot.toNumber())
       let lastSnapshotTakenAtBlock = await consensus.getLastSnapshotTakenAtBlock()
+      // console.log('lastSnapshotTakenAtBlock', lastSnapshotTakenAtBlock.toNumber())
       let currentBlockNumber = toBN(await web3.eth.getBlockNumber())
-      let shouldTakeSnapshot = currentBlockNumber.sub(lastSnapshotTakenAtBlock).gte(blocksToSnapshot)
+      // console.log('currentBlockNumber', currentBlockNumber.toNumber())
+      let shouldTakeSnapshot = (currentBlockNumber.sub(lastSnapshotTakenAtBlock)).gte(blocksToSnapshot)
+      // console.log('shouldTakeSnapshot', shouldTakeSnapshot)
       shouldTakeSnapshot.should.be.equal(await consensus.shouldTakeSnapshot())
-
-      await consensus.setSnapshotsPerCycleMock(CYCLE_DURATION_BLOCKS, {from: owner})
-      true.should.be.equal(await consensus.shouldTakeSnapshot())
     })
     it('getRandom', async () => {
       let repeats = 25
@@ -618,8 +619,6 @@ contract('Consensus', async (accounts) => {
 
       await consensus.setSystemAddressMock(owner)
       await proxyStorage.setBlockRewardMock(owner)
-
-      await consensus.setSnapshotsPerCycleMock(3, {from: owner})
 
       currentValidators = await consensus.getValidators()
       currentValidators.length.should.be.equal(1)
@@ -755,7 +754,7 @@ contract('Consensus', async (accounts) => {
 
   describe('withdraw', async () => {
     beforeEach(async () => {
-      await consensus.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator)
+      await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
     describe('stakers', async () => {
@@ -914,7 +913,7 @@ contract('Consensus', async (accounts) => {
       await proxy.setProxyStorageMock(proxyStorage.address)
       consensusNew = await Consensus.at(proxy.address)
       false.should.be.equal(await consensusNew.isInitialized())
-      await consensusNew.initialize(MIN_STAKE, CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, initialValidator).should.be.fulfilled
+      await consensusNew.initialize(initialValidator).should.be.fulfilled
       true.should.be.equal(await consensusNew.isInitialized())
     })
     it('should use same proxyStorage after upgrade', async () => {

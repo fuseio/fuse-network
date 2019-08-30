@@ -62,14 +62,6 @@
       {
         "name": "_supply",
         "type": "uint256"
-      },
-      {
-        "name": "_blocksPerYear",
-        "type": "uint256"
-      },
-      {
-        "name": "_inflation",
-        "type": "uint256"
       }
     ],
     "name": "initialize",
@@ -162,7 +154,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -176,7 +168,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {

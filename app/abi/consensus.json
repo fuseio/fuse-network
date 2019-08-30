@@ -169,7 +169,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -216,7 +216,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -286,7 +286,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -459,18 +459,6 @@
   {
     "constant": false,
     "inputs": [
-      {
-        "name": "_minStake",
-        "type": "uint256"
-      },
-      {
-        "name": "_cycleDurationBlocks",
-        "type": "uint256"
-      },
-      {
-        "name": "_snapshotsPerCycle",
-        "type": "uint256"
-      },
       {
         "name": "_initialValidator",
         "type": "address"

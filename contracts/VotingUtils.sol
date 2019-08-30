@@ -53,7 +53,6 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant NEXT_BALLOT_ID = keccak256(abi.encodePacked("nextBallotId"));
-  bytes32 internal constant MIN_BALLOT_DURATION_CYCLES = keccak256(abi.encodePacked("minBallotDurationCycles"));
   bytes32 internal constant ACTIVE_BALLOTS = keccak256(abi.encodePacked("activeBallots"));
   bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
 
@@ -220,14 +219,16 @@ contract VotingUtils is EternalStorage, VotingBase {
     uintStorage[NEXT_BALLOT_ID] = _id;
   }
 
-  function getMinBallotDurationCycles() public view returns(uint256) {
-    return uintStorage[MIN_BALLOT_DURATION_CYCLES];
+  /**
+  * returns minimum number of cycles a ballot can be open before finalization
+  */
+  function getMinBallotDurationCycles() public pure returns(uint256) {
+    return 2;
   }
 
-  function _setMinBallotDurationCycles(uint256 _value) internal {
-    uintStorage[MIN_BALLOT_DURATION_CYCLES] = _value;
-  }
-
+  /**
+  * returns maximum number of cycles a ballot can be open before finalization
+  */
   function getMaxBallotDurationCycles() public pure returns(uint256) {
     return 14;
   }

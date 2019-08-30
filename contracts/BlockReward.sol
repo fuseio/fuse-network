@@ -62,16 +62,12 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   /**
   * @dev Function to be called on contract initialization
-  * @param _supply initial total supply
-  * @param _inflation yearly inflation rate (percentage)
   */
-  function initialize(uint256 _supply, uint256 _blocksPerYear, uint256 _inflation) external onlyOwner {
+  function initialize(uint256 _supply) external onlyOwner {
     require(!isInitialized());
     _setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
     _setTotalSupply(_supply);
     _initRewardedOnCycle();
-    _setBlocksPerYear(_blocksPerYear);
-    _setInflation(_inflation);
     _setBlockRewardAmount();
     setInitialized(true);
   }
@@ -127,8 +123,6 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
   bytes32 internal constant TOTAL_SUPPLY = keccak256(abi.encodePacked("totalSupply"));
   bytes32 internal constant REWARDED_THIS_CYCLE = keccak256(abi.encodePacked("rewardedOnCycle"));
-  bytes32 internal constant INFLATION = keccak256(abi.encodePacked("inflation"));
-  bytes32 internal constant BLOCKS_PER_YEAR = keccak256(abi.encodePacked("blocksPerYear"));
   bytes32 internal constant BLOCK_REWARD_AMOUNT = keccak256(abi.encodePacked("blockRewardAmount"));
   bytes32 internal constant SHOULD_EMIT_REWARDED_ON_CYCLE = keccak256(abi.encodePacked("shouldEmitRewardedOnCycle"));
 
@@ -158,21 +152,18 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     return uintStorage[REWARDED_THIS_CYCLE];
   }
 
-  function _setInflation(uint256 _inflation) private {
-    require(_inflation >= 0);
-    uintStorage[INFLATION] = _inflation;
+  /**
+  * returns yearly inflation rate (percentage)
+  */
+  function getInflation() public pure returns(uint256) {
+    return 5;
   }
 
-  function getInflation() public view returns(uint256) {
-    return uintStorage[INFLATION];
-  }
-
-  function _setBlocksPerYear(uint256 _blocksPerYear) private {
-    uintStorage[BLOCKS_PER_YEAR] = _blocksPerYear;
-  }
-
-  function getBlocksPerYear() public view returns(uint256) {
-    return uintStorage[BLOCKS_PER_YEAR];
+  /**
+  * returns blocks per year (block time is 5 seconds)
+  */
+  function getBlocksPerYear() public pure returns(uint256) {
+    return 6307200;
   }
 
   function _setBlockRewardAmount() private {
