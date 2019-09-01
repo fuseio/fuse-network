@@ -91,6 +91,20 @@
   {
     "constant": true,
     "inputs": [],
+    "name": "SNAPSHOTS_PER_CYCLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
     "name": "pendingValidatorsLength",
     "outputs": [
       {
@@ -199,6 +213,20 @@
       {
         "name": "",
         "type": "address[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "CYCLE_DURATION_BLOCKS",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
     "payable": false,
@@ -326,6 +354,20 @@
       }
     ],
     "name": "stakeAmount",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "MIN_STAKE",
     "outputs": [
       {
         "name": "",

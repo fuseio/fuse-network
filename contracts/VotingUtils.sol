@@ -15,6 +15,8 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant MAX_LIMIT_OF_BALLOTS = 100;
+  uint256 public constant MIN_BALLOT_DURATION_CYCLES = 2;
+  uint256 public constant MAX_BALLOT_DURATION_CYCLES = 14;
 
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
@@ -223,14 +225,14 @@ contract VotingUtils is EternalStorage, VotingBase {
   * returns minimum number of cycles a ballot can be open before finalization
   */
   function getMinBallotDurationCycles() public pure returns(uint256) {
-    return 2;
+    return MIN_BALLOT_DURATION_CYCLES;
   }
 
   /**
   * returns maximum number of cycles a ballot can be open before finalization
   */
   function getMaxBallotDurationCycles() public pure returns(uint256) {
-    return 14;
+    return MAX_BALLOT_DURATION_CYCLES;
   }
 
   function getStartBlock(uint256 _id) public view returns(uint256) {

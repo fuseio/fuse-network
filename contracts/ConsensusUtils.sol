@@ -13,6 +13,9 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   using SafeMath for uint256;
 
   uint256 public constant DECIMALS = 10 ** 18;
+  uint256 public constant MIN_STAKE = 3e24;
+  uint256 public constant CYCLE_DURATION_BLOCKS = 120;
+  uint256 public constant SNAPSHOTS_PER_CYCLE = 10;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -119,14 +122,14 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   * returns minimum stake (wei) needed to become a validator
   */
   function getMinStake() public pure returns(uint256) {
-    return 3e24;
+    return MIN_STAKE;
   }
 
   /**
   * returns number of blocks per cycle (block time is 5 seconds)
   */
   function getCycleDurationBlocks() public pure returns(uint256) {
-    return 120;
+    return CYCLE_DURATION_BLOCKS;
   }
 
   function _setCurrentCycle() internal {
@@ -146,7 +149,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   * returns number of pending validator snapshots to be saved each cycle
   */
   function getSnapshotsPerCycle() public pure returns(uint256) {
-    return 10;
+    return SNAPSHOTS_PER_CYCLE;
   }
 
   function _setLastSnapshotTakenAtBlock(uint256 _block) internal {

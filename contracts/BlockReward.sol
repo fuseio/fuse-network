@@ -14,6 +14,8 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   using SafeMath for uint256;
 
   uint256 public constant DECIMALS = 10 ** 18;
+  uint256 public constant INFLATION = 5;
+  uint256 public constant BLOCKS_PER_YEAR = 6307200;
 
   /**
   * @dev This event will be emitted every block, describing the rewards given
@@ -156,14 +158,14 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * returns yearly inflation rate (percentage)
   */
   function getInflation() public pure returns(uint256) {
-    return 5;
+    return INFLATION;
   }
 
   /**
   * returns blocks per year (block time is 5 seconds)
   */
   function getBlocksPerYear() public pure returns(uint256) {
-    return 6307200;
+    return BLOCKS_PER_YEAR;
   }
 
   function _setBlockRewardAmount() private {
