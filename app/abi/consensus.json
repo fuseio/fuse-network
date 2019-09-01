@@ -91,6 +91,20 @@
   {
     "constant": true,
     "inputs": [],
+    "name": "SNAPSHOTS_PER_CYCLE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
     "name": "pendingValidatorsLength",
     "outputs": [
       {
@@ -169,7 +183,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -208,7 +222,7 @@
   {
     "constant": true,
     "inputs": [],
-    "name": "getSnapshotsPerCycle",
+    "name": "CYCLE_DURATION_BLOCKS",
     "outputs": [
       {
         "name": "",
@@ -217,6 +231,20 @@
     ],
     "payable": false,
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getSnapshotsPerCycle",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -286,7 +314,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -326,6 +354,20 @@
       }
     ],
     "name": "stakeAmount",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "MIN_STAKE",
     "outputs": [
       {
         "name": "",
@@ -459,18 +501,6 @@
   {
     "constant": false,
     "inputs": [
-      {
-        "name": "_minStake",
-        "type": "uint256"
-      },
-      {
-        "name": "_cycleDurationBlocks",
-        "type": "uint256"
-      },
-      {
-        "name": "_snapshotsPerCycle",
-        "type": "uint256"
-      },
       {
         "name": "_initialValidator",
         "type": "address"

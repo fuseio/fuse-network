@@ -3,7 +3,8 @@ pragma solidity ^0.4.24;
 import "../../contracts/Voting.sol";
 
 contract VotingMock is Voting {
-  function setMinBallotDurationCyclesMock(uint256 _value) public {
-    uintStorage[MIN_BALLOT_DURATION_CYCLES] = _value;
+
+  function setNextBallotIdMock(uint256 _id) public {
+    uintStorage[NEXT_BALLOT_ID] = _id;
   }
 }

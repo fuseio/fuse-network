@@ -11,18 +11,12 @@ import "./ConsensusUtils.sol";
 contract Consensus is ConsensusUtils {
   /**
   * @dev Function to be called on contract initialization
-  * @param _minStake minimum stake needed to become a validator
-  * @param _cycleDurationBlocks number of blocks per cycle, on the end of each cycle a new validator set will be selected
-  * @param _snapshotsPerCycle number of pending validator snapshots to be saved each cycle
   * @param _initialValidator address of the initial validator. If not set - msg.sender will be the initial validator
   */
-  function initialize(uint256 _minStake, uint256 _cycleDurationBlocks, uint256 _snapshotsPerCycle, address _initialValidator) external onlyOwner {
+  function initialize(address _initialValidator) external onlyOwner {
     require(!isInitialized());
     _setSystemAddress(0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE);
-    _setMinStake(_minStake);
-    _setCycleDurationBlocks(_cycleDurationBlocks);
     _setCurrentCycle();
-    _setSnapshotsPerCycle(_snapshotsPerCycle);
     if (_initialValidator == address(0)) {
       _currentValidatorsAdd(msg.sender);
     } else {

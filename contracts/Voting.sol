@@ -9,12 +9,9 @@ import "./VotingUtils.sol";
 contract Voting is VotingUtils {
   /**
   * @dev Function to be called on contract initialization
-  * @param _minBallotDurationCycles minimum number of cycles a ballot can be open before finalization
   */
-  function initialize(uint256 _minBallotDurationCycles) external onlyOwner {
+  function initialize() external onlyOwner {
     require(!isInitialized());
-    require(_minBallotDurationCycles < getMaxBallotDurationCycles());
-    _setMinBallotDurationCycles(_minBallotDurationCycles);
     setInitialized(true);
   }
 

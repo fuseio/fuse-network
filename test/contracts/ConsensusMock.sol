@@ -23,16 +23,12 @@ contract ConsensusMock is Consensus {
     return _getRandom(_from, _to);
   }
 
-  function getBlocksToSnapshot() public view returns(uint256) {
+  function getBlocksToSnapshot() public pure returns(uint256) {
     return _getBlocksToSnapshot();
   }
 
   function setNewValidatorSetMock(address[] _newSet) public {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
-  }
-
-  function setSnapshotsPerCycleMock(uint256 _snapshotsPerCycle) public {
-    uintStorage[SNAPSHOTS_PER_CYCLE] = _snapshotsPerCycle;
   }
 
   function setFinalizedMock(bool _status) public {
@@ -41,5 +37,9 @@ contract ConsensusMock is Consensus {
 
   function setShouldEmitInitiateChangeMock(bool _status) public {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
+  }
+
+  function getMinStake() public pure returns(uint256) {
+    return 1e22;
   }
 }

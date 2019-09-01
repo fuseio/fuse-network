@@ -6,9 +6,9 @@ const Voting = artifacts.require('VotingMock.sol')
 const {ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS, advanceBlocks} = require('./helpers')
 const {toBN, toWei} = web3.utils
 
-const CYCLE_DURATION_BLOCKS = 10
+const CYCLE_DURATION_BLOCKS = 120
 const SNAPSHOTS_PER_CYCLE = 2
-const MIN_BALLOT_DURATION_CYCLES = 2 // 2 days
+const MIN_BALLOT_DURATION_CYCLES = 2
 
 const CONTRACT_TYPES = { INVALID: 0, CONSENSUS: 1, BLOCK_REWARD: 2, PROXY_STORAGE: 3, VOTING: 4 }
 const QUORUM_STATES = { INVALID: 0, IN_PROGRESS: 1, ACCEPTED: 2, REJECTED: 3 }
@@ -27,7 +27,7 @@ contract('Voting', async (accounts) => {
     consensusImpl = await Consensus.new()
     proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
     consensus = await Consensus.at(proxy.address)
-    await consensus.initialize(toWei(toBN(10000), 'ether'), CYCLE_DURATION_BLOCKS, SNAPSHOTS_PER_CYCLE, owner)
+    await consensus.initialize(owner)
 
     // ProxyStorage
     proxyStorageImpl = await ProxyStorage.new()
@@ -40,7 +40,7 @@ contract('Voting', async (accounts) => {
     blockRewardImpl = await BlockReward.new()
     proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
     blockReward = await BlockReward.at(proxy.address)
-    await blockReward.initialize(toWei(toBN(300000000000000000 || 0), 'gwei'), 6307200, 5)
+    await blockReward.initialize(toWei(toBN(300000000000000000 || 0), 'gwei'))
 
     // Voting
     votingImpl = await Voting.new()
@@ -70,18 +70,14 @@ contract('Voting', async (accounts) => {
 
   describe('initialize', async () => {
     it('should be successful', async () => {
-      await voting.initialize(MIN_BALLOT_DURATION_CYCLES).should.be.fulfilled
+      await voting.initialize().should.be.fulfilled
       toBN(MIN_BALLOT_DURATION_CYCLES).should.be.bignumber.equal(await voting.getMinBallotDurationCycles())
-    })
-    it('should fail if min ballot duration is bigger than max ballot duration', async () => {
-      let maxBallotDurationCycles = await voting.getMaxBallotDurationCycles()
-      await voting.initialize(maxBallotDurationCycles.add(toBN(1))).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
   describe('newBallot', async () => {
     beforeEach(async () => {
-      await voting.initialize(MIN_BALLOT_DURATION_CYCLES).should.be.fulfilled
+      await voting.initialize().should.be.fulfilled
       voteStartAfterNumberOfCycles = 1
       voteCyclesDuration = 10
     })
@@ -168,7 +164,7 @@ contract('Voting', async (accounts) => {
   describe('vote', async () => {
     let id, proposedValue, contractType
     beforeEach(async () => {
-      await voting.initialize(MIN_BALLOT_DURATION_CYCLES).should.be.fulfilled
+      await voting.initialize().should.be.fulfilled
       voteStartAfterNumberOfCycles = 1
       voteCyclesDuration = 10
       id = await voting.getNextBallotId()
@@ -270,7 +266,7 @@ contract('Voting', async (accounts) => {
 
   describe('onCycleEnd', async () => {
     beforeEach(async () => {
-      await voting.initialize(MIN_BALLOT_DURATION_CYCLES).should.be.fulfilled
+      await voting.initialize().should.be.fulfilled
       voteStartAfterNumberOfCycles = 1
       voteCyclesDuration = 10
     })
@@ -566,7 +562,7 @@ contract('Voting', async (accounts) => {
   describe('finalize', async () => {
     let currentValidators
     beforeEach(async () => {
-      await voting.initialize(MIN_BALLOT_DURATION_CYCLES).should.be.fulfilled
+      await voting.initialize().should.be.fulfilled
       voteStartAfterNumberOfCycles = 1
       voteCyclesDuration = 10
       currentValidators = await consensus.getValidators()
@@ -677,7 +673,7 @@ contract('Voting', async (accounts) => {
       await proxy.setProxyStorageMock(proxyStorage.address)
       votingNew = await Voting.at(proxy.address)
       false.should.be.equal(await votingNew.isInitialized())
-      await votingNew.initialize(MIN_BALLOT_DURATION_CYCLES).should.be.fulfilled
+      await votingNew.initialize().should.be.fulfilled
       true.should.be.equal(await votingNew.isInitialized())
     })
     it('should use same proxyStorage after upgrade', async () => {
@@ -687,12 +683,13 @@ contract('Voting', async (accounts) => {
       proxyStorageStub.should.be.equal(await votingNew.getProxyStorage())
     })
     it('should use same storage after upgrade', async () => {
-      let newValue = MIN_BALLOT_DURATION_CYCLES + 1
-      await voting.setMinBallotDurationCyclesMock(newValue)
+      let nextBallotId = await voting.getNextBallotId()
+      let newValue = nextBallotId.toNumber() + 1
+      await voting.setNextBallotIdMock(newValue)
       await proxy.setProxyStorageMock(proxyStorageStub)
       await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
       votingNew = await Voting.at(proxy.address)
-      toBN(newValue).should.be.bignumber.equal(await votingNew.getMinBallotDurationCycles())
+      toBN(newValue).should.be.bignumber.equal(await votingNew.getNextBallotId())
     })
   })
 })

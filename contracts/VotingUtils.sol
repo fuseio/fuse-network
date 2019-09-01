@@ -15,6 +15,8 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant MAX_LIMIT_OF_BALLOTS = 100;
+  uint256 public constant MIN_BALLOT_DURATION_CYCLES = 2;
+  uint256 public constant MAX_BALLOT_DURATION_CYCLES = 14;
 
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
@@ -53,7 +55,6 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant NEXT_BALLOT_ID = keccak256(abi.encodePacked("nextBallotId"));
-  bytes32 internal constant MIN_BALLOT_DURATION_CYCLES = keccak256(abi.encodePacked("minBallotDurationCycles"));
   bytes32 internal constant ACTIVE_BALLOTS = keccak256(abi.encodePacked("activeBallots"));
   bytes32 internal constant PROXY_STORAGE = keccak256(abi.encodePacked("proxyStorage"));
 
@@ -220,16 +221,18 @@ contract VotingUtils is EternalStorage, VotingBase {
     uintStorage[NEXT_BALLOT_ID] = _id;
   }
 
-  function getMinBallotDurationCycles() public view returns(uint256) {
-    return uintStorage[MIN_BALLOT_DURATION_CYCLES];
+  /**
+  * returns minimum number of cycles a ballot can be open before finalization
+  */
+  function getMinBallotDurationCycles() public pure returns(uint256) {
+    return MIN_BALLOT_DURATION_CYCLES;
   }
 
-  function _setMinBallotDurationCycles(uint256 _value) internal {
-    uintStorage[MIN_BALLOT_DURATION_CYCLES] = _value;
-  }
-
+  /**
+  * returns maximum number of cycles a ballot can be open before finalization
+  */
   function getMaxBallotDurationCycles() public pure returns(uint256) {
-    return 14;
+    return MAX_BALLOT_DURATION_CYCLES;
   }
 
   function getStartBlock(uint256 _id) public view returns(uint256) {
