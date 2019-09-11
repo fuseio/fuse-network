@@ -12,6 +12,7 @@ DOCKER_CONTAINER_NETSTAT="fusenetstat"
 DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/bridge-oracle/master/docker-compose.keystore.yml"
 DOCKER_IMAGE_ORACLE="fusenet/oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
+DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
@@ -225,6 +226,7 @@ function run {
 
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
+        $DOCKER_LOG_OPTS \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
@@ -244,6 +246,7 @@ function run {
 
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
+        $DOCKER_LOG_OPTS \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
@@ -266,6 +269,7 @@ function run {
 
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
+        $DOCKER_LOG_OPTS \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
@@ -280,6 +284,7 @@ function run {
 
       ## Start validator-app container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
+        $DOCKER_LOG_OPTS \
         --detach \
         --name $DOCKER_CONTAINER_APP \
         --volume $CONFIG_DIR:/config \
@@ -297,6 +302,7 @@ function run {
 
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
+        $DOCKER_LOG_OPTS \
         --detach \
         --name $DOCKER_CONTAINER_PARITY \
         --volume $DATABASE_DIR:/data \
@@ -314,6 +320,7 @@ function run {
 
   ## Start netstat container with all necessary arguments.
   $PERMISSION_PREFIX docker run \
+    $DOCKER_LOG_OPTS \
     --detach \
     --name $DOCKER_CONTAINER_NETSTAT \
     --net=container:$DOCKER_CONTAINER_PARITY \
