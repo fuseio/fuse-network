@@ -14,8 +14,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant MIN_STAKE = 3e24; // 3,000,000
-  uint256 public constant CYCLE_DURATION_BLOCKS = 1440; // 2 hours
-  uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 12 minutes
+  uint256 public constant CYCLE_DURATION_BLOCKS = 8640; // 12 hours [12*60*60/5]
+  uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 72 minutes [8640/10/60*5]
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
