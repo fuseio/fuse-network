@@ -324,10 +324,10 @@ $ docker run \
     fusenet/validator-app
 ```
 
-Second one is the [bridge-oracle](https://github.com/fuseio/bridge-oracle)
+Second one is the [bridge-oracle](https://github.com/fuseio/fuse-bridge/tree/master/native-to-erc20/oracle)
 
 ```
-$ wget -O docker-compose.yml https://raw.githubusercontent.com/fuseio/bridge-oracle/master/docker-compose.keystore.yml
+$ wget -O docker-compose.yml https://raw.githubusercontent.com/fuseio/fuse-bridge/master/native-to-erc20/oracle/docker-compose.keystore.yml
 ## Start oracle container with all necessary arguments.
 $ docker-compose up \
     --build \
