@@ -240,7 +240,7 @@ $ docker run \
     -p 30303:30300/udp \
     -p 8545:8545 \
     -p 8546:8546 \
-    --restart=on-failure \
+    --restart=always \
     fusenet/node \
     --role node \
     --parity-args --no-warp --node-key $NODE_KEY --bootnodes=$BOOTNODES
@@ -258,7 +258,7 @@ $ docker run \
     -p 30303:30300/udp \
     -p 8545:8545 \
     -p 8546:8546 \
-    --restart=on-failure \
+    --restart=always \
     fusenet/node \
     --role node \
     --parity-args --no-warp --node-key $NODE_KEY
@@ -304,7 +304,7 @@ $ docker run \
     -p 30303:30300/tcp \
     -p 30303:30300/udp \
     -p 8545:8545 \
-    --restart=on-failure \
+    --restart=always \
     fusenet/node \
     --role validator \
     --address $address
@@ -320,7 +320,7 @@ $ docker run \
     --detach \
     --name fuseapp \
     --volume $(pwd)/fusenet/config:/config/custom \
-    --restart=on-failure \
+    --restart=always \
     fusenet/validator-app
 ```
 
@@ -370,7 +370,7 @@ $ docker run \
 	-p 30303:30300/udp \
 	-p 8545:8545 \
 	-p 8546:8546 \
-	--restart=on-failure \
+	--restart=always \
 	fusenet/node \
 	--role explorer \
 	--parity-args --node-key $NODE_KEY
@@ -385,7 +385,7 @@ $ docker run \
     --detach \
     --name fusenetstat \
     --net=container:fusenet \
-    --restart=on-failure \
+    --restart=always \
     fusenet/netstat \
     --instance-name $INSTANCE_NAME
 ```

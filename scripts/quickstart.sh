@@ -235,7 +235,7 @@ function run {
         -p 30303:30300/udp \
         -p 8545:8545 \
         -p 8546:8546 \
-        --restart=on-failure \
+        --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
         --parity-args --no-warp --node-key $NODE_KEY --bootnodes=$BOOTNODES
@@ -255,7 +255,7 @@ function run {
         -p 30303:30300/udp \
         -p 8545:8545 \
         -p 8546:8546 \
-        --restart=on-failure \
+        --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
         --parity-args --no-warp --node-key $NODE_KEY
@@ -277,7 +277,7 @@ function run {
         -p 30303:30300/tcp \
         -p 30303:30300/udp \
         -p 8545:8545 \
-        --restart=on-failure \
+        --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role validator \
         --address $address
@@ -288,7 +288,7 @@ function run {
         --detach \
         --name $DOCKER_CONTAINER_APP \
         --volume $CONFIG_DIR:/config \
-        --restart=on-failure \
+        --restart=always \
         $DOCKER_IMAGE_APP
 
       ## Start oracle container with all necessary arguments.
@@ -311,7 +311,7 @@ function run {
         -p 30303:30300/udp \
         -p 8545:8545 \
         -p 8546:8546 \
-        --restart=on-failure \
+        --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role explorer \
         --parity-args --node-key $NODE_KEY
@@ -324,7 +324,7 @@ function run {
     --detach \
     --name $DOCKER_CONTAINER_NETSTAT \
     --net=container:$DOCKER_CONTAINER_PARITY \
-    --restart=on-failure \
+    --restart=always \
     $DOCKER_IMAGE_NETSTAT \
     --instance-name "$INSTANCE_NAME"
 
