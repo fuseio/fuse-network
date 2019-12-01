@@ -92,7 +92,7 @@ port = 8546
 interface = "all"
 origins = ["all"]
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "rpc", "secretstore"]
 
 [network]
 port = 30300
@@ -112,7 +112,7 @@ port = 8546
 interface = "all"
 origins = ["all"]
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "rpc", "secretstore"]
 
 [network]
 port = 30300
