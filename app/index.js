@@ -58,57 +58,65 @@ function initBlockRewardContract() {
 
 function emitInitiateChange() {
   return new Promise(async (resolve, reject) => {
-    logger.info(`emitInitiateChange`)
-    let currentBlockNumber = await web3.eth.getBlockNumber()
-    let currentCycleEndBlock = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-    let shouldEmitInitiateChange = await consensus.methods.shouldEmitInitiateChange.call()
-    logger.info(`block #${currentBlockNumber}\n\tcurrentCycleEndBlock: ${currentCycleEndBlock}\n\tshouldEmitInitiateChange: ${shouldEmitInitiateChange}`)
-    if (!shouldEmitInitiateChange) {
-      return resolve()
+    try {
+      logger.info(`emitInitiateChange`)
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+      let shouldEmitInitiateChange = await consensus.methods.shouldEmitInitiateChange.call()
+      logger.info(`block #${currentBlockNumber}\n\tcurrentCycleEndBlock: ${currentCycleEndBlock}\n\tshouldEmitInitiateChange: ${shouldEmitInitiateChange}`)
+      if (!shouldEmitInitiateChange) {
+        return resolve()
+      }
+      logger.info(`${account} sending emitInitiateChange transaction`)
+      let nonce = await getNonce()
+      consensus.methods.emitInitiateChange().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || 0, nonce: nonce })
+        .on('transactionHash', hash => {
+          logger.info(`transactionHash: ${hash}`)
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          if (confirmationNumber == 1) {
+            logger.debug(`receipt: ${JSON.stringify(receipt)}`)
+          }
+          resolve()
+        })
+        .on('error', error => {
+          logger.error(error); resolve()
+        })
+    } catch (e) {
+      reject(e)
     }
-    logger.info(`${account} sending emitInitiateChange transaction`)
-    let nonce = await getNonce()
-    consensus.methods.emitInitiateChange().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || 0, nonce: nonce })
-      .on('transactionHash', hash => {
-        logger.info(`transactionHash: ${hash}`)
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        if (confirmationNumber == 1) {
-          logger.debug(`receipt: ${JSON.stringify(receipt)}`)
-        }
-        resolve()
-      })
-      .on('error', error => {
-        logger.error(error); resolve()
-      })
   })
 }
 
 function emitRewardedOnCycle() {
   return new Promise(async (resolve, reject) => {
-    logger.info(`emitRewardedOnCycle`)
-    let currentBlockNumber = await web3.eth.getBlockNumber()
-    let currentCycleEndBlock = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-    let shouldEmitRewardedOnCycle = await blockReward.methods.shouldEmitRewardedOnCycle.call()
-    logger.info(`block #${currentBlockNumber}\n\tcurrentCycleEndBlock: ${currentCycleEndBlock}\n\tshouldEmitRewardedOnCycle: ${shouldEmitRewardedOnCycle}`)
-    if (!shouldEmitRewardedOnCycle) {
-      return resolve()
+    try {
+      logger.info(`emitRewardedOnCycle`)
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+      let shouldEmitRewardedOnCycle = await blockReward.methods.shouldEmitRewardedOnCycle.call()
+      logger.info(`block #${currentBlockNumber}\n\tcurrentCycleEndBlock: ${currentCycleEndBlock}\n\tshouldEmitRewardedOnCycle: ${shouldEmitRewardedOnCycle}`)
+      if (!shouldEmitRewardedOnCycle) {
+        return resolve()
+      }
+      logger.info(`${account} sending emitRewardedOnCycle transaction`)
+      let nonce = await getNonce()
+      blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || 0, nonce: nonce })
+        .on('transactionHash', hash => {
+          logger.info(`transactionHash: ${hash}`)
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          if (confirmationNumber == 1) {
+            logger.debug(`receipt: ${JSON.stringify(receipt)}`)
+          }
+          resolve()
+        })
+        .on('error', error => {
+          logger.error(error); resolve()
+        })
+    } catch (e) {
+      reject(e)
     }
-    logger.info(`${account} sending emitRewardedOnCycle transaction`)
-    let nonce = await getNonce()
-    blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || 0, nonce: nonce })
-      .on('transactionHash', hash => {
-        logger.info(`transactionHash: ${hash}`)
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        if (confirmationNumber == 1) {
-          logger.debug(`receipt: ${JSON.stringify(receipt)}`)
-        }
-        resolve()
-      })
-      .on('error', error => {
-        logger.error(error); resolve()
-      })
   })
 }
 
@@ -128,6 +136,7 @@ async function runMain() {
     await emitRewardedOnCycle()
   } catch (e) {
     logger.error(e)
+    process.exit(1)
   }
 
   setTimeout(() => {
