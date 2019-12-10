@@ -87,6 +87,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     require(_amount != 0);
     require(_validator != address(0));
 
+    // overstaking should not be possible
+    require (stakeAmount(_validator) < getMinStake());
+    require (stakeAmount(_validator).add(_amount) <= getMinStake());
+
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
 
@@ -287,10 +291,61 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _delegatedAmountAdd(address _address, address _validator, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].add(_amount);
+    _delegatorsAdd(_address, _validator);
   }
 
   function _delegatedAmountSub(address _address, address _validator, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].sub(_amount);
+    if (uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] == 0) {
+      _delegatorsRemove(_address, _validator);
+    }
+  }
+
+  function delegators(address _validator) public view returns(address[]) {
+    return addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))];
+  }
+
+  function delegatorsLength(address _validator) public view returns(uint256) {
+    return addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))].length;
+  }
+
+  function delegatorsAtPosition(address _validator, uint256 _p) public view returns(address) {
+    return addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][_p];
+  }
+
+  function _setDelegatorsAtPosition(address _validator, uint256 _p, address _address) internal {
+    addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][_p] = _address;
+  }
+
+  function _delegatorsAdd(address _address, address _validator) internal {
+    addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))].push(_address);
+  }
+
+  function _delegatorsRemove(address _address, address _validator) internal {
+    uint256 removeIndex;
+    for (uint256 i; i < delegatorsLength(_validator); i++) {
+      if (_address == delegatorsAtPosition(_validator, i)) {
+        removeIndex = i;
+      }
+    }
+    uint256 lastIndex = delegatorsLength(_validator) - 1;
+    address lastDelegator = delegatorsAtPosition(_validator, lastIndex);
+    if (lastDelegator != address(0)) {
+      _setDelegatorsAtPosition(_validator, removeIndex, lastDelegator);
+    }
+    delete addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][lastIndex];
+    addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))].length--;
+  }
+
+  function getDelegatorsForRewardDistribution(address _validator) public view returns(address[], uint256[]) {
+    address[] memory _delegators = delegators(_validator);
+    uint256[] memory _percentages = new uint256[](_delegators.length);
+
+    for (uint256 i; i < _delegators.length; i++) {
+      _percentages[i] = delegatedAmount(delegatorsAtPosition(_validator, i), _validator).mul(100).div(getMinStake());
+    }
+
+    return (_delegators, _percentages);
   }
 
   function newValidatorSet() public view returns(address[]) {

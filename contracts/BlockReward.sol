@@ -85,24 +85,33 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     require(benefactors.length == 1);
     require(kind[0] == 0);
 
-    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+    (address[] memory delegators, uint256[] memory percentages) = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getDelegatorsForRewardDistribution(benefactors[0]);
 
-    address[] memory receivers = new address[](benefactors.length);
+    address[] memory receivers = new address[](delegators.length + 1);
     uint256[] memory rewards = new uint256[](receivers.length);
 
     uint256 blockRewardAmount = getBlockRewardAmount();
 
+    uint256 rewardForValidator = blockRewardAmount;
+    for (uint256 i; i < delegators.length; i++) {
+      receivers[i] = delegators[i];
+      rewards[i] = blockRewardAmount.mul(percentages[i]).div(100);
+      rewardForValidator = rewardForValidator.sub(rewards[i]);
+    }
+
+    receivers[receivers.length - 1] = benefactors[0];
+    rewards[receivers.length - 1] = rewardForValidator;
+
     _setRewardedOnCycle(getRewardedOnCycle().add(blockRewardAmount));
     _setTotalSupply(getTotalSupply().add(blockRewardAmount));
-
-    receivers[0] = benefactors[0];
-    rewards[0] = blockRewardAmount;
-    emit Rewarded(receivers, rewards);
 
     if ((block.number).mod(getBlocksPerYear()) == 0) {
       _setBlockRewardAmount();
     }
 
+    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+
+    emit Rewarded(receivers, rewards);
     return (receivers, rewards);
   }
 
