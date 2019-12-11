@@ -258,19 +258,23 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _pendingValidatorsRemove(address _address) internal {
+    bool found = false;
     uint256 removeIndex;
     for (uint256 i; i < pendingValidatorsLength(); i++) {
       if (_address == pendingValidatorsAtPosition(i)) {
         removeIndex = i;
+        found = true;
       }
     }
-    uint256 lastIndex = pendingValidatorsLength() - 1;
-    address lastValidator = pendingValidatorsAtPosition(lastIndex);
-    if (lastValidator != address(0)) {
-      _setPendingValidatorsAtPosition(removeIndex, lastValidator);
+    if (found) {
+      uint256 lastIndex = pendingValidatorsLength() - 1;
+      address lastValidator = pendingValidatorsAtPosition(lastIndex);
+      if (lastValidator != address(0)) {
+        _setPendingValidatorsAtPosition(removeIndex, lastValidator);
+      }
+      delete addressArrayStorage[PENDING_VALIDATORS][lastIndex];
+      addressArrayStorage[PENDING_VALIDATORS].length--;
     }
-    delete addressArrayStorage[PENDING_VALIDATORS][lastIndex];
-    addressArrayStorage[PENDING_VALIDATORS].length--;
   }
 
   function stakeAmount(address _address) public view returns(uint256) {
@@ -322,19 +326,23 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _delegatorsRemove(address _address, address _validator) internal {
+    bool found = false;
     uint256 removeIndex;
     for (uint256 i; i < delegatorsLength(_validator); i++) {
       if (_address == delegatorsAtPosition(_validator, i)) {
         removeIndex = i;
+        found = true;
       }
     }
-    uint256 lastIndex = delegatorsLength(_validator) - 1;
-    address lastDelegator = delegatorsAtPosition(_validator, lastIndex);
-    if (lastDelegator != address(0)) {
-      _setDelegatorsAtPosition(_validator, removeIndex, lastDelegator);
+    if (found) {
+      uint256 lastIndex = delegatorsLength(_validator) - 1;
+      address lastDelegator = delegatorsAtPosition(_validator, lastIndex);
+      if (lastDelegator != address(0)) {
+        _setDelegatorsAtPosition(_validator, removeIndex, lastDelegator);
+      }
+      delete addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][lastIndex];
+      addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))].length--;
     }
-    delete addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][lastIndex];
-    addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))].length--;
   }
 
   function getDelegatorsForRewardDistribution(address _validator) public view returns(address[], uint256[]) {

@@ -42,4 +42,8 @@ contract ConsensusMock is Consensus {
   function getMinStake() public pure returns(uint256) {
     return 1e22;
   }
+
+  function getCycleDurationBlocks() public pure returns(uint256) {
+    return 120;
+  }
 }
