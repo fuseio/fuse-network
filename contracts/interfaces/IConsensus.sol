@@ -7,5 +7,5 @@ interface IConsensus {
     function getCurrentCycleEndBlock() external view returns(uint256);
     function cycle() external;
     function isValidator(address _address) external view returns(bool);
-    function getDelegatorsForRewardDistribution(address _validator) external view returns(address[], uint256[]);
+    function getDelegatorsForRewardDistribution(address _validator, uint256 _rewardAmount) external view returns(address[], uint256[]);
 }

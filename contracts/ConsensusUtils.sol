@@ -16,6 +16,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant MIN_STAKE = 3e24; // 3,000,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 17280; // 24 hours [24*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 144 minutes [17280/10/60*5]
+  uint256 public constant DEFAULT_VALIDATOR_FEE = 10;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -255,6 +256,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _pendingValidatorsAdd(address _address) internal {
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
+    _setValidatorFee(_address, DEFAULT_VALIDATOR_FEE);
   }
 
   function _pendingValidatorsRemove(address _address) internal {
@@ -345,15 +347,16 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     }
   }
 
-  function getDelegatorsForRewardDistribution(address _validator) public view returns(address[], uint256[]) {
+  function getDelegatorsForRewardDistribution(address _validator, uint256 _rewardAmount) public view returns(address[], uint256[]) {
     address[] memory _delegators = delegators(_validator);
-    uint256[] memory _percentages = new uint256[](_delegators.length);
+    uint256[] memory _rewards = new uint256[](_delegators.length);
 
     for (uint256 i; i < _delegators.length; i++) {
-      _percentages[i] = delegatedAmount(delegatorsAtPosition(_validator, i), _validator).mul(100).div(getMinStake());
+      uint256 _amount = delegatedAmount(delegatorsAtPosition(_validator, i), _validator);
+      _rewards[i] = _rewardAmount.mul(_amount).div(getMinStake()).mul(100 - validatorFee(_validator)).div(100);
     }
 
-    return (_delegators, _percentages);
+    return (_delegators, _rewards);
   }
 
   function newValidatorSet() public view returns(address[]) {
@@ -390,5 +393,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _getRandom(uint256 _from, uint256 _to) internal view returns(uint256) {
     return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1)))).mod(_to).add(_from);
+  }
+
+  function validatorFee(address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("validatorFee", _validator))];
+  }
+
+  function _setValidatorFee(address _validator, uint256 _amount) internal {
+    uintStorage[keccak256(abi.encodePacked("validatorFee", _validator))] = _amount;
   }
 }

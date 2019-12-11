@@ -146,4 +146,9 @@ contract Consensus is ConsensusUtils {
     emit InitiateChange(blockhash(block.number - 1), newValidatorSet());
     _setShouldEmitInitiateChange(false);
   }
+
+  function setValidatorFee(uint256 _amount) external onlyValidator {
+    require (_amount <= 100);
+    _setValidatorFee(msg.sender, _amount);
+  }
 }
