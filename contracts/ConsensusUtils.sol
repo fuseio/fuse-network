@@ -297,7 +297,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _delegatedAmountAdd(address _address, address _validator, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].add(_amount);
-    if (!isDelegator(_validator, _address)) {
+    if (_address != _validator && !isDelegator(_validator, _address)) {
       _delegatorsAdd(_address, _validator);
     }
   }

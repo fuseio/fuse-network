@@ -50,4 +50,9 @@ contract ConsensusMock is Consensus {
   function getSnapshotsPerCycle() public pure returns(uint256) {
     return 10;
   }
+
+  function setValidatorFeeMock(uint256 _amount) external {
+    require (_amount <= 100);
+    _setValidatorFee(msg.sender, _amount);
+  }
 }
