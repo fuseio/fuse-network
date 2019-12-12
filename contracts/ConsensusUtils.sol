@@ -297,7 +297,9 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _delegatedAmountAdd(address _address, address _validator, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))] = uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))].add(_amount);
-    _delegatorsAdd(_address, _validator);
+    if (!isDelegator(_validator, _address)) {
+      _delegatorsAdd(_address, _validator);
+    }
   }
 
   function _delegatedAmountSub(address _address, address _validator, uint256 _amount) internal {
@@ -317,6 +319,15 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function delegatorsAtPosition(address _validator, uint256 _p) public view returns(address) {
     return addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][_p];
+  }
+
+  function isDelegator(address _validator, address _address) public view returns(bool) {
+    for (uint256 i; i < delegatorsLength(_validator); i++) {
+      if (_address == delegatorsAtPosition(_validator, i)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function _setDelegatorsAtPosition(address _validator, uint256 _p, address _address) internal {

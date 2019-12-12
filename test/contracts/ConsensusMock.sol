@@ -46,4 +46,8 @@ contract ConsensusMock is Consensus {
   function getCycleDurationBlocks() public pure returns(uint256) {
     return 120;
   }
+
+  function getSnapshotsPerCycle() public pure returns(uint256) {
+    return 10;
+  }
 }

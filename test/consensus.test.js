@@ -204,6 +204,8 @@ contract('Consensus', async (accounts) => {
         // pending validators should not be updated
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        // validator fee should not be set
+        toBN(0).should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
       })
       it('minimum stake amount', async () => {
         await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
@@ -212,6 +214,9 @@ contract('Consensus', async (accounts) => {
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+        // default validator fee should be set
+        let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
+        defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
       })
       it('should not allow more than minimum stake', async () => {
         await consensus.sendTransaction({from: firstCandidate, value: MORE_THAN_MIN_STAKE}).should.be.rejectedWith(ERROR_MSG)
@@ -389,6 +394,13 @@ contract('Consensus', async (accounts) => {
         // pending validators should not be updated
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
       })
       it('minimum stake', async () => {
         await consensus.delegate(firstCandidate, {from: delegator, value: MIN_STAKE}).should.be.fulfilled
@@ -402,6 +414,13 @@ contract('Consensus', async (accounts) => {
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+        // delegators list should be updated
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
       })
     })
     describe('advanced', async () => {
@@ -413,6 +432,12 @@ contract('Consensus', async (accounts) => {
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.delegatedAmount(delegator, firstCandidate))
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
 
         // 2nd stake
         await consensus.delegate(firstCandidate, {from: delegator, value: ONE_ETHER}).should.be.fulfilled
@@ -422,16 +447,36 @@ contract('Consensus', async (accounts) => {
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
       })
       it('more than one validator', async () => {
         // add 1st validator
         await consensus.delegate(firstCandidate, {from: delegator, value: MIN_STAKE}).should.be.fulfilled
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
+        // delegators list should be updated
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
         // add 2nd validator
         await consensus.delegate(secondCandidate, {from: delegator, value: MIN_STAKE}).should.be.fulfilled
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(2)
+        // delegators list should be updated
+        delegators = await consensus.delegators(secondCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(secondCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(secondCandidate, 0))
       })
       it('multiple times according to staked amount, in more than one transaction', async () => {
         // 1st stake
@@ -441,6 +486,12 @@ contract('Consensus', async (accounts) => {
         LESS_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.delegatedAmount(delegator, firstCandidate))
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
 
         // 2nd stake - added once
         let expectedValidators = [firstCandidate]
@@ -451,8 +502,20 @@ contract('Consensus', async (accounts) => {
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
 
         await consensus.delegate(firstCandidate, {from: delegator, value: MIN_STAKE}).should.be.rejectedWith(ERROR_MSG)
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
       })
     })
   })
@@ -584,6 +647,18 @@ contract('Consensus', async (accounts) => {
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators.should.deep.equal([secondCandidate])
+        // delegators list should be updated for firstCandidate
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(0)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(0))
+        // delegators list should be updated for secondCandidate
+        delegators = await consensus.delegators(secondCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(secondCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(secondCandidate, 0))
       })
       it('can withdraw less than staked amount', async () => {
         // stake
@@ -596,6 +671,13 @@ contract('Consensus', async (accounts) => {
         // pendingValidators should be updated
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
       })
       it('can withdraw multiple times', async () => {
         // stake
@@ -607,13 +689,50 @@ contract('Consensus', async (accounts) => {
         expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
         // withdraw 2nd time
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: delegator})
         expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 2), 'ether')
         expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(delegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        delegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
       })
+    })
+  })
+
+  describe('setValidatorFee', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('should only be called by validator', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
+      defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
+      let newValidatorFee = defaultValidatorFee.sub(toBN(1))
+      await consensus.setValidatorFee(newValidatorFee, {from: initialValidator}).should.be.fulfilled
+      newValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(initialValidator))
+      await consensus.setValidatorFee(newValidatorFee, {from: secondCandidate}).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('should only be able to set a valid fee', async () => {
+      let i;
+      for (i = 0; i <= 100; i++) {
+        await consensus.setValidatorFee(i, {from: initialValidator}).should.be.fulfilled
+      }
+      await consensus.setValidatorFee(i, {from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
