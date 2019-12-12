@@ -83,7 +83,7 @@ contract('BlockReward', async (accounts) => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await blockReward.reward([accounts[3]], [1], {from: mockSystemAddress}).should.be.rejectedWith(ERROR_MSG)
     })
-    it('should give reward and total supply should be updated', async () => {
+    it('should give reward to validator and total supply should be updated', async () => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       let initialSupply = await blockReward.getTotalSupply()
       let blockRewardAmount = await blockReward.getBlockRewardAmount()
@@ -94,6 +94,41 @@ contract('BlockReward', async (accounts) => {
       logs[0].args['rewards'][0].should.be.bignumber.equal(blockRewardAmount)
       let expectedSupply = initialSupply.add(blockRewardAmount)
       expectedSupply.should.be.bignumber.equal(await blockReward.getTotalSupply())
+    })
+    it('should give rewards to validator and its delegators', async () => {
+      let minStakeAmount = await consensus.getMinStake()
+      let delegatorsCount = accounts.length - 2
+      let delegateAmountValue = parseInt(minStakeAmount.div(toBN(1e18)).toNumber() * 0.99 / delegatorsCount)
+      let delegateAmount = toWei(toBN(delegateAmountValue), 'ether')
+      let stakeAmountValue = minStakeAmount.div(toBN(1e18)).toNumber() - delegateAmountValue * delegatorsCount
+      let stakeAmount = toWei(toBN(stakeAmountValue), 'ether')
+      let fee = 5
+      let validator = accounts[1]
+      await consensus.sendTransaction({from: validator, value: stakeAmount}).should.be.fulfilled
+      for (let i = 2; i < accounts.length; i++) {
+        await consensus.delegate(validator, {from: accounts[i], value: delegateAmount}).should.be.fulfilled
+      }
+      await consensus.setValidatorFeeMock(fee, {from: validator}).should.be.fulfilled
+      let validatorFee = await consensus.validatorFee(validator)
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+      let initialSupply = await blockReward.getTotalSupply()
+      let blockRewardAmount = await blockReward.getBlockRewardAmount()
+      let {logs} = await blockReward.reward([validator], [0], {from: mockSystemAddress}).should.be.fulfilled
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('Rewarded')
+      let receivers = logs[0].args['receivers']
+      let rewards = logs[0].args['rewards']
+      receivers.length.should.be.equal(delegatorsCount + 1)
+      rewards.length.should.be.equal(receivers.length)
+      let expectedRewardForValidator = blockRewardAmount
+      let expectedRewardForDelegators = blockRewardAmount.mul(delegateAmount).div(minStakeAmount).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+      for (let i = 0; i < delegatorsCount; i++) {
+        receivers[i].should.be.equal(accounts[i + 2])
+        rewards[i].should.be.bignumber.equal(expectedRewardForDelegators)
+        expectedRewardForValidator = expectedRewardForValidator.sub(expectedRewardForDelegators)
+      }
+      receivers[receivers.length - 1].should.be.equal(validator)
+      rewards[receivers.length - 1].should.be.bignumber.equal(expectedRewardForValidator)
     })
     it('reward amount should update after BLOCKS_PER_YEAR and total yearly inflation should be calculated correctly', async () => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
