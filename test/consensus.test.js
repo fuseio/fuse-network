@@ -16,7 +16,7 @@ const CYCLE_DURATION_BLOCKS = 120
 const SNAPSHOTS_PER_CYCLE = 10
 
 contract('Consensus', async (accounts) => {
-  let consensusImpl, proxy, consensus, blockReward, blockRewardAmount
+  let consensusImpl, proxy, consensus, blockReward, blockRewardAmount, decimals
   let owner = accounts[0]
   let nonOwner = accounts[1]
   let initialValidator = accounts[0]
@@ -726,11 +726,12 @@ contract('Consensus', async (accounts) => {
       await consensus.setValidatorFee(newValidatorFee, {from: secondCandidate}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should only be able to set a valid fee', async () => {
+      let decimals = await consensus.DECIMALS()
       let i;
       for (i = 0; i <= 100; i++) {
-        await consensus.setValidatorFee(i, {from: initialValidator}).should.be.fulfilled
+        await consensus.setValidatorFee(toBN(i * decimals), {from: initialValidator}).should.be.fulfilled
       }
-      await consensus.setValidatorFee(i, {from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
+      await consensus.setValidatorFee(toBN(i * decimals), {from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
@@ -747,9 +748,10 @@ contract('Consensus', async (accounts) => {
     })
     describe('validator with one delegator', async () => {
       it('total delegated more than total staked - no fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.25), 'ether')
         let delegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.75), 'ether')
-        let fee = 0
+        let fee = toBN(0 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: delegateAmount}).should.be.fulfilled
         await consensus.setValidatorFeeMock(fee, {from: firstCandidate}).should.be.fulfilled
@@ -758,13 +760,14 @@ contract('Consensus', async (accounts) => {
         delegators.length.should.be.equal(1)
         delegators[0].should.be.equal(firstDelegator)
         rewards.length.should.be.equal(delegators.length)
-        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
         rewards[0].should.be.bignumber.equal(expectedReward)
       })
       it('total delegated less than total staked - no fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.75), 'ether')
         let delegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.25), 'ether')
-        let fee = 0
+        let fee = toBN(0 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: delegateAmount}).should.be.fulfilled
         await consensus.setValidatorFeeMock(fee, {from: firstCandidate}).should.be.fulfilled
@@ -773,13 +776,14 @@ contract('Consensus', async (accounts) => {
         delegators.length.should.be.equal(1)
         delegators[0].should.be.equal(firstDelegator)
         rewards.length.should.be.equal(delegators.length)
-        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
         rewards[0].should.be.bignumber.equal(expectedReward)
       })
       it('total delegated more than total staked - 100% fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.25), 'ether')
         let delegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.75), 'ether')
-        let fee = 100
+        let fee = toBN(100 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: delegateAmount}).should.be.fulfilled
         await consensus.setValidatorFeeMock(fee, {from: firstCandidate}).should.be.fulfilled
@@ -788,13 +792,14 @@ contract('Consensus', async (accounts) => {
         delegators.length.should.be.equal(1)
         delegators[0].should.be.equal(firstDelegator)
         rewards.length.should.be.equal(delegators.length)
-        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
         rewards[0].should.be.bignumber.equal(expectedReward)
       })
       it('total delegated less than total staked - 100% fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.75), 'ether')
         let delegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.25), 'ether')
-        let fee = 100
+        let fee = toBN(100 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: delegateAmount}).should.be.fulfilled
         await consensus.setValidatorFeeMock(fee, {from: firstCandidate}).should.be.fulfilled
@@ -803,13 +808,14 @@ contract('Consensus', async (accounts) => {
         delegators.length.should.be.equal(1)
         delegators[0].should.be.equal(firstDelegator)
         rewards.length.should.be.equal(delegators.length)
-        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
         rewards[0].should.be.bignumber.equal(expectedReward)
       })
       it('total delegated more than total staked - other fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.25), 'ether')
         let delegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.75), 'ether')
-        let fee = 30
+        let fee = toBN(22.5 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: delegateAmount}).should.be.fulfilled
         await consensus.setValidatorFeeMock(fee, {from: firstCandidate}).should.be.fulfilled
@@ -818,13 +824,14 @@ contract('Consensus', async (accounts) => {
         delegators.length.should.be.equal(1)
         delegators[0].should.be.equal(firstDelegator)
         rewards.length.should.be.equal(delegators.length)
-        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
         rewards[0].should.be.bignumber.equal(expectedReward)
       })
       it('total delegated less than total staked - other fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.75), 'ether')
         let delegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.25), 'ether')
-        let fee = 30
+        let fee = toBN(22.5 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: delegateAmount}).should.be.fulfilled
         await consensus.setValidatorFeeMock(fee, {from: firstCandidate}).should.be.fulfilled
@@ -833,16 +840,17 @@ contract('Consensus', async (accounts) => {
         delegators.length.should.be.equal(1)
         delegators[0].should.be.equal(firstDelegator)
         rewards.length.should.be.equal(delegators.length)
-        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+        let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
         rewards[0].should.be.bignumber.equal(expectedReward)
       })
     })
     describe('validator with multiple delegators', async () => {
       it('total delegated more than total staked - no fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.1), 'ether')
         let firstDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.2), 'ether')
         let secondDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.7), 'ether')
-        let fee = 0
+        let fee = toBN(0 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: firstDelegateAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: secondDelegator, value: secondDelegateAmount}).should.be.fulfilled
@@ -853,14 +861,15 @@ contract('Consensus', async (accounts) => {
         delegators[0].should.be.equal(firstDelegator)
         delegators[1].should.be.equal(secondDelegator)
         rewards.length.should.be.equal(delegators.length)
-        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
-        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
+        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
+        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
       })
       it('total delegated less than total staked - no fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.7), 'ether')
         let firstDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.2), 'ether')
         let secondDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.1), 'ether')
-        let fee = 0
+        let fee = toBN(0 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: firstDelegateAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: secondDelegator, value: secondDelegateAmount}).should.be.fulfilled
@@ -871,14 +880,15 @@ contract('Consensus', async (accounts) => {
         delegators[0].should.be.equal(firstDelegator)
         delegators[1].should.be.equal(secondDelegator)
         rewards.length.should.be.equal(delegators.length)
-        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
-        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
+        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
+        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
       })
       it('total delegated more than total staked - 100% fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.1), 'ether')
         let firstDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.2), 'ether')
         let secondDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.7), 'ether')
-        let fee = 100
+        let fee = toBN(100 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: firstDelegateAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: secondDelegator, value: secondDelegateAmount}).should.be.fulfilled
@@ -889,14 +899,15 @@ contract('Consensus', async (accounts) => {
         delegators[0].should.be.equal(firstDelegator)
         delegators[1].should.be.equal(secondDelegator)
         rewards.length.should.be.equal(delegators.length)
-        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
-        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
+        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
+        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
       })
       it('total delegated less than total staked - 100% fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.7), 'ether')
         let firstDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.2), 'ether')
         let secondDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.1), 'ether')
-        let fee = 100
+        let fee = toBN(100 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: firstDelegateAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: secondDelegator, value: secondDelegateAmount}).should.be.fulfilled
@@ -907,14 +918,15 @@ contract('Consensus', async (accounts) => {
         delegators[0].should.be.equal(firstDelegator)
         delegators[1].should.be.equal(secondDelegator)
         rewards.length.should.be.equal(delegators.length)
-        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
-        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
+        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
+        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
       })
       it('total delegated more than total staked - other fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.1), 'ether')
         let firstDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.2), 'ether')
         let secondDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.7), 'ether')
-        let fee = 15
+        let fee = toBN(15 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: firstDelegateAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: secondDelegator, value: secondDelegateAmount}).should.be.fulfilled
@@ -925,14 +937,15 @@ contract('Consensus', async (accounts) => {
         delegators[0].should.be.equal(firstDelegator)
         delegators[1].should.be.equal(secondDelegator)
         rewards.length.should.be.equal(delegators.length)
-        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
-        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
+        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
+        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
       })
       it('total delegated less than total staked - other fee', async () => {
+        decimals = await consensus.DECIMALS()
         let stakeAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.7), 'ether')
         let firstDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.2), 'ether')
         let secondDelegateAmount = toWei(toBN(MIN_STAKE_AMOUNT * 0.1), 'ether')
-        let fee = 15
+        let fee = toBN(15 * decimals)
         await consensus.sendTransaction({from: firstCandidate, value: stakeAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: firstDelegateAmount}).should.be.fulfilled
         await consensus.delegate(firstCandidate, {from: secondDelegator, value: secondDelegateAmount}).should.be.fulfilled
@@ -943,17 +956,18 @@ contract('Consensus', async (accounts) => {
         delegators[0].should.be.equal(firstDelegator)
         delegators[1].should.be.equal(secondDelegator)
         rewards.length.should.be.equal(delegators.length)
-        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
-        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100)))
+        rewards[0].should.be.bignumber.equal(blockRewardAmount.mul(firstDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
+        rewards[1].should.be.bignumber.equal(blockRewardAmount.mul(secondDelegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals)))
       })
     })
     it('validator with many delegators', async () => {
+      decimals = await consensus.DECIMALS()
       let delegatorsCount = accounts.length - 2
       let delegateAmountValue = parseInt(MIN_STAKE_AMOUNT * 0.99 / delegatorsCount)
       let delegateAmount = toWei(toBN(delegateAmountValue), 'ether')
       let stakeAmountValue = MIN_STAKE_AMOUNT - delegateAmountValue * delegatorsCount
       let stakeAmount = toWei(toBN(stakeAmountValue), 'ether')
-      let fee = 5
+      let fee = toBN(5 * decimals)
       let validator = accounts[1]
       await consensus.sendTransaction({from: validator, value: stakeAmount}).should.be.fulfilled
       for (let i = 2; i < accounts.length; i++) {
@@ -964,7 +978,7 @@ contract('Consensus', async (accounts) => {
       let { 0: delegators, 1: rewards } = await consensus.getDelegatorsForRewardDistribution(firstCandidate, blockRewardAmount)
       delegators.length.should.be.equal(delegatorsCount)
       rewards.length.should.be.equal(delegators.length)
-      let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+      let expectedReward = blockRewardAmount.mul(delegateAmount).div(MIN_STAKE).mul((toBN(100).mul(decimals)).sub(validatorFee)).div(toBN(100).mul(decimals))
       for (let i = 0; i < delegatorsCount; i++) {
         delegators[i].should.be.equal(accounts[i + 2])
         rewards[i].should.be.bignumber.equal(expectedReward)

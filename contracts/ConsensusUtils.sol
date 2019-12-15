@@ -16,7 +16,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant MIN_STAKE = 3e24; // 3,000,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 17280; // 24 hours [24*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 144 minutes [17280/10/60*5]
-  uint256 public constant DEFAULT_VALIDATOR_FEE = 10;
+  uint256 public constant DEFAULT_VALIDATOR_FEE = 1e19; // 10
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -364,7 +364,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
     for (uint256 i; i < _delegators.length; i++) {
       uint256 _amount = delegatedAmount(delegatorsAtPosition(_validator, i), _validator);
-      _rewards[i] = _rewardAmount.mul(_amount).div(getMinStake()).mul(100 - validatorFee(_validator)).div(100);
+      _rewards[i] = _rewardAmount.mul(_amount).div(getMinStake()).mul(100 * DECIMALS - validatorFee(_validator)).div(100 * DECIMALS);
     }
 
     return (_delegators, _rewards);

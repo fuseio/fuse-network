@@ -96,11 +96,12 @@ contract('BlockReward', async (accounts) => {
       expectedSupply.should.be.bignumber.equal(await blockReward.getTotalSupply())
     })
     it('should give rewards to validator and its delegators', async () => {
+      let decimals = await consensus.DECIMALS()
       let minStakeAmount = await consensus.getMinStake()
       let delegatorsCount = accounts.length - 2
-      let delegateAmountValue = parseInt(minStakeAmount.div(toBN(1e18)).toNumber() * 0.99 / delegatorsCount)
+      let delegateAmountValue = parseInt(minStakeAmount.div(decimals).toNumber() * 0.99 / delegatorsCount)
       let delegateAmount = toWei(toBN(delegateAmountValue), 'ether')
-      let stakeAmountValue = minStakeAmount.div(toBN(1e18)).toNumber() - delegateAmountValue * delegatorsCount
+      let stakeAmountValue = minStakeAmount.div(decimals).toNumber() - delegateAmountValue * delegatorsCount
       let stakeAmount = toWei(toBN(stakeAmountValue), 'ether')
       let fee = 5
       let validator = accounts[1]
@@ -121,7 +122,7 @@ contract('BlockReward', async (accounts) => {
       receivers.length.should.be.equal(delegatorsCount + 1)
       rewards.length.should.be.equal(receivers.length)
       let expectedRewardForValidator = blockRewardAmount
-      let expectedRewardForDelegators = blockRewardAmount.mul(delegateAmount).div(minStakeAmount).mul(toBN(100).sub(validatorFee)).div(toBN(100))
+      let expectedRewardForDelegators = blockRewardAmount.mul(delegateAmount).div(minStakeAmount).mul((toBN(100).mul(decimals)).sub(validatorFee)).div((toBN(100).mul(decimals)))
       for (let i = 0; i < delegatorsCount; i++) {
         receivers[i].should.be.equal(accounts[i + 2])
         rewards[i].should.be.bignumber.equal(expectedRewardForDelegators)
