@@ -148,7 +148,7 @@ contract Consensus is ConsensusUtils {
   }
 
   function setValidatorFee(uint256 _amount) external onlyValidator {
-    require (_amount <= 100 * DECIMALS);
+    require (_amount <= 1 * DECIMALS);
     _setValidatorFee(msg.sender, _amount);
   }
 }

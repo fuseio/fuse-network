@@ -122,7 +122,7 @@ contract('BlockReward', async (accounts) => {
       receivers.length.should.be.equal(delegatorsCount + 1)
       rewards.length.should.be.equal(receivers.length)
       let expectedRewardForValidator = blockRewardAmount
-      let expectedRewardForDelegators = blockRewardAmount.mul(delegateAmount).div(minStakeAmount).mul((toBN(100).mul(decimals)).sub(validatorFee)).div((toBN(100).mul(decimals)))
+      let expectedRewardForDelegators = blockRewardAmount.mul(delegateAmount).div(minStakeAmount).mul(decimals.sub(validatorFee)).div(decimals)
       for (let i = 0; i < delegatorsCount; i++) {
         receivers[i].should.be.equal(accounts[i + 2])
         rewards[i].should.be.bignumber.equal(expectedRewardForDelegators)

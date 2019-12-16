@@ -52,7 +52,7 @@ contract ConsensusMock is Consensus {
   }
 
   function setValidatorFeeMock(uint256 _amount) external {
-    require (_amount <= 100 * DECIMALS);
+    require (_amount <= 1 * DECIMALS);
     _setValidatorFee(msg.sender, _amount);
   }
 }
