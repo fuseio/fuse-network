@@ -13,7 +13,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   using SafeMath for uint256;
 
   uint256 public constant DECIMALS = 10 ** 18;
-  uint256 public constant MIN_STAKE = 3e24; // 3,000,000
+  uint256 public constant MAX_VALIDATORS = 100;
+  uint256 public constant MIN_STAKE = 1e23; // 100,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 17280; // 24 hours [24*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 144 minutes [17280/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 1e17; // 10%
@@ -124,6 +125,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   /**
+  * returns maximum possible validators number
+  */
+  function getMaxValidators() public pure returns(uint256) {
+    return MAX_VALIDATORS;
+  }
+
+  /**
   * returns minimum stake (wei) needed to become a validator
   */
   function getMinStake() public pure returns(uint256) {
@@ -174,9 +182,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _setSnapshot(uint256 _snapshotId, address[] _addresses) internal {
-    _setSnapshotAddresses(_snapshotId, _addresses);
-    for (uint256 i; i < _addresses.length; i++) {
-      _setSnapshotStakeAmountForAddress(_snapshotId, _addresses[i]);
+    if (_addresses.length <= getMaxValidators()) {
+      _setSnapshotAddresses(_snapshotId, _addresses);
+    } else {
+      // TODO select MAX_VALIDATORS from _addresses array
     }
   }
 
@@ -186,14 +195,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function getSnapshotAddresses(uint256 _snapshotId) public view returns(address[]) {
     return addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId, "addresses"))];
-  }
-
-  function _setSnapshotStakeAmountForAddress(uint256 _snapshotId, address _address) internal {
-    uintStorage[keccak256(abi.encodePacked("snapshot", _snapshotId, "address", _address, "stakeAmount"))] = stakeAmount(_address);
-  }
-
-  function _getSnapshotStakeAmountForAddress(uint256 _snapshotId, address _address) internal view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("snapshot", _snapshotId, "address", _address, "stakeAmount"))];
   }
 
   function currentValidators() public view returns(address[]) {
