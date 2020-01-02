@@ -717,6 +717,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setProxyStorage(proxyStorage.address)
     })
     it('should only be called by validator', async () => {
+      decimals = await consensus.DECIMALS()
       await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
       let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
       defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
@@ -726,7 +727,7 @@ contract('Consensus', async (accounts) => {
       await consensus.setValidatorFee(newValidatorFee, {from: secondCandidate}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should only be able to set a valid fee', async () => {
-      let decimals = await consensus.DECIMALS()
+      decimals = await consensus.DECIMALS()
       let i;
       for (i = 0; i <= 100; i++) {
         await consensus.setValidatorFee(toBN(i/100 * decimals), {from: initialValidator}).should.be.fulfilled

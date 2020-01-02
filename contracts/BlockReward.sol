@@ -92,15 +92,13 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     address[] memory receivers = new address[](_delegators.length + 1);
     uint256[] memory rewards = new uint256[](receivers.length);
 
-    uint256 rewardForValidator = blockRewardAmount;
-    for (uint256 i; i < _delegators.length; i++) {
-      receivers[i] = _delegators[i];
-      rewards[i] = _rewards[i];
-      rewardForValidator = rewardForValidator.sub(rewards[i]);
+    receivers[0] = benefactors[0];
+    rewards[0] = blockRewardAmount;
+    for (uint256 i = 1; i <= _delegators.length; i++) {
+      receivers[i] = _delegators[i - 1];
+      rewards[i] = _rewards[i - 1];
+      rewards[0] = rewards[0].sub(rewards[i]);
     }
-
-    receivers[receivers.length - 1] = benefactors[0];
-    rewards[receivers.length - 1] = rewardForValidator;
 
     _setRewardedOnCycle(getRewardedOnCycle().add(blockRewardAmount));
     _setTotalSupply(getTotalSupply().add(blockRewardAmount));

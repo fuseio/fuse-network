@@ -123,13 +123,13 @@ contract('BlockReward', async (accounts) => {
       rewards.length.should.be.equal(receivers.length)
       let expectedRewardForValidator = blockRewardAmount
       let expectedRewardForDelegators = blockRewardAmount.mul(delegateAmount).div(minStakeAmount).mul(decimals.sub(validatorFee)).div(decimals)
-      for (let i = 0; i < delegatorsCount; i++) {
-        receivers[i].should.be.equal(accounts[i + 2])
+      receivers[0].should.be.equal(validator)
+      for (let i = 1; i <= delegatorsCount; i++) {
+        receivers[i].should.be.equal(accounts[i + 1])
         rewards[i].should.be.bignumber.equal(expectedRewardForDelegators)
         expectedRewardForValidator = expectedRewardForValidator.sub(expectedRewardForDelegators)
       }
-      receivers[receivers.length - 1].should.be.equal(validator)
-      rewards[receivers.length - 1].should.be.bignumber.equal(expectedRewardForValidator)
+      rewards[0].should.be.bignumber.equal(expectedRewardForValidator)
     })
     it('reward amount should update after BLOCKS_PER_YEAR and total yearly inflation should be calculated correctly', async () => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
