@@ -42,4 +42,17 @@ contract ConsensusMock is Consensus {
   function getMinStake() public pure returns(uint256) {
     return 1e22;
   }
+
+  function getCycleDurationBlocks() public pure returns(uint256) {
+    return 120;
+  }
+
+  function getSnapshotsPerCycle() public pure returns(uint256) {
+    return 10;
+  }
+
+  function setValidatorFeeMock(uint256 _amount) external {
+    require (_amount <= 1 * DECIMALS);
+    _setValidatorFee(msg.sender, _amount);
+  }
 }

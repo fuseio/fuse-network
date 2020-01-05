@@ -221,6 +221,33 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "_validator",
+        "type": "address"
+      },
+      {
+        "name": "_rewardAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDelegatorsForRewardDistribution",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]"
+      },
+      {
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "CYCLE_DURATION_BLOCKS",
     "outputs": [
@@ -263,6 +290,25 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "_validator",
+        "type": "address"
+      }
+    ],
+    "name": "delegators",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "isFinalized",
     "outputs": [
@@ -278,11 +324,67 @@
   {
     "constant": true,
     "inputs": [],
+    "name": "DEFAULT_VALIDATOR_FEE",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
     "name": "getCurrentCycleStartBlock",
     "outputs": [
       {
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_validator",
+        "type": "address"
+      }
+    ],
+    "name": "validatorFee",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_validator",
+        "type": "address"
+      },
+      {
+        "name": "_address",
+        "type": "address"
+      }
+    ],
+    "name": "isDelegator",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
       }
     ],
     "payable": false,
@@ -380,12 +482,54 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "_validator",
+        "type": "address"
+      }
+    ],
+    "name": "delegatorsLength",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "getNextSnapshotId",
     "outputs": [
       {
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_validator",
+        "type": "address"
+      },
+      {
+        "name": "_p",
+        "type": "uint256"
+      }
+    ],
+    "name": "delegatorsAtPosition",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
       }
     ],
     "payable": false,
@@ -603,6 +747,20 @@
     "constant": false,
     "inputs": [],
     "name": "emitInitiateChange",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorFee",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",

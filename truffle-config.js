@@ -41,6 +41,12 @@ module.exports = {
       network_id: 122,
       // gas: 10000000,
       gasPrice: 1000000000 // 1 gwei
+    },
+    local: {
+      provider: walletProvider,
+      network_id: 999,
+      // gas: 10000000,
+      gasPrice: 1000000000 // 1 gwei
     }
   },
   compilers: {
