@@ -39,6 +39,10 @@ contract ConsensusMock is Consensus {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
   }
 
+  function getMaxValidators() public pure returns(uint256) {
+    return 3;
+  }
+
   function getMinStake() public pure returns(uint256) {
     return 1e22;
   }
