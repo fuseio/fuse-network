@@ -4,6 +4,7 @@ import "./abstracts/ValidatorSet.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/Math.sol";
 
 /**
 * @title Consensus utility contract
@@ -182,11 +183,19 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _setSnapshot(uint256 _snapshotId, address[] _addresses) internal {
-    if (_addresses.length <= getMaxValidators()) {
-      _setSnapshotAddresses(_snapshotId, _addresses);
-    } else {
-      // TODO select MAX_VALIDATORS from _addresses array
+    uint256 len = _addresses.length;
+    uint256 n = Math.min(getMaxValidators(), len);
+    address[] memory _result = new address[](n);
+    uint256 rand = _getSeed();
+    for (uint256 i = 0; i < n; i++) {
+      uint256 j = rand % len;
+      _result[i] = _addresses[j];
+      _addresses[j] = _addresses[len - 1];
+      delete _addresses[len - 1];
+      len--;
+      rand = uint256(keccak256(abi.encodePacked(rand)));
     }
+    _setSnapshotAddresses(_snapshotId, _result);
   }
 
   function _setSnapshotAddresses(uint256 _snapshotId, address[] _addresses) internal {
@@ -403,8 +412,12 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return (block.number >= getCurrentCycleEndBlock());
   }
 
+  function _getSeed() internal view returns(uint256) {
+    return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1))));
+  }
+
   function _getRandom(uint256 _from, uint256 _to) internal view returns(uint256) {
-    return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1)))).mod(_to).add(_from);
+    return _getSeed().mod(_to.sub(_from)).add(_from);
   }
 
   function validatorFee(address _validator) public view returns(uint256) {
