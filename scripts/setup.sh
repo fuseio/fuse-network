@@ -42,13 +42,13 @@ function docker-compose {
 function config {
   echo -e "\nDowloading config files and scripts..."
 
-  wget -O quickstart.sh "https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh"
+  wget -O quickstart.sh "https://raw.githubusercontent.com/fuseio/fuse-network/testnet/scripts/quickstart.sh"
 
   chmod +x quickstart.sh
 
-  wget -O .env "https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/examples/.env.validator.example"
+  wget -O .env "https://raw.githubusercontent.com/fuseio/fuse-network/testnet/scripts/examples/.env.validator.example"
 
-  wget -O clean-docker.sh "https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/clean-docker.sh"
+  wget -O clean-docker.sh "https://raw.githubusercontent.com/fuseio/fuse-network/testnet/scripts/clean-docker.sh"
 
   chmod +x clean-docker.sh
 }

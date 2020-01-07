@@ -5,15 +5,15 @@
       "params": {
         "stepDuration": "5",
         "blockReward": "0x0",
-        "blockRewardContractAddress": "0x63D4efeD2e3dA070247bea3073BCaB896dFF6C9B",
+        "blockRewardContractAddress": "0xD14532e55B7D8C81E6b887334eED47464Eb6471c",
         "blockRewardContractTransition": 100,
         "validators": {
           "multi": {
             "0": {
-              "list": ["0xd9176e84898a0054680aec3f7c056b200c3d96c3"]
+              "list": ["0xC550F5730dD10278ac113d0bb49b7e5938bc16e3"]
             },
             "100": {
-              "safeContract": "0x3014ca10b91cb3D0AD85fEf7A3Cb95BCAc9c0f79"
+              "safeContract": "0xEdb1505B953021366D39e02651A7A3Ae7F35b13e"
             }
           }
         }
@@ -24,7 +24,7 @@
     "gasLimitBoundDivisor": "0x400",
     "maximumExtraDataSize": "0x20",
     "minGasLimit": "0x1388",
-    "networkID" : "0x07a",
+    "networkID" : "0x07b",
     "eip155Transition": 0,
     "validateChainIdTransition": 0,
     "eip140Transition": 0,
@@ -36,9 +36,9 @@
     "eip161abcTransition": "0x0",
     "eip161dTransition": "0x0",
     "eip98Transition": "0x7fffffffffffff",
-    "eip145Transition": "0x38ada7",
-    "eip1014Transition": "0x38ada7",
-    "eip1052Transition": "0x38ada7",
+    "eip145Transition": "0x6bf64",
+    "eip1014Transition": "0x6bf64",
+    "eip1052Transition": "0x6bf64",
     "maxCodeSize": 24576,
     "maxCodeSizeTransition": "0x0"
   },
@@ -61,6 +61,6 @@
       "0x0000000000000000000000000000000000000006": { "builtin": { "name": "alt_bn128_add", "activate_at": 0, "pricing": { "linear": { "base": 500, "word": 0 } } } },
       "0x0000000000000000000000000000000000000007": { "builtin": { "name": "alt_bn128_mul", "activate_at": 0, "pricing": { "linear": { "base": 40000, "word": 0 } } } },
       "0x0000000000000000000000000000000000000008": { "builtin": { "name": "alt_bn128_pairing", "activate_at": 0, "pricing": { "alt_bn128_pairing": { "base": 100000, "pair": 80000 } } } },
-      "0xd9176e84898a0054680aec3f7c056b200c3d96c3": { "balance": "300000000000000000000000000" }
+      "0xC550F5730dD10278ac113d0bb49b7e5938bc16e3": { "balance": "300000000000000000000000000" }
   }
 }
