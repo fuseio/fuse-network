@@ -6,7 +6,7 @@ const Voting = artifacts.require('Voting.sol')
 const {ERROR_MSG, ZERO_AMOUNT, SYSTEM_ADDRESS, ZERO_ADDRESS, RANDOM_ADDRESS, advanceBlocks} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
-const MAX_VALIDATORS = 3
+const MAX_VALIDATORS = 100
 const MIN_STAKE_AMOUNT = 10000
 const MULTIPLY_AMOUNT = 3
 const MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT), 'ether')
@@ -564,19 +564,13 @@ contract('Consensus', async (accounts) => {
     })
     it('snapshot with less validators than MAX_VALIDATORS - entire set should be saved', async () => {
       let expectedValidators = []
-      // add 1st validator
-      expectedValidators.push(firstCandidate)
-      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
-      let pendingValidators = await consensus.pendingValidators()
-      pendingValidators.length.should.be.equal(expectedValidators.length)
-      pendingValidators.should.deep.equal(expectedValidators)
-      // add 2nd validator
-      expectedValidators.push(secondCandidate)
-      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      for (let i = 1; i <= MAX_VALIDATORS - 1; i++) {
+        await consensus.sendTransaction({from: accounts[i-1], value: MIN_STAKE}).should.be.fulfilled
+        expectedValidators.push(accounts[i-1])
+      }
       pendingValidators = await consensus.pendingValidators()
       pendingValidators.length.should.be.equal(expectedValidators.length)
       pendingValidators.should.deep.equal(expectedValidators)
-      // take snapshot
       let blocksToSnapshot = await consensus.getBlocksToSnapshot()
       let snapshotId = await consensus.getNextSnapshotId()
       await advanceBlocks(blocksToSnapshot)
@@ -591,32 +585,20 @@ contract('Consensus', async (accounts) => {
     })
     it('snapshot with exactly MAX_VALIDATORS validators - entire set should be saved', async () => {
       let expectedValidators = []
-      // add 1st validator
-      expectedValidators.push(firstCandidate)
-      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
-      let pendingValidators = await consensus.pendingValidators()
-      pendingValidators.length.should.be.equal(expectedValidators.length)
-      pendingValidators.should.deep.equal(expectedValidators)
-      // add 2nd validator
-      expectedValidators.push(secondCandidate)
-      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      for (let i = 1; i <= MAX_VALIDATORS; i++) {
+        await consensus.sendTransaction({from: accounts[i-1], value: MIN_STAKE}).should.be.fulfilled
+        expectedValidators.push(accounts[i-1])
+      }
       pendingValidators = await consensus.pendingValidators()
       pendingValidators.length.should.be.equal(expectedValidators.length)
       pendingValidators.should.deep.equal(expectedValidators)
-      // add 3rd validator
-      expectedValidators.push(thirdCandidate)
-      await consensus.sendTransaction({from: thirdCandidate, value: MIN_STAKE}).should.be.fulfilled
-      pendingValidators = await consensus.pendingValidators()
-      pendingValidators.length.should.be.equal(expectedValidators.length)
-      pendingValidators.should.deep.equal(expectedValidators)
-      // take snapshot
       let blocksToSnapshot = await consensus.getBlocksToSnapshot()
       let snapshotId = await consensus.getNextSnapshotId()
       await advanceBlocks(blocksToSnapshot)
       await proxyStorage.setBlockRewardMock(owner)
       await consensus.cycle().should.be.fulfilled
       let snapshot = await consensus.getSnapshotAddresses(snapshotId)
-      snapshot.length.should.be.equal(MAX_VALIDATORS)
+      snapshot.length.should.be.equal(expectedValidators.length)
       snapshot.forEach(address => {
         expectedValidators.splice(expectedValidators.indexOf(address), 1)
       })
@@ -624,31 +606,13 @@ contract('Consensus', async (accounts) => {
     })
     it('snapshot with more validators than MAX_VALIDATORS - random set should be saved', async () => {
       let expectedValidators = []
-      // add 1st validator
-      expectedValidators.push(firstCandidate)
-      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
-      let pendingValidators = await consensus.pendingValidators()
-      pendingValidators.length.should.be.equal(expectedValidators.length)
-      pendingValidators.should.deep.equal(expectedValidators)
-      // add 2nd validator
-      expectedValidators.push(secondCandidate)
-      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      for (let i = 1; i <= MAX_VALIDATORS + 1; i++) {
+        await consensus.sendTransaction({from: accounts[i-1], value: MIN_STAKE}).should.be.fulfilled
+        expectedValidators.push(accounts[i-1])
+      }
       pendingValidators = await consensus.pendingValidators()
       pendingValidators.length.should.be.equal(expectedValidators.length)
       pendingValidators.should.deep.equal(expectedValidators)
-      // add 3rd validator
-      expectedValidators.push(thirdCandidate)
-      await consensus.sendTransaction({from: thirdCandidate, value: MIN_STAKE}).should.be.fulfilled
-      pendingValidators = await consensus.pendingValidators()
-      pendingValidators.length.should.be.equal(expectedValidators.length)
-      pendingValidators.should.deep.equal(expectedValidators)
-      // add 4th validator
-      expectedValidators.push(fourthCandidate)
-      await consensus.sendTransaction({from: fourthCandidate, value: MIN_STAKE}).should.be.fulfilled
-      pendingValidators = await consensus.pendingValidators()
-      pendingValidators.length.should.be.equal(expectedValidators.length)
-      pendingValidators.should.deep.equal(expectedValidators)
-      // take snapshot
       let blocksToSnapshot = await consensus.getBlocksToSnapshot()
       let snapshotId = await consensus.getNextSnapshotId()
       await advanceBlocks(blocksToSnapshot)
