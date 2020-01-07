@@ -3,14 +3,14 @@
 set -e
 
 ENV_FILE=".env"
-DOCKER_IMAGE_PARITY="fusenet/node"
+DOCKER_IMAGE_PARITY="fusenet/testnet-node"
 DOCKER_CONTAINER_PARITY="fusenet"
-DOCKER_IMAGE_APP="fusenet/validator-app"
+DOCKER_IMAGE_APP="fusenet/testnet-validator-app"
 DOCKER_CONTAINER_APP="fuseapp"
-DOCKER_IMAGE_NETSTAT="fusenet/netstat"
+DOCKER_IMAGE_NETSTAT="fusenet/testnet-netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
-DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/bridge-oracle/master/docker-compose.keystore.yml"
-DOCKER_IMAGE_ORACLE="fusenet/oracle"
+DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/fuse-bridge/testnet/native-to-erc20/oracle/docker-compose.keystore.yml"
+DOCKER_IMAGE_ORACLE="fusenet/testnet-oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
 BASE_DIR=$(pwd)/fusenet
