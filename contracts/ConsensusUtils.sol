@@ -371,7 +371,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   function getDelegatorsForRewardDistribution(address _validator, uint256 _rewardAmount) public view returns(address[], uint256[]) {
     address[] memory _delegators = delegators(_validator);
     uint256[] memory _rewards = new uint256[](_delegators.length);
-    uint256 divider = Math.max(getMinStake(), stakeAmount(_validator).sub(delegatedAmount(_validator, _validator)));
+    uint256 divider = Math.max(getMinStake(), stakeAmount(_validator));
 
     for (uint256 i; i < _delegators.length; i++) {
       uint256 _amount = delegatedAmount(delegatorsAtPosition(_validator, i), _validator);
