@@ -10,6 +10,7 @@ DOCKER_CONTAINER_APP="fuseapp"
 DOCKER_IMAGE_NETSTAT="fusenet/netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
 DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/bridge-oracle/master/docker-compose.keystore.yml"
+DOCKER_IMAGE_ORACLE_VERSION="1.0.0"
 DOCKER_IMAGE_ORACLE="fusenet/oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
@@ -326,7 +327,8 @@ function run {
     --net=container:$DOCKER_CONTAINER_PARITY \
     --restart=always \
     $DOCKER_IMAGE_NETSTAT \
-    --instance-name "$INSTANCE_NAME"
+    --instance-name "$INSTANCE_NAME" \
+    --bridge-version "$DOCKER_IMAGE_ORACLE_VERSION"
 
   echo -e "\nContainers started and running in background!"
 }
