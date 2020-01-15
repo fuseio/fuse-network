@@ -132,6 +132,11 @@ async function runMain() {
     if (!blockReward) {
       initBlockRewardContract()
     }
+    const isValidator = await consensus.methods.isValidator(web3.utils.toChecksumAddress(account)).call()
+    if (!isValidator) {
+      logger.warn(`${account} is not a validator, skipping`)
+      return
+    }
     await emitInitiateChange()
     await emitRewardedOnCycle()
   } catch (e) {
