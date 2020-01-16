@@ -281,7 +281,8 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role validator \
-        --address $address
+        --address $address \
+        --parity-args --no-warp
 
       ## Start validator-app container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
