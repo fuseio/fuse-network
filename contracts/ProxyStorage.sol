@@ -19,7 +19,9 @@ contract ProxyStorage is EternalStorage {
     Consensus,
     BlockReward,
     ProxyStorage,
-    Voting
+    Voting,
+    HomeBridge,
+    ForeignBridge
   }
 
   /**
@@ -37,6 +39,13 @@ contract ProxyStorage is EternalStorage {
   * @param contractAddress contract address set for the contract type
   */
   event AddressSet(uint256 contractType, address contractAddress);
+
+  /**
+  * @dev This event will be emitted to bootstrap bridge related contracts update flow (see https://github.com/fuseio/FIPs/blob/master/FIPS/fip-6.md)
+  * @param contractType contract type (See ContractTypes enum)
+  * @param contractAddress contract address set for the contract type
+  */
+  event UpgradeBridge(uint256 contractType, address contractAddress);
 
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
@@ -103,6 +112,8 @@ contract ProxyStorage is EternalStorage {
       success = EternalStorageProxy(this).upgradeTo(_contractAddress);
     } else if (_contractType == uint256(ContractTypes.Voting)) {
       success = EternalStorageProxy(getVoting()).upgradeTo(_contractAddress);
+    } else if (_contractType == uint256(ContractTypes.HomeBridge) || _contractType == uint256(ContractTypes.ForeignBridge)) {
+      emit UpgradeBridge(_contractType, _contractAddress);
     }
 
     if (success) {
@@ -120,7 +131,9 @@ contract ProxyStorage is EternalStorage {
       _contractType == uint256(ContractTypes.Consensus) ||
       _contractType == uint256(ContractTypes.BlockReward) ||
       _contractType == uint256(ContractTypes.ProxyStorage) ||
-      _contractType == uint256(ContractTypes.Voting);
+      _contractType == uint256(ContractTypes.Voting) ||
+      _contractType == uint256(ContractTypes.HomeBridge) ||
+      _contractType == uint256(ContractTypes.ForeignBridge);
   }
 
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
