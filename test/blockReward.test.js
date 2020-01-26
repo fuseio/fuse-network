@@ -2,6 +2,7 @@ const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
 const BlockReward = artifacts.require('BlockRewardMock.sol')
+const Voting = artifacts.require('Voting.sol')
 const {ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS} = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
@@ -36,10 +37,15 @@ contract('BlockReward', async (accounts) => {
     proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
     blockReward = await BlockReward.at(proxy.address)
 
+    // Voting
+    let votingImpl = await Voting.new()
+    proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
+    let voting = await Voting.at(proxy.address)
+
     // Initialize ProxyStorage
     await proxyStorage.initializeAddresses(
       blockReward.address,
-      voting
+      voting.address
     )
   })
 

@@ -4,6 +4,7 @@ import "./abstracts/ValidatorSet.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/Math.sol";
 
 /**
 * @title Consensus utility contract
@@ -13,7 +14,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   using SafeMath for uint256;
 
   uint256 public constant DECIMALS = 10 ** 18;
-  uint256 public constant MIN_STAKE = 3e24; // 3,000,000
+  uint256 public constant MAX_VALIDATORS = 100;
+  uint256 public constant MIN_STAKE = 1e23; // 100,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 17280; // 24 hours [24*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 144 minutes [17280/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 1e17; // 10%
@@ -124,6 +126,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   /**
+  * returns maximum possible validators number
+  */
+  function getMaxValidators() public pure returns(uint256) {
+    return MAX_VALIDATORS;
+  }
+
+  /**
   * returns minimum stake (wei) needed to become a validator
   */
   function getMinStake() public pure returns(uint256) {
@@ -174,10 +183,19 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _setSnapshot(uint256 _snapshotId, address[] _addresses) internal {
-    _setSnapshotAddresses(_snapshotId, _addresses);
-    for (uint256 i; i < _addresses.length; i++) {
-      _setSnapshotStakeAmountForAddress(_snapshotId, _addresses[i]);
+    uint256 len = _addresses.length;
+    uint256 n = Math.min(getMaxValidators(), len);
+    address[] memory _result = new address[](n);
+    uint256 rand = _getSeed();
+    for (uint256 i = 0; i < n; i++) {
+      uint256 j = rand % len;
+      _result[i] = _addresses[j];
+      _addresses[j] = _addresses[len - 1];
+      delete _addresses[len - 1];
+      len--;
+      rand = uint256(keccak256(abi.encodePacked(rand)));
     }
+    _setSnapshotAddresses(_snapshotId, _result);
   }
 
   function _setSnapshotAddresses(uint256 _snapshotId, address[] _addresses) internal {
@@ -186,14 +204,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function getSnapshotAddresses(uint256 _snapshotId) public view returns(address[]) {
     return addressArrayStorage[keccak256(abi.encodePacked("snapshot", _snapshotId, "addresses"))];
-  }
-
-  function _setSnapshotStakeAmountForAddress(uint256 _snapshotId, address _address) internal {
-    uintStorage[keccak256(abi.encodePacked("snapshot", _snapshotId, "address", _address, "stakeAmount"))] = stakeAmount(_address);
-  }
-
-  function _getSnapshotStakeAmountForAddress(uint256 _snapshotId, address _address) internal view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("snapshot", _snapshotId, "address", _address, "stakeAmount"))];
   }
 
   function currentValidators() public view returns(address[]) {
@@ -361,10 +371,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   function getDelegatorsForRewardDistribution(address _validator, uint256 _rewardAmount) public view returns(address[], uint256[]) {
     address[] memory _delegators = delegators(_validator);
     uint256[] memory _rewards = new uint256[](_delegators.length);
+    uint256 divider = Math.max(getMinStake(), stakeAmount(_validator));
 
     for (uint256 i; i < _delegators.length; i++) {
       uint256 _amount = delegatedAmount(delegatorsAtPosition(_validator, i), _validator);
-      _rewards[i] = _rewardAmount.mul(_amount).div(getMinStake()).mul(DECIMALS - validatorFee(_validator)).div(DECIMALS);
+      _rewards[i] = _rewardAmount.mul(_amount).div(divider).mul(DECIMALS - validatorFee(_validator)).div(DECIMALS);
     }
 
     return (_delegators, _rewards);
@@ -402,8 +413,12 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return (block.number >= getCurrentCycleEndBlock());
   }
 
+  function _getSeed() internal view returns(uint256) {
+    return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1))));
+  }
+
   function _getRandom(uint256 _from, uint256 _to) internal view returns(uint256) {
-    return uint256(keccak256(abi.encodePacked(blockhash(block.number - 1)))).mod(_to).add(_from);
+    return _getSeed().mod(_to.sub(_from)).add(_from);
   }
 
   function validatorFee(address _validator) public view returns(uint256) {
