@@ -122,6 +122,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   */
   function emitRewardedOnCycle() external onlyValidator {
     require(shouldEmitRewardedOnCycle());
+    require(IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).isFinalized());
     emit RewardedOnCycle(getRewardedOnCycle());
     _setShouldEmitRewardedOnCycle(false);
     _setRewardedOnCycle(0);

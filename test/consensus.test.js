@@ -124,7 +124,7 @@ contract('Consensus', async (accounts) => {
     beforeEach(async () => {
       await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
-      await consensus.setFinalizedMock(false, {from: owner})
+      await consensus.setFinalizedMock(false)
     })
     it('should fail if not called by validator', async () => {
       await consensus.emitInitiateChange({from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
@@ -154,7 +154,7 @@ contract('Consensus', async (accounts) => {
     beforeEach(async () => {
       await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
-      await consensus.setFinalizedMock(false, {from: owner})
+      await consensus.setFinalizedMock(false)
     })
     it('should only be called by SYSTEM_ADDRESS', async () => {
       await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
