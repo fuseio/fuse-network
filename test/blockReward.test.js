@@ -178,8 +178,22 @@ contract('BlockReward', async (accounts) => {
     it('should fail if not called by validator', async () => {
       await blockReward.emitRewardedOnCycle({from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
     })
-    it('should fail if `shouldEmitRewardedOnCycle` is false', async () => {
+    it('should be successful if `shouldEmitRewardedOnCycle` and `consensus.isFinalized` are true', async () => {
+      await blockReward.setShouldEmitRewardedOnCycleMock(false)
+      await consensus.setFinalizedMock(false)
       await blockReward.emitRewardedOnCycle({from: owner}).should.be.rejectedWith(ERROR_MSG)
+
+      await blockReward.setShouldEmitRewardedOnCycleMock(true)
+      await consensus.setFinalizedMock(false)
+      await blockReward.emitRewardedOnCycle({from: owner}).should.be.rejectedWith(ERROR_MSG)
+
+      await blockReward.setShouldEmitRewardedOnCycleMock(false)
+      await consensus.setFinalizedMock(true)
+      await blockReward.emitRewardedOnCycle({from: owner}).should.be.rejectedWith(ERROR_MSG)
+
+      await blockReward.setShouldEmitRewardedOnCycleMock(true)
+      await consensus.setFinalizedMock(true)
+      await blockReward.emitRewardedOnCycle({from: owner}).should.be.fulfilled
     })
     it('should be successful and emit event', async () => {
       let BLOCKS_TO_REWARD = 10
