@@ -122,7 +122,6 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   */
   function emitRewardedOnCycle() external onlyValidator {
     require(shouldEmitRewardedOnCycle());
-    require(IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).isFinalized());
     emit RewardedOnCycle(getRewardedOnCycle());
     _setShouldEmitRewardedOnCycle(false);
     _setRewardedOnCycle(0);
@@ -189,7 +188,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   }
 
   function shouldEmitRewardedOnCycle() public view returns(bool) {
-    return boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE];
+    return IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).isFinalized() && boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE];
   }
 
   function _setShouldEmitRewardedOnCycle(bool _status) internal {
