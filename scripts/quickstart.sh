@@ -136,7 +136,10 @@ function setup {
     fi
 
     export VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD
-    echo "VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD" >> $ENV_FILE
+    exists=$(cat .env | grep "VALIDATOR_KEYSTORE_PASSWORD" | wc -l)
+    if [ count -gt 0 ]; then
+      echo "VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD" >> $ENV_FILE
+    fi
 
     # Create a new account if not already done.
     if [[ ! -d "$CONFIG_DIR/keys" ]] ; then
@@ -164,7 +167,10 @@ function setup {
     fi
 
     export VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork
-    echo "VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork" >> $ENV_FILE
+    exists=$(cat .env | grep "VALIDATOR_KEYSTORE_DIR" | wc -l)
+    if [ count -gt 0 ]; then
+      echo "VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork" >> $ENV_FILE
+    fi
   else
     echo Running node - no need to create account
   fi
