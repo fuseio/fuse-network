@@ -136,8 +136,8 @@ function setup {
     fi
 
     export VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD
-    exists=$(cat .env | grep "VALIDATOR_KEYSTORE_PASSWORD" | wc -l)
-    if [ count -gt 0 ]; then
+    count=$(cat $ENV_FILE | grep "VALIDATOR_KEYSTORE_PASSWORD" | wc -l)
+    if [ $count -lt 1 ]; then
       echo "VALIDATOR_KEYSTORE_PASSWORD=$PASSWORD" >> $ENV_FILE
     fi
 
@@ -167,8 +167,8 @@ function setup {
     fi
 
     export VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork
-    exists=$(cat .env | grep "VALIDATOR_KEYSTORE_DIR" | wc -l)
-    if [ count -gt 0 ]; then
+    count=$(cat $ENV_FILE | grep "VALIDATOR_KEYSTORE_DIR" | wc -l)
+    if [ $count -lt 1 ]; then
       echo "VALIDATOR_KEYSTORE_DIR=$CONFIG_DIR/keys/FuseNetwork" >> $ENV_FILE
     fi
   else

@@ -1,11 +1,18 @@
+#!/bin/bash
+
+set -e
+
+# in case "sudo" is needed
+PERMISSION_PREFIX=""
+
 # stop all processes
-docker stop $(docker ps -aq)
+$PERMISSION_PREFIX docker stop $($PERMISSION_PREFIX docker ps -aq)
 
 # remove all containers
-docker rm $(docker ps -aq)
+$PERMISSION_PREFIX docker rm $($PERMISSION_PREFIX docker ps -aq)
 
 # remove all images
-docker rmi $(docker images -aq)
+$PERMISSION_PREFIX docker rmi $($PERMISSION_PREFIX docker images -aq)
 
 # remove all stopped containers, all dangling images, all unused networks and all unused volumes
-docker system prune --volumes
+$PERMISSION_PREFIX docker system prune --volumes
