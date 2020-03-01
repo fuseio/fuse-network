@@ -11,7 +11,7 @@ ENV PARITY_WRAPPER_SCRIPT=$HOME/parity_wrapper.sh
 
 RUN mkdir -p $PARITY_HOME_DIR && ls -la $PARITY_HOME_DIR
 
-COPY --from=parity/parity:v2.5.6-stable /bin/parity $PARITY_BIN
+COPY --from=parity/parity:v2.5.13-stable /bin/parity $PARITY_BIN
 
 ### Network RPC WebSocket
 EXPOSE 30300 8545 8546
