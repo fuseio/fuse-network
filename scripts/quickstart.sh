@@ -297,6 +297,7 @@ function run {
         --name $DOCKER_CONTAINER_APP \
         --volume $CONFIG_DIR:/config \
         --restart=always \
+        --memory="250m" \
         $DOCKER_IMAGE_APP
 
       ## Start oracle container with all necessary arguments.
@@ -333,6 +334,7 @@ function run {
     --name $DOCKER_CONTAINER_NETSTAT \
     --net=container:$DOCKER_CONTAINER_PARITY \
     --restart=always \
+    --memory="250m" \
     $DOCKER_IMAGE_NETSTAT \
     --instance-name "$INSTANCE_NAME" \
     --bridge-version "$DOCKER_IMAGE_ORACLE_VERSION"
