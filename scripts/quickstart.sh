@@ -23,6 +23,8 @@ ADDRESS_FILE=$CONFIG_DIR/address
 ADDRESS=""
 NODE_KEY=""
 INSTANCE_NAME=""
+PLATFORM=""
+
 
 declare -a VALID_ROLE_LIST=(
   bootnode
@@ -30,6 +32,31 @@ declare -a VALID_ROLE_LIST=(
   validator
   explorer
 )
+
+function setPlatform {
+
+  case "$(uname -s)" in
+
+     Darwin)
+       echo -e '\nRunning on Mac OS X'
+       PLATFORM="MAC"
+       ;;
+
+     Linux)
+       echo -e '\nRunning on Linux'
+       PLATFORM="LINUX"
+       ;;
+
+     CYGWIN*|MINGW32*|MSYS*|MINGW*)
+       echo -e '\nRunning on Windows'
+       PLATFORM="WINDOWS"
+       ;;
+     *)
+       echo 'UNKNOWN OS exiting the script here'
+       exit 1
+       ;;
+  esac
+}
 
 function sanityChecks {
   echo -e "\nSanity checks..."
@@ -97,6 +124,18 @@ function checkRoleArgument {
 function setup {
   echo -e "\nSetup..."
 
+  # Configure the NTP service before starting so all nodes in the network are synced
+  echo -e "\nConfiguring and starting ntp"
+  if [ $PLATFORM == "LINUX" ]; then
+    $PERMISSION_PREFIX apt-get install -y ntp
+    $PERMISSION_PREFIX apt-get install -y ntpdate
+    $PERMISSION_PREFIX service ntp stop
+    $PERMISSION_PREFIX ntpdate 0.pool.ntp.org
+    $PERMISSION_PREFIX service ntp start
+  elif [ $PLATFORM == "MAC" ]; then
+    $PERMISSION_PREFIX sntp -sS 0.pool.ntp.org
+  fi  
+  
   # Pull the docker images.
   echo -e "\nPull the docker images..."
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
@@ -177,7 +216,7 @@ function setup {
 }
 
 function run {
-  echo -e "\nRun..."
+  echo -e "\nRun..." 
 
   # Check if the parity container is already running.
   if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_PARITY"* ]] ; then
@@ -344,6 +383,7 @@ function run {
 
 
 # Go :)
+setPlatform
 sanityChecks
 parseArguments
 setup
