@@ -97,6 +97,13 @@ function checkRoleArgument {
 function setup {
   echo -e "\nSetup..."
 
+  # Configure the NTP service before starting so all nodes in the network are synced
+  echo -e "\nConfiguring and starting ntp"
+  $PERMISSION_PREFIX atp-get install -y ntp
+  $PERMISSION_PREFIX service ntp stop
+  $PERMISSION_PREFIX ntpdate 0.pool.ntp.org
+  $PERMISSION_PREFIX service ntp start  
+  
   # Pull the docker images.
   echo -e "\nPull the docker images..."
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
@@ -177,7 +184,7 @@ function setup {
 }
 
 function run {
-  echo -e "\nRun..."
+  echo -e "\nRun..." 
 
   # Check if the parity container is already running.
   if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_PARITY"* ]] ; then
