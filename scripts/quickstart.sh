@@ -134,8 +134,8 @@ function setup {
     $PERMISSION_PREFIX service ntp start
   elif [ $PLATFORM == "MAC" ]; then
     $PERMISSION_PREFIX sntp -sS 0.pool.ntp.org
-  fi  
-  
+  fi
+
   # Pull the docker images.
   echo -e "\nPull the docker images..."
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
@@ -216,7 +216,7 @@ function setup {
 }
 
 function run {
-  echo -e "\nRun..." 
+  echo -e "\nRun..."
 
   # Check if the parity container is already running.
   if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_PARITY"* ]] ; then
