@@ -14,6 +14,8 @@ DOCKER_IMAGE_ORACLE_VERSION="2.0.2"
 DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
+FUSE_BLOCK_API_CALL="https://explorer.fuse.io/api?module=block&action=eth_block_number"
+ETH_BLOCK_API_CALL="https://blockscout.com/eth/mainnet/api?module=block&action=eth_block_number"
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
@@ -24,7 +26,6 @@ ADDRESS=""
 NODE_KEY=""
 INSTANCE_NAME=""
 PLATFORM=""
-
 
 declare -a VALID_ROLE_LIST=(
   bootnode
@@ -56,6 +57,47 @@ function setPlatform {
        exit 1
        ;;
   esac
+}
+
+function getAndUpdateBlockNumbers {
+  #CURL the api calls and extract the current blocks
+  fuseAPIOutput="$(curl -s $FUSE_BLOCK_API_CALL)"
+  ethAPIOutput="$(curl -s $ETH_BLOCK_API_CALL)"
+
+  #split the json retun on commas
+  IFS=',' read -ra eth_array <<< "$ethAPIOutput"
+
+  #Pull appart the json returns and pull out the current block numbers for fuse and eth
+  for i in "${eth_array[@]}"
+  do
+    #look for the result in the json return	  
+    if [[ $i == *"result"* ]]; then
+      #remove the first the key and :	    
+      stripped=${i#*:}
+      #strip the white space and 0x and trailing "
+      stripped="${stripped:3:-1}"
+      #convert from hex to decimal
+      ETHBLOCK=$((16#$stripped))
+      echo "ETH BLOCK = $ETHBLOCK"
+    fi
+  done
+
+  IFS=',' read -ra fuse_array <<< "$fuseAPIOutput"
+
+  for i in "${fuse_array[@]}"
+  do
+    if [[ $i == *"result"* ]]; then
+      stripped=${i#*:}
+      stripped="${stripped:3:-1}"
+      FUSEBLOCK=$((16#$stripped))
+      echo "FUSE BLOCK = $FUSEBLOCK"
+    fi
+  done
+
+  #Open the env file and replace the exsisting block numbers with the new ones. 
+  #NOTE: this assumes that the env file only contains one line for HOME/FOREIGN_START_BLOCK
+  sed -i "s/^HOME_START_BLOCK.*/HOME_START_BLOCK=${FUSEBLOCK}/" "$ENV_FILE"
+  sed -i "s/^FOREIGN_START_BLOCK.*/FOREIGN_BRIDGE_ADDRESS=${ETHBLOCK}/" "$ENV_FILE"
 }
 
 function sanityChecks {
@@ -124,7 +166,7 @@ function checkRoleArgument {
 function setup {
   echo -e "\nSetup..."
 
-  # Configure the NTP service before starting so all nodes in the network are synced
+   # Configure the NTP service before starting so all nodes in the network are synced
   echo -e "\nConfiguring and starting ntp"
   if [ $PLATFORM == "LINUX" ]; then
     $PERMISSION_PREFIX apt-get install -y ntp
@@ -213,6 +255,9 @@ function setup {
   else
     echo Running node - no need to create account
   fi
+
+  echo -e "\nUpdating block numbers in env file"
+  getAndUpdateBlockNumbers
 }
 
 function run {
