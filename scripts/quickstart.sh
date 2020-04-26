@@ -97,7 +97,7 @@ function getAndUpdateBlockNumbers {
   #Open the env file and replace the exsisting block numbers with the new ones. 
   #NOTE: this assumes that the env file only contains one line for HOME/FOREIGN_START_BLOCK
   sed -i "s/^HOME_START_BLOCK.*/HOME_START_BLOCK=${FUSEBLOCK}/" "$ENV_FILE"
-  sed -i "s/^FOREIGN_START_BLOCK.*/FOREIGN_BRIDGE_ADDRESS=${ETHBLOCK}/" "$ENV_FILE"
+  sed -i "s/^FOREIGN_START_BLOCK.*/FOREIGN_START_BLOCK=${ETHBLOCK}/" "$ENV_FILE"
 }
 
 function sanityChecks {
