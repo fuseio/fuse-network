@@ -2,6 +2,9 @@
 
 set -e
 
+OLDIFS=$IFS
+IFS='\n'
+
 ENV_FILE=".env"
 DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
@@ -202,9 +205,9 @@ function setup {
       while [ -z "$PASSWORD" ] ; do
         echo -en "\nPlease insert a password.\nThe password will be used to encrypt your private key. The password will additionally be stored in plaintext in $PASSWORD_FILE, so that you do not have to enter it again.\n"
         while true; do
-          read -s -p "Password: " PASSWORD
+          read -s -r -p "Password: " PASSWORD
           echo
-          read -s -p "Password (again): " PASSWORD2
+          read -s -r -p "Password (again): " PASSWORD2
           echo
           [ "$PASSWORD" = "$PASSWORD2" ] && break
           echo "Passwords do not match, please try again"
@@ -433,3 +436,4 @@ sanityChecks
 parseArguments
 setup
 run
+IFS=$OLDIFS
