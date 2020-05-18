@@ -199,7 +199,6 @@ function setup {
   mkdir -p $CONFIG_DIR
   if [[ $ROLE == validator ]] ; then
     # Get password and store it.
-    IFS=$'\n'
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
 	IFS=$'\n'
       while [ -z "$PASSWORD" ] ; do
