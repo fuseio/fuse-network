@@ -199,8 +199,8 @@ function setup {
   mkdir -p $CONFIG_DIR
   if [[ $ROLE == validator ]] ; then
     # Get password and store it.
-    IFS=$'\n'
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
+	IFS=$'\n'
       while [ -z "$PASSWORD" ] ; do
         echo -en "\nPlease insert a password.\nThe password will be used to encrypt your private key. The password will additionally be stored in plaintext in $PASSWORD_FILE, so that you do not have to enter it again.\n"
         while true; do
