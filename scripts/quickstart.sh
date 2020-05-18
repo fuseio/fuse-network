@@ -3,7 +3,6 @@
 set -e
 
 OLDIFS=$IFS
-IFS='\n'
 
 ENV_FILE=".env"
 DOCKER_IMAGE_PARITY="fusenet/node"
@@ -198,9 +197,9 @@ function setup {
   # Create directories.
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
-
   if [[ $ROLE == validator ]] ; then
     # Get password and store it.
+    IFS=$'\n'
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
       while [ -z "$PASSWORD" ] ; do
         echo -en "\nPlease insert a password.\nThe password will be used to encrypt your private key. The password will additionally be stored in plaintext in $PASSWORD_FILE, so that you do not have to enter it again.\n"
@@ -213,6 +212,7 @@ function setup {
           echo "Passwords do not match, please try again"
         done
       done
+      IFS=$OLDIFS
 
       echo "$PASSWORD" > $PASSWORD_FILE
     else
