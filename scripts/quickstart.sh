@@ -176,6 +176,13 @@ function setup {
     $PERMISSION_PREFIX service ntp stop
     $PERMISSION_PREFIX ntpdate 0.pool.ntp.org
     $PERMISSION_PREFIX service ntp start
+
+    echo -e "\nDisable Transparant Huge Pages (THP)"
+    $PERMISSION_PREFIX apt-get install -y hugepages
+    $PERMISSION_PREFIX hugeadm --thp-never
+    
+    echo -e "\nEnable Overcommit Memory"
+    $PERMISSION_PREFIX  sysctl vm.overcommit_memory=1
   elif [ $PLATFORM == "MAC" ]; then
     $PERMISSION_PREFIX sntp -sS 0.pool.ntp.org
   fi
