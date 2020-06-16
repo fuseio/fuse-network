@@ -5,6 +5,8 @@
 - [Voting](#voting)
 - [Proxy Storage](#proxy-storage)
 
+![Contracts Schema](https://storage.googleapis.com/sol2uml-storage/mainnet-0x970b9bb2c0444f5e81e9d0efb84c8ccdcdcaf84d.svg "Contracts Schema")
+
 ### Consensus
 
 This contract is responsible for handling the network DPos consensus.
