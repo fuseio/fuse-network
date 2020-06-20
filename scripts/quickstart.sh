@@ -176,9 +176,18 @@ function setup {
     $PERMISSION_PREFIX service ntp stop
     $PERMISSION_PREFIX ntpdate 0.pool.ntp.org
     $PERMISSION_PREFIX service ntp start
+    
 
     echo -e "\nDisable Transparant Huge Pages (THP)"
-    $PERMISSION_PREFIX apt-get install -y hugepages
+    #check the version since hugepages isn't avaliable in U20.04
+    VER=$(lsb_release -sr)
+    VERSION_MAIN=$(echo "$VER" | cut -f1 -d".")
+    if (( $VERSION_MAIN < 20 )) ; then
+	$PERMISSION_PREFIX apt-get install -y hugepages
+    else
+	$PERMISSION_PREFIX apt-get install -y libhugetlbfs-bin
+    fi
+
     $PERMISSION_PREFIX hugeadm --thp-never
     
     echo -e "\nEnable Overcommit Memory"
