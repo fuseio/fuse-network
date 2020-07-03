@@ -16,8 +16,6 @@ DOCKER_IMAGE_ORACLE_VERSION="2.0.3"
 DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
-FUSE_BLOCK_API_CALL="https://explorer.fuse.io/api?module=block&action=eth_block_number"
-ETH_BLOCK_API_CALL="https://blockscout.com/eth/mainnet/api?module=block&action=eth_block_number"
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
@@ -62,13 +60,20 @@ function setPlatform {
 }
 
 function getAndUpdateBlockNumbers {
-  #CURL the api calls and extract the current blocks
-  fuseAPIOutput="$(curl -s $FUSE_BLOCK_API_CALL)"
-  ethAPIOutput="$(curl -s $ETH_BLOCK_API_CALL)"
+  #Grab the RPC address for mainnet and fusenet from the env file
+  ETHRPC=$(grep -i "FOREIGN_RPC_URL" "$ENV_FILE" | rev | cut -d"=" -f1 | rev)
+  FUSERPC=$(grep -i "HOME_RPC_URL" "$ENV_FILE" | rev | cut -d"=" -f1 | rev)
+  
+  #curl to get the block numbers
+  fuseAPIOutput=`curl -s -X POST -H  "Content-Type: application/json" --data '{"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []}' "$FUSERPC"`
+  ethAPIOutput=`curl -s -X POST -H  "Content-Type: application/json" --data '{"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []}' "$ETHRPC"`
 
   #split the json retun on commas
   IFS=',' read -ra eth_array <<< "$ethAPIOutput"
 
+  ETHBLOCK=0
+  FUSEBLOCK=0
+  
   #Pull appart the json returns and pull out the current block numbers for fuse and eth
   for i in "${eth_array[@]}"
   do
@@ -95,6 +100,16 @@ function getAndUpdateBlockNumbers {
       echo "FUSE BLOCK = $FUSEBLOCK"
     fi
   done
+
+  if [[ "$ETHBLOCK" == 0 ]]; then
+	  echo "Could not pull mainnet block please check your foreign RPC config"
+	  exit 1
+  fi
+
+  if [[ "$FUSEBLOCK" == 0 ]]; then
+	  echo "Could not pull fuse block please check your fuse RPC config"
+          exit 1
+  fi
 
   #Open the env file and replace the exsisting block numbers with the new ones. 
   #NOTE: this assumes that the env file only contains one line for HOME/FOREIGN_START_BLOCK
