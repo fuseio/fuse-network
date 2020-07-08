@@ -26,6 +26,7 @@ ADDRESS=""
 NODE_KEY=""
 INSTANCE_NAME=""
 PLATFORM=""
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 
 declare -a VALID_ROLE_LIST=(
   bootnode
@@ -60,46 +61,14 @@ function setPlatform {
 }
 
 function getAndUpdateBlockNumbers {
-  #Grab the RPC address for mainnet and fusenet from the env file
-  ETHRPC=$(grep -i "FOREIGN_RPC_URL" "$ENV_FILE" | rev | cut -d"=" -f1 | rev)
-  FUSERPC=$(grep -i "HOME_RPC_URL" "$ENV_FILE" | rev | cut -d"=" -f1 | rev)
   
-  #curl to get the block numbers
-  fuseAPIOutput=`curl -s -X POST -H  "Content-Type: application/json" --data '{"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []}' "$FUSERPC"`
-  ethAPIOutput=`curl -s -X POST -H  "Content-Type: application/json" --data '{"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []}' "$ETHRPC"`
-
-  #split the json retun on commas
-  IFS=',' read -ra eth_array <<< "$ethAPIOutput"
-
   ETHBLOCK=0
   FUSEBLOCK=0
-  
-  #Pull appart the json returns and pull out the current block numbers for fuse and eth
-  for i in "${eth_array[@]}"
-  do
-    #look for the result in the json return	  
-    if [[ $i == *"result"* ]]; then
-      #remove the first the key and :	    
-      stripped=${i#*:}
-      #strip the white space and 0x and trailing "
-      stripped="${stripped:3:-1}"
-      #convert from hex to decimal
-      ETHBLOCK=$((16#$stripped))
-      echo "ETH BLOCK = $ETHBLOCK"
-    fi
-  done
 
-  IFS=',' read -ra fuse_array <<< "$fuseAPIOutput"
-
-  for i in "${fuse_array[@]}"
-  do
-    if [[ $i == *"result"* ]]; then
-      stripped=${i#*:}
-      stripped="${stripped:3:-1}"
-      FUSEBLOCK=$((16#$stripped))
-      echo "FUSE BLOCK = $FUSEBLOCK"
-    fi
-  done
+  echo "Grabbing current Fuse block number"
+  FUSEBLOCK=$((`curl --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL | grep -o "\w*0x\w*"`))
+  echo "Grabbing current Eth block number"
+  ETHBLOCK=$((`curl --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL | grep -o "\w*0x\w*"`))
 
   if [[ "$ETHBLOCK" == 0 ]]; then
 	  echo "Could not pull mainnet block please check your foreign RPC config"
@@ -110,6 +79,9 @@ function getAndUpdateBlockNumbers {
 	  echo "Could not pull fuse block please check your fuse RPC config"
           exit 1
   fi
+
+  echo "ETH BLOCK = $ETHBLOCK"
+  echo "FUSE BLOCK = $FUSEBLOCK"
 
   #Open the env file and replace the exsisting block numbers with the new ones. 
   #NOTE: this assumes that the env file only contains one line for HOME/FOREIGN_START_BLOCK
