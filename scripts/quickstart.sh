@@ -16,8 +16,6 @@ DOCKER_IMAGE_ORACLE_VERSION="2.0.3"
 DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
-FUSE_BLOCK_API_CALL="https://explorer.fuse.io/api?module=block&action=eth_block_number"
-ETH_BLOCK_API_CALL="https://blockscout.com/eth/mainnet/api?module=block&action=eth_block_number"
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
@@ -28,6 +26,7 @@ ADDRESS=""
 NODE_KEY=""
 INSTANCE_NAME=""
 PLATFORM=""
+export $(grep -v '^#' "$ENV_FILE" | xargs)
 
 declare -a VALID_ROLE_LIST=(
   bootnode
@@ -62,39 +61,27 @@ function setPlatform {
 }
 
 function getAndUpdateBlockNumbers {
-  #CURL the api calls and extract the current blocks
-  fuseAPIOutput="$(curl -s $FUSE_BLOCK_API_CALL)"
-  ethAPIOutput="$(curl -s $ETH_BLOCK_API_CALL)"
+  
+  ETHBLOCK=0
+  FUSEBLOCK=0
 
-  #split the json retun on commas
-  IFS=',' read -ra eth_array <<< "$ethAPIOutput"
+  echo "Grabbing current Fuse block number"
+  FUSEBLOCK=$((`curl --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL | grep -o "\w*0x\w*"`))
+  echo "Grabbing current Eth block number"
+  ETHBLOCK=$((`curl --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL | grep -o "\w*0x\w*"`))
 
-  #Pull appart the json returns and pull out the current block numbers for fuse and eth
-  for i in "${eth_array[@]}"
-  do
-    #look for the result in the json return	  
-    if [[ $i == *"result"* ]]; then
-      #remove the first the key and :	    
-      stripped=${i#*:}
-      #strip the white space and 0x and trailing "
-      stripped="${stripped:3:-1}"
-      #convert from hex to decimal
-      ETHBLOCK=$((16#$stripped))
-      echo "ETH BLOCK = $ETHBLOCK"
-    fi
-  done
+  if [[ "$ETHBLOCK" == 0 ]]; then
+	  echo "Could not pull mainnet block please check your foreign RPC config"
+	  exit 1
+  fi
 
-  IFS=',' read -ra fuse_array <<< "$fuseAPIOutput"
+  if [[ "$FUSEBLOCK" == 0 ]]; then
+	  echo "Could not pull fuse block please check your fuse RPC config"
+          exit 1
+  fi
 
-  for i in "${fuse_array[@]}"
-  do
-    if [[ $i == *"result"* ]]; then
-      stripped=${i#*:}
-      stripped="${stripped:3:-1}"
-      FUSEBLOCK=$((16#$stripped))
-      echo "FUSE BLOCK = $FUSEBLOCK"
-    fi
-  done
+  echo "ETH BLOCK = $ETHBLOCK"
+  echo "FUSE BLOCK = $FUSEBLOCK"
 
   #Open the env file and replace the exsisting block numbers with the new ones. 
   #NOTE: this assumes that the env file only contains one line for HOME/FOREIGN_START_BLOCK
