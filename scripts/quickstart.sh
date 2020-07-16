@@ -64,18 +64,22 @@ function getAndUpdateBlockNumbers {
   
   ETHBLOCK=0
   FUSEBLOCK=0
-
+  
   echo "Grabbing current Fuse block number"
-  FUSEBLOCK=$((`curl --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL | grep -o "\w*0x\w*"`))
+  FUSEBLOCK=$((`curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL | { grep -o "\w*0x\w*" || true; }`))
+
+ 
   echo "Grabbing current Eth block number"
-  ETHBLOCK=$((`curl --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL | grep -o "\w*0x\w*"`))
+  ETHBLOCK=$((`curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL | { grep -o "\w*0x\w*" || true; }`))
 
   if [[ "$ETHBLOCK" == 0 ]]; then
+	  echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL$ADDPORT)
 	  echo "Could not pull mainnet block please check your foreign RPC config"
 	  exit 1
   fi
 
   if [[ "$FUSEBLOCK" == 0 ]]; then
+	  echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL)
 	  echo "Could not pull fuse block please check your fuse RPC config"
           exit 1
   fi
