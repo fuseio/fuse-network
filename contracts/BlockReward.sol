@@ -85,7 +85,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     require(benefactors.length == 1);
     require(kind[0] == 0);
 
-    uint256 blockRewardAmount = getBlockRewardAmount();
+    uint256 blockRewardAmount = getBlockRewardAmountPerValidator(benefactors[0]);
 
     (address[] memory _delegators, uint256[] memory _rewards) = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getDelegatorsForRewardDistribution(benefactors[0], blockRewardAmount);
 
@@ -182,6 +182,13 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   function getBlockRewardAmount() public view returns(uint256) {
     return uintStorage[BLOCK_REWARD_AMOUNT];
   }
+
+  function getBlockRewardAmountPerValidator(address _validator) public view returns(uint256) {
+    uint256 blockRewardAmount = getBlockRewardAmount();
+    return blockRewardAmount
+    // return uintStorage[BLOCK_REWARD_AMOUNT];
+  }
+
 
   function getProxyStorage() public view returns(address) {
     return addressStorage[PROXY_STORAGE];
