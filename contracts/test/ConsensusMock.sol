@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/Consensus.sol";
+import "../Consensus.sol";
 
 contract ConsensusMock is Consensus {
   function setSystemAddressMock(address _newAddress) public onlyOwner {

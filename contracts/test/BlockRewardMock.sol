@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/BlockReward.sol";
+import "../BlockReward.sol";
 
 contract BlockRewardMock is BlockReward {
   function setSystemAddressMock(address _newAddress) public onlyOwner {

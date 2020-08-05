@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/ProxyStorage.sol";
+import "../ProxyStorage.sol";
 
 contract ProxyStorageMock is ProxyStorage {
   function setBlockRewardMock(address _newAddress) public {
