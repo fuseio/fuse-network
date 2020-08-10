@@ -3,6 +3,8 @@ pragma solidity ^0.4.24;
 import "../Consensus.sol";
 
 contract ConsensusMock is Consensus {
+  uint256 currentValidatorsLengthMock = 0;
+
   function setSystemAddressMock(address _newAddress) public onlyOwner {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
@@ -51,8 +53,23 @@ contract ConsensusMock is Consensus {
     return 10;
   }
 
+  function setCurrentValidatorsLengthMock(uint256 _currentValidatorsLengthMock) external {
+    currentValidatorsLengthMock = _currentValidatorsLengthMock;
+  }
+
+  function currentValidatorsLength() public view returns(uint256) {
+    if (currentValidatorsLengthMock != 0) {
+      return currentValidatorsLengthMock;
+    }
+    return super.currentValidatorsLength();
+  }
+
   function setValidatorFeeMock(uint256 _amount) external {
     require (_amount <= 1 * DECIMALS);
     _setValidatorFee(msg.sender, _amount);
+  }
+
+  function setTotalStakeAmountMock(uint256 _totalStake) public {
+    _setTotalStakeAmount(_totalStake);
   }
 }

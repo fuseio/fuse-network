@@ -17,6 +17,15 @@
     "type": "git",
     "url": "git+https://github.com/fuseio/fuse-network.git"
   },
+  "standard": {
+    "env": {
+      "mocha": true,
+      "truffle/globals": true
+    },
+    "plugins": [
+      "truffle"
+    ]
+  },
   "author": "Lior Rabin",
   "license": "MIT",
   "dependencies": {
