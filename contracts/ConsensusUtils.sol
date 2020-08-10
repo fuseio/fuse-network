@@ -232,10 +232,16 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _currentValidatorsAdd(address _address) internal {
+    _totalStakeAmountAddValidator(_address);
     addressArrayStorage[CURRENT_VALIDATORS].push(_address);
   }
 
   function _setCurrentValidators(address[] _currentValidators) internal {
+    uint256 totalStake = 0;
+    for (uint i = 0; i < _currentValidators.length; i++) {
+      uint256 stakedAmount = stakeAmount(_currentValidators[i]);
+      totalStake = totalStake + stakedAmount;
+    }
     addressArrayStorage[CURRENT_VALIDATORS] = _currentValidators;
   }
 
@@ -291,6 +297,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function stakeAmount(address _address) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))];
+  }
+
+  function totalStakeAmount() public view returns(uint256) {
+    // return 0;
+    return uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))];
   }
 
   function _stakeAmountAdd(address _address, uint256 _amount) internal {
@@ -391,6 +402,17 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _setNewValidatorSet(address[] _newSet) internal {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
+  }
+
+  function _setTotalStakeAmount(uint256 _totalStake) internal {
+    uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
+  }
+
+  function _totalStakeAmountAddValidator(address _address) internal {
+    uint256 stakedAmount = stakeAmount(_address);
+    uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))].add(stakedAmount);
+
+    // uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
   }
 
   function shouldEmitInitiateChange() public view returns(bool) {
