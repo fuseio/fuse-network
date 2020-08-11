@@ -91,15 +91,33 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     require(_validator != address(0));
 
     // overstaking should not be possible
-    require (stakeAmount(_validator) < getMinStake());
-    require (stakeAmount(_validator).add(_amount) <= getMinStake());
+    // require (stakeAmount(_validator) < getMinStake());
+    // require (stakeAmount(_validator).add(_amount) <= getMinStake());
 
-    _delegatedAmountAdd(_staker, _validator, _amount);
-    _stakeAmountAdd(_validator, _amount);
-
-    if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
-      _pendingValidatorsAdd(_validator);
+    // _stakeAmountAdd(_validator, _amount);
+    uint256 currentAmount = stakeAmount(_validator);
+    uint256 addedAmount = currentAmount.add(currentAmount);
+    if (addedAmount < getMinStake()) {
+      _delegatedAmountAdd(_staker, _validator, _amount);
+      _stakeAmountAdd(_validator, _amount);
+      return;
     }
+    if (currentAmount > getMinStake()) {
+      // get index of the validator
+      // find the validator to move
+      // updating the validator
+    } else {
+      for (uint256 i; i < pendingValidatorsLength(); i++) {
+        address validatorAddress = pendingValidatorsAtPosition(i)
+        if (addedAmount > stakeAmount(validatorAddress)) {
+          // put validator in place i and move the rest
+        }
+    }
+      // adding validator as a new one
+    }
+    // if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
+    //   _pendingValidatorsAdd(_validator);
+    // }
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -270,9 +288,42 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     addressArrayStorage[PENDING_VALIDATORS][_p] = _address;
   }
 
+  function _findPosition(address _address) internal {
+    uint256 stake = stakeAmount(_address);
+    if (stake == 0) {
+      uint256 l = pendingValidatorsLength();
+      uint256 i = 0;
+      while (i < l) {
+        address va = pendingValidatorsAtPosition(i);
+        uint256 sa =  stakeAmount(va);
+        if (stake > sa) {
+
+        } else {
+          i++;
+        }
+      }
+    }
+  }
+
   function _pendingValidatorsAdd(address _address) internal {
+    uint256 l = pendingValidatorsLength();
+    uint256 i = 1;
+    while (i < l) {
+      uint256 j = i;
+      while (j > 0 && stakeAmount(pendingValidatorsAtPosition(j - 1)) > stakeAmount(pendingValidatorsAtPosition(j))) {
+        _pendingValidatorsSwap(j, i);
+        j = j - 1;
+      }
+      i = i + 1;
+    }
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
     _setValidatorFee(_address, DEFAULT_VALIDATOR_FEE);
+  }
+
+  function _pendingValidatorsSwap(uint256 _firstPosition, uint256 _secondPosition) {
+    address x = pendingValidatorsAtPosition(_secondPosition);
+    _setPendingValidatorsAtPosition(_secondPosition, pendingValidatorsAtPosition(_firstPosition));
+    _setPendingValidatorsAtPosition(_firstPosition, x);
   }
 
   function _pendingValidatorsRemove(address _address) internal {
