@@ -9,6 +9,7 @@
     "flatten": "scripts/flatten.sh",
     "abi": "scripts/abi.sh",
     "deploy:fuse": "node_modules/.bin/truffle migrate --reset --network fuse",
+    "deploy:testnet": "node_modules/.bin/truffle migrate --reset --network testnet",
     "deploy:local": "node_modules/.bin/truffle migrate --reset --network local",
     "app": "node app/index.js"
   },
