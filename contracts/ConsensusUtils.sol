@@ -17,7 +17,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant MAX_VALIDATORS = 100;
   uint256 public constant MIN_STAKE = 1e23; // 100,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
-  uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 288 minutes [34560/10/60*5]
+  uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 1e17; // 10%
 
   /**
@@ -94,30 +94,12 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     // require (stakeAmount(_validator) < getMinStake());
     // require (stakeAmount(_validator).add(_amount) <= getMinStake());
 
-    // _stakeAmountAdd(_validator, _amount);
-    uint256 currentAmount = stakeAmount(_validator);
-    uint256 addedAmount = currentAmount.add(currentAmount);
-    if (addedAmount < getMinStake()) {
-      _delegatedAmountAdd(_staker, _validator, _amount);
-      _stakeAmountAdd(_validator, _amount);
-      return;
+    _delegatedAmountAdd(_staker, _validator, _amount);
+    _stakeAmountAdd(_validator, _amount);
+
+    if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
+      _pendingValidatorsAdd(_validator);
     }
-    if (currentAmount > getMinStake()) {
-      // get index of the validator
-      // find the validator to move
-      // updating the validator
-    } else {
-      for (uint256 i; i < pendingValidatorsLength(); i++) {
-        address validatorAddress = pendingValidatorsAtPosition(i)
-        if (addedAmount > stakeAmount(validatorAddress)) {
-          // put validator in place i and move the rest
-        }
-    }
-      // adding validator as a new one
-    }
-    // if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
-    //   _pendingValidatorsAdd(_validator);
-    // }
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -288,42 +270,9 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     addressArrayStorage[PENDING_VALIDATORS][_p] = _address;
   }
 
-  function _findPosition(address _address) internal {
-    uint256 stake = stakeAmount(_address);
-    if (stake == 0) {
-      uint256 l = pendingValidatorsLength();
-      uint256 i = 0;
-      while (i < l) {
-        address va = pendingValidatorsAtPosition(i);
-        uint256 sa =  stakeAmount(va);
-        if (stake > sa) {
-
-        } else {
-          i++;
-        }
-      }
-    }
-  }
-
   function _pendingValidatorsAdd(address _address) internal {
-    uint256 l = pendingValidatorsLength();
-    uint256 i = 1;
-    while (i < l) {
-      uint256 j = i;
-      while (j > 0 && stakeAmount(pendingValidatorsAtPosition(j - 1)) > stakeAmount(pendingValidatorsAtPosition(j))) {
-        _pendingValidatorsSwap(j, i);
-        j = j - 1;
-      }
-      i = i + 1;
-    }
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
     _setValidatorFee(_address, DEFAULT_VALIDATOR_FEE);
-  }
-
-  function _pendingValidatorsSwap(uint256 _firstPosition, uint256 _secondPosition) {
-    address x = pendingValidatorsAtPosition(_secondPosition);
-    _setPendingValidatorsAtPosition(_secondPosition, pendingValidatorsAtPosition(_firstPosition));
-    _setPendingValidatorsAtPosition(_firstPosition, x);
   }
 
   function _pendingValidatorsRemove(address _address) internal {
@@ -351,7 +300,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function totalStakeAmount() public view returns(uint256) {
-    // return 0;
     return uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))];
   }
 
@@ -474,13 +422,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
   }
 
-  function _getBlocksToSnapshot() internal pure returns(uint256) {
-    return getCycleDurationBlocks().div(getSnapshotsPerCycle());
-  }
+  // function _getBlocksToSnapshot() internal pure returns(uint256) {
+  //   return getCycleDurationBlocks().div(getSnapshotsPerCycle());
+  // }
 
-  function _shouldTakeSnapshot() internal view returns(bool) {
-    return (block.number - getLastSnapshotTakenAtBlock() >= _getBlocksToSnapshot());
-  }
+  // function _shouldTakeSnapshot() internal view returns(bool) {
+  //   return (block.number - getLastSnapshotTakenAtBlock() >= _getBlocksToSnapshot());
+  // }
 
   function _hasCycleEnded() internal view returns(bool) {
     return (block.number >= getCurrentCycleEndBlock());

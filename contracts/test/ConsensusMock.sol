@@ -17,17 +17,17 @@ contract ConsensusMock is Consensus {
     return _hasCycleEnded();
   }
 
-  function shouldTakeSnapshot() public view returns(bool) {
-    return _shouldTakeSnapshot();
-  }
+  // function shouldTakeSnapshot() public view returns(bool) {
+  //   return _shouldTakeSnapshot();
+  // }
 
   function getRandom(uint256 _from, uint256 _to) public view returns(uint256) {
     return _getRandom(_from, _to);
   }
 
-  function getBlocksToSnapshot() public pure returns(uint256) {
-    return _getBlocksToSnapshot();
-  }
+  // function getBlocksToSnapshot() public pure returns(uint256) {
+  //   return _getBlocksToSnapshot();
+  // }
 
   function setNewValidatorSetMock(address[] _newSet) public {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
