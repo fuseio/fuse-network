@@ -47,7 +47,7 @@ module.exports = {
       network_id: 123,
       host: 'localhost',
       port: 8545,
-      gas: 30000000,
+      // gas: 10000000,
       gasPrice: 1000000000 // 1 gwei
     },
     local: {
