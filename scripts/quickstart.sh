@@ -398,7 +398,7 @@ function run {
       # $PERMISSION_PREFIX docker-compose up \
       #   --build \
       #   -d
-      # ;;
+      ;;
 
     "explorer")
       INSTANCE_NAME=$NODE_KEY
