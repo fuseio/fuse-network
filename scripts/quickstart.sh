@@ -13,7 +13,7 @@ DOCKER_IMAGE_NETSTAT="fusenet/testnet-netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
 DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/fuse-bridge/testnet-v2/native-to-erc20/oracle/docker-compose.keystore.yml"
 DOCKER_IMAGE_ORACLE_VERSION="2.0.5"
-DOCKER_IMAGE_ORACLE="fusenet/testnet-native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
+DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
 BASE_DIR=$(pwd)/fusenet
@@ -195,7 +195,7 @@ function setup {
   if [[ $ROLE == validator ]] ; then
     echo -e "\nPull additional docker images..."
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
-    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
+    # $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
     wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
@@ -395,10 +395,10 @@ function run {
         $DOCKER_IMAGE_APP
 
       ## Start oracle container with all necessary arguments.
-      $PERMISSION_PREFIX docker-compose up \
-        --build \
-        -d
-      ;;
+      # $PERMISSION_PREFIX docker-compose up \
+      #   --build \
+      #   -d
+      # ;;
 
     "explorer")
       INSTANCE_NAME=$NODE_KEY
