@@ -1,27 +1,29 @@
 # Fuse Network
 
-- [General](#general)
-  - [Clone Repository](#clone-repository)
-  - [Install Dependencies](#install-dependencies)
-  - [Run Unit Tests](#run-unit-tests)
-- [Contracts](#contracts)
-  - [Documentation](https://github.com/fuseio/fuse-network/blob/master/CONTRACTS.md)
-  - [Compile](#compile)
-  - [Flatten](#flatten)
-  - [Deploy](#deploy)
-- [Run Local Node](#run-local-node)
-  - [Pre-Requisites](#pre-requisites)
-  - [Hardware](#hardware) 
-  - [Quickstart](#using-quickstart)
-  - [Using Docker](#using-docker)
-    - [Usage](#usage)
-    - [Examples](#examples)
-	    - [Bootnode](#bootnode)
-	    - [Node](#node)
-	    - [Validator](#validator)
-	    	- [Create New Account](#create-new-account)
-	    - [Explorer node](#explorer-node)
-- [Validators App](https://github.com/fuseio/fuse-network/tree/master/app/README.md)
+- [Fuse Network](#fuse-network)
+  - [General](#general)
+    - [Clone Repository](#clone-repository)
+    - [Install Dependencies](#install-dependencies)
+    - [Run Unit Tests](#run-unit-tests)
+  - [Contracts](#contracts)
+    - [Compile](#compile)
+    - [ABIs](#abis)
+    - [Flatten](#flatten)
+    - [Deploy](#deploy)
+  - [Run Local Node](#run-local-node)
+    - [Pre-Requisites](#pre-requisites)
+    - [Hardware](#hardware)
+        - [Bootnode, Node or Explorer Node](#bootnode-node-or-explorer-node)
+        - [Validator](#validator)
+    - [Using Quickstart](#using-quickstart)
+    - [Using Docker](#using-docker)
+      - [Usage](#usage)
+      - [Examples](#examples)
+        - [Bootnode](#bootnode)
+        - [Node](#node)
+        - [Validator](#validator-1)
+        - [Create New Account](#create-new-account)
+        - [Explorer node](#explorer-node)
 
 ## General
 ### Clone Repository
@@ -132,9 +134,9 @@ The script will make sure you have everything that is necessary, create a new ac
 The script can be called multiple times without problems, so it checks what is already there and will at least update all service processes.
 
 ```sh
-$ wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh
+$ wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/testnet-v2/scripts/quickstart.sh
 $ chmod 777 quickstart.sh
-$ wget -O .env https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/examples/.env.<ROLE>.example
+$ wget -O .env https://raw.githubusercontent.com/fuseio/fuse-network/testnet-v2/scripts/examples/.env.<ROLE>.example
 $ ./quickstart.sh
 ```
 
