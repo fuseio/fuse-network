@@ -395,9 +395,9 @@ function run {
         $DOCKER_IMAGE_APP
 
       ## Start oracle container with all necessary arguments.
-      $PERMISSION_PREFIX docker-compose up \
-        --build \
-        -d
+      # $PERMISSION_PREFIX docker-compose up \
+      #   --build \
+      #   -d
       ;;
 
     "explorer")
