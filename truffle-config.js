@@ -45,8 +45,6 @@ module.exports = {
     testnet: {
       provider: walletProvider,
       network_id: 123,
-      host: 'localhost',
-      port: 8545,
       // gas: 10000000,
       gasPrice: 1000000000 // 1 gwei
     },
