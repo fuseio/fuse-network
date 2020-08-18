@@ -33,12 +33,13 @@ module.exports = function(deployer, network, accounts) {
 
     deployer.then(async function() {
       /*
-      In case the consensus implementation fails to deploy with truffle,
-      use other tool like remix and put the address here in the following way:
+      // In case the consensus implementation fails to deploy with truffle,
+      // use other tool like remix and put the address here in the following way:
       consensusImpl = {
         address: '0x789b5f79EAd29C4dc39b22C12602D59f6c613e4C'
       }
       */
+
       // Consensus
       consensusImpl = await Consensus.new()
       debug(`consensusImpl: ${consensusImpl.address}`)
