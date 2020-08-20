@@ -97,8 +97,14 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
 
-    if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
-      _pendingValidatorsAdd(_validator);
+    if (stakeAmount(_validator) >= getMinStake()) {
+      // _totalStakeAmountAdd(_amount);
+      if (!isPendingValidator(_validator)) {
+        _totalStakeAmountAdd(stakeAmount(_validator));
+        _pendingValidatorsAdd(_validator);
+      } else {
+        _totalStakeAmountAdd(_amount);
+      }
     }
   }
 
@@ -232,7 +238,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _currentValidatorsAdd(address _address) internal {
-    _totalStakeAmountAddValidator(_address);
+    // _totalStakeAmountAddValidator(_address);
     addressArrayStorage[CURRENT_VALIDATORS].push(_address);
   }
 
@@ -407,11 +413,15 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
   }
 
-  function _totalStakeAmountAddValidator(address _address) internal {
-    uint256 stakedAmount = stakeAmount(_address);
-    uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))].add(stakedAmount);
+  // function _totalStakeAmountAddValidator(address _address) internal {
+  //   uint256 stakedAmount = stakeAmount(_address);
+  //   uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))].add(stakedAmount);
 
-    // uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
+  //   // uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
+  // }
+
+  function _totalStakeAmountAdd(uint256 _stakeAmount) internal {
+    uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))].add(_stakeAmount);
   }
 
   function shouldEmitInitiateChange() public view returns(bool) {

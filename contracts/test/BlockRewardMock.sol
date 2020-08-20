@@ -18,4 +18,8 @@ contract BlockRewardMock is BlockReward {
   function setShouldEmitRewardedOnCycleMock(bool _status) public {
     boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE] = _status;
   }
+
+  function cycleMock() public {
+    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+  }
 }
