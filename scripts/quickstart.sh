@@ -377,7 +377,7 @@ function run {
         --volume $CONFIG_DIR:/config/custom \
         -p 30303:30300/tcp \
         -p 30303:30300/udp \
-        -p 8545:8545 \
+        -p 80:8545 \
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role validator \
