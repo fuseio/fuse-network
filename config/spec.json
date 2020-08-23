@@ -5,15 +5,15 @@
 			"params": {
 				"stepDuration": "5",
 				"blockReward": "0x0",
-				"blockRewardContractAddress": "0x3b8C048DdEC04709125aF939360BDD619Ec6e9E3",
-				"blockRewardContractTransition": 100,
+				"blockRewardContractAddress": "0xf07DE7A149d302d7DE21D0273784Dd068F92c019",
+				"blockRewardContractTransition": 1300,
 				"validators": {
 					"multi": {
 						"0": {
 							"list": [ "0xbb79a903f699f2e54c970ac7ab30403a56f67804" ]
 						},
-            "100": {
-              "safeContract": "0xF5C4782d61611e12CD9651355841716ea1801d5c"
+            "1300": {
+              "safeContract": "0x15686B4bc108C0e4a75220D56d7f6f53A0B49d54"
             }
 					}
 				}

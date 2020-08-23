@@ -187,7 +187,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     IConsensus consensus = IConsensus(ProxyStorage(getProxyStorage()).getConsensus());
     uint256 stakeAmount = consensus.stakeAmount(_validator);
     uint256 totalStakeAmount = consensus.totalStakeAmount();
-    uint256 currentValidatorsLength = consensus.currentValidatorsLength();
+    uint256 currentValidatorsLength = 1;
     return getBlockRewardAmount().mul(stakeAmount).mul(currentValidatorsLength).div(totalStakeAmount);
   }
 
