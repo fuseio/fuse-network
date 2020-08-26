@@ -205,6 +205,10 @@ function setup {
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
   if [[ $ROLE == validator ]] ; then
+    
+    echo -e "\nUpdating block numbers in env file"
+    getAndUpdateBlockNumbers
+	  
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
 	IFS=$'\n'
@@ -265,9 +269,6 @@ function setup {
   else
     echo Running node - no need to create account
   fi
-
-  echo -e "\nUpdating block numbers in env file"
-  getAndUpdateBlockNumbers
 }
 
 function run {
@@ -324,6 +325,10 @@ function run {
   case $ROLE in
     "bootnode")
       INSTANCE_NAME=$NODE_KEY
+      
+      key=$(printf "$NODE_KEY" | openssl dgst -sha3-256 | grep -o "\w* \w*" )
+      key="0x${key:1}"
+      echo "Your node key is = $key"
 
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
@@ -339,7 +344,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $NODE_KEY --bootnodes=$BOOTNODES
+        --parity-args --no-warp --node-key $key --max-pending-peers 128 --max-peers 128 --min-peers 80  --bootnodes=$BOOTNODES
       ;;
 
     "node")
