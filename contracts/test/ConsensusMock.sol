@@ -69,7 +69,15 @@ contract ConsensusMock is Consensus {
     _setValidatorFee(msg.sender, _amount);
   }
 
-  function setTotalStakeAmountMock(uint256 _totalStake) public {
+  function _setCycleStakeAmountMock(address _address, uint256 _amount) public {
+    _setCycleStakeAmount(_address, _amount);
+  }
+
+    function setTotalStakeAmountMock(uint256 _totalStake) public {
     _setTotalStakeAmount(_totalStake);
+  }
+
+  function stakeAmountAddMock(address _address, uint256 _amount) public {
+    _stakeAmountAdd(_address, _amount);
   }
 }
