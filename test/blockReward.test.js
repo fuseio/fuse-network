@@ -1,4 +1,5 @@
 /* eslint-disable prefer-const */
+/* eslint-disable object-curly-spacing */
 const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
@@ -249,12 +250,18 @@ contract('BlockReward', async (accounts) => {
     })
     it('reward amount should update after BLOCKS_PER_YEAR and total yearly inflation should be calculated correctly', async () => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
-
+      await consensus.setTotalStakeAmountMock(0)
+      await consensus.sendTransaction({ from: accounts[3], value: minStakeAmount }).should.be.fulfilled
+      console.log(await consensus.currentValidatorsLength())
+      console.log((await consensus.stakeAmount(accounts[3])).toString(10))
+      console.log((await consensus.totalStakeAmount()).toString(10))
+      console.log((await blockReward.getBlockRewardAmountPerValidator(accounts[3])).toString(10))
       let decimals = await blockReward.DECIMALS()
       let initialSupply = await blockReward.getTotalSupply()
       let blocksPerYear = await blockReward.getBlocksPerYear()
       let inflation = await blockReward.getInflation()
       let blockRewardAmount = await blockReward.getBlockRewardAmount()
+      console.log(blockRewardAmount.toString(10))
       // console.log(`initialSupply: ${initialSupply.div(decimals).toNumber()}, blockRewardAmount: ${blockRewardAmount.div(decimals).toNumber()}`)
 
       // each of the following calls advances a block
@@ -309,6 +316,13 @@ contract('BlockReward', async (accounts) => {
       let BLOCKS_TO_REWARD = 10
       let blockRewardAmount = await blockReward.getBlockRewardAmount()
       let expectedAmount = blockRewardAmount.mul(toBN(BLOCKS_TO_REWARD))
+      let minStakeAmount = await consensus.getMinStake()
+      await consensus.sendTransaction({from: accounts[3], value: minStakeAmount}).should.be.fulfilled
+
+      console.log(await consensus.currentValidatorsLength())
+      console.log((await consensus.stakeAmount(accounts[3])).toString(10))
+      console.log((await consensus.totalStakeAmount()).toString(10))
+      // console.log((await blockReward.getBlockRewardAmountPerValidator(accounts[3])).toString(10))
 
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       for (let i = 0; i < BLOCKS_TO_REWARD; i++) {
