@@ -84,6 +84,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   bytes32 internal constant WAS_PROXY_STORAGE_SET = keccak256(abi.encodePacked("wasProxyStorageSet"));
   bytes32 internal constant NEW_VALIDATOR_SET = keccak256(abi.encodePacked("newValidatorSet"));
   bytes32 internal constant SHOULD_EMIT_INITIATE_CHANGE = keccak256(abi.encodePacked("shouldEmitInitiateChange"));
+  bytes32 internal constant TOTAL_STAKE_AMOUNT = keccak256(abi.encodePacked("totalStakeAmount"));
 
   function _delegate(address _staker, uint256 _amount, address _validator) internal {
     require(_staker != address(0));
@@ -98,7 +99,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     _stakeAmountAdd(_validator, _amount);
 
     if (stakeAmount(_validator) >= getMinStake()) {
-      // _totalStakeAmountAdd(_amount);
       if (!isPendingValidator(_validator)) {
         _totalStakeAmountAdd(stakeAmount(_validator));
         _pendingValidatorsAdd(_validator);
@@ -306,7 +306,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function totalStakeAmount() public view returns(uint256) {
-    return uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))];
+    return uintStorage[TOTAL_STAKE_AMOUNT];
   }
 
   function _stakeAmountAdd(address _address, uint256 _amount) internal {
@@ -410,7 +410,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _setTotalStakeAmount(uint256 _totalStake) internal {
-    uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
+    uintStorage[TOTAL_STAKE_AMOUNT] = _totalStake;
   }
 
   // function _totalStakeAmountAddValidator(address _address) internal {
@@ -421,7 +421,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   // }
 
   function _totalStakeAmountAdd(uint256 _stakeAmount) internal {
-    uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))].add(_stakeAmount);
+    uintStorage[TOTAL_STAKE_AMOUNT] = uintStorage[TOTAL_STAKE_AMOUNT].add(_stakeAmount);
+  }
+
+  function _totalStakeAmountSub(uint256 _stakeAmount) internal {
+    uintStorage[TOTAL_STAKE_AMOUNT] = uintStorage[TOTAL_STAKE_AMOUNT].sub(_stakeAmount);
   }
 
   function shouldEmitInitiateChange() public view returns(bool) {

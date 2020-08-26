@@ -77,8 +77,16 @@ contract Consensus is ConsensusUtils {
 
     _delegatedAmountSub(msg.sender, msg.sender, _amount);
     _stakeAmountSub(msg.sender, _amount);
+    
     if (stakeAmount(msg.sender) < getMinStake()) {
-      _pendingValidatorsRemove(msg.sender);
+      if (isPendingValidator(msg.sender)) {
+        _pendingValidatorsRemove(msg.sender);
+         _totalStakeAmountSub(stakeAmount(msg.sender));
+      }
+    } else {
+      if (isPendingValidator(msg.sender)) {
+        _totalStakeAmountSub(_amount);
+      }
     }
 
     msg.sender.transfer(_amount);
