@@ -16,6 +16,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant MAX_VALIDATORS = 100;
   uint256 public constant MIN_STAKE = 1e23; // 100,000
+  uint256 public constant MAX_STAKE = 5e24; // 5,000,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 1e17; // 10%
@@ -97,6 +98,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
+    
+    require(stakeAmount(_validator) <= getMaxStake());
 
     if (stakeAmount(_validator) >= getMinStake()) {
       if (!isPendingValidator(_validator)) {
@@ -143,6 +146,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   */
   function getMinStake() public pure returns(uint256) {
     return MIN_STAKE;
+  }
+
+  /**
+  * returns maximum stake (wei) for a validator
+  */
+  function getMaxStake() public pure returns(uint256) {
+    return MAX_STAKE;
   }
 
   /**

@@ -6,6 +6,7 @@ const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
 const BlockReward = artifacts.require('BlockRewardMock.sol')
 const Voting = artifacts.require('Voting.sol')
 const { ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS } = require('./helpers')
+const { ZERO, ONE, TWO, THREE, FOUR } = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const INITIAL_SUPPLY = toWei(toBN(300000000000000000 || 0), 'gwei')
@@ -51,135 +52,147 @@ contract('BlockReward', async (accounts) => {
     )
   })
 
-  describe('initialize', async () => {
-    it('default values', async () => {
-      await blockReward.initialize(INITIAL_SUPPLY)
-      owner.should.equal(await proxy.getOwner())
-      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await blockReward.getSystemAddress()))
-      let decimals = await blockReward.DECIMALS()
-      let initialSupply = await blockReward.getTotalSupply()
-      let blocksPerYear = await blockReward.getBlocksPerYear()
-      let inflation = await blockReward.getInflation()
+  // describe('initialize', async () => {
+  //   it('default values', async () => {
+  //     await blockReward.initialize(INITIAL_SUPPLY)
+  //     owner.should.equal(await proxy.getOwner())
+  //     toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await blockReward.getSystemAddress()))
+  //     let decimals = await blockReward.DECIMALS()
+  //     let initialSupply = await blockReward.getTotalSupply()
+  //     let blocksPerYear = await blockReward.getBlocksPerYear()
+  //     let inflation = await blockReward.getInflation()
 
-      INITIAL_SUPPLY.should.be.bignumber.equal(initialSupply)
-      toBN(BLOCKS_PER_YEAR).should.be.bignumber.equal(blocksPerYear)
-      toBN(YEARLY_INFLATION_PERCENTAGE).should.be.bignumber.equal(inflation)
+  //     INITIAL_SUPPLY.should.be.bignumber.equal(initialSupply)
+  //     toBN(BLOCKS_PER_YEAR).should.be.bignumber.equal(blocksPerYear)
+  //     toBN(YEARLY_INFLATION_PERCENTAGE).should.be.bignumber.equal(inflation)
 
-      let blockRewardAmount = (initialSupply.mul(decimals).mul(inflation).div(toBN(100))).div(blocksPerYear).div(decimals)
-      blockRewardAmount.should.be.bignumber.equal(await blockReward.getBlockRewardAmount())
-    })
-  })
+  //     let blockRewardAmount = (initialSupply.mul(decimals).mul(inflation).div(toBN(100))).div(blocksPerYear).div(decimals)
+  //     blockRewardAmount.should.be.bignumber.equal(await blockReward.getBlockRewardAmount())
+  //   })
+  // })
 
   describe('reward', async () => {
     let minStakeAmount
     beforeEach(async () => {
       await blockReward.initialize(INITIAL_SUPPLY)
       minStakeAmount = await consensus.getMinStake()
-      await consensus.setTotalStakeAmountMock(minStakeAmount)
+      // await consensus.setTotalStakeAmountMock(ZERO)
     })
 
-    // describe('#getBlockRewardAmountPerValidator', () => {
-    //   let blockRewardAmount
-    //   beforeEach(async () => {
-    //     blockRewardAmount = await blockReward.getBlockRewardAmount()
-    //   })
-    //   it('block reward with one validator', async () => {
-    //     const minStakeAmount = await consensus.getMinStake()
-    //     // await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
+    describe('#getBlockRewardAmountPerValidator', () => {
+      let blockRewardAmount
+      let validator, secondValidator
+      beforeEach(async () => {
+        blockRewardAmount = await blockReward.getBlockRewardAmount()
+        validator = accounts[1]
+        secondValidator = accounts[2]
+      })
+      it('block reward with one validator', async () => {
+        const minStakeAmount = await consensus.getMinStake()
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
 
-    //     const validator = accounts[1]
-    //     await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
-    //     const l = await consensus.currentValidatorsLength()
-    //     console.log(l.toString(10))
-    //     console.log(blockRewardAmount.toString(10))
-    //     '1'.should.be.equal(l.toString(10))
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        // await consensus.sendTransaction({ from: validator, value: minStakeAmount.mul(toBN(4)) }).should.be.fulfilled
 
-    //     const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
-    //     console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
-    //     const expectedReward = blockRewardAmount.div(toBN(10))
-    //     expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
-    //   })
+        // mocking total supply
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
+        const l = await consensus.currentValidatorsLength()
+        console.log(l.toString(10))
+        console.log(blockRewardAmount.toString(10))
+        '1'.should.be.equal(l.toString(10))
 
-    //   it('block reward of one validator staking 100% of the total stake', async () => {
-    //     const minStakeAmount = await consensus.getMinStake()
-    //     await consensus.setTotalStakeAmountMock(minStakeAmount)
+        const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
+        console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
+        const expectedReward = blockRewardAmount.div(toBN(10))
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+      })
 
-    //     const validator = accounts[1]
-    //     await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
-    //     const l = await consensus.currentValidatorsLength()
-    //     console.log(l.toString(10))
-    //     console.log(blockRewardAmount.toString(10))
-    //     '1'.should.be.equal(l.toString(10))
+      it('block reward of one validator staking 100% of the total stake', async () => {
+        const minStakeAmount = await consensus.getMinStake()
 
-    //     const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
-    //     console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
-    //     const expectedReward = blockRewardAmount
-    //     expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
-    //   })
+        const validator = accounts[1]
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        await consensus.setTotalStakeAmountMock(minStakeAmount)
 
-    //   it('block reward of 1 validator of 2, staking 10% of the total stake', async () => {
-    //     const minStakeAmount = await consensus.getMinStake()
-    //     await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
-    //     await consensus.setCurrentValidatorsLengthMock(toBN(2))
-    //     const validator = accounts[1]
-    //     await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        const l = await consensus.currentValidatorsLength()
+        console.log(l.toString(10))
+        console.log(blockRewardAmount.toString(10))
+        '1'.should.be.equal(l.toString(10))
 
-    //     const l = await consensus.currentValidatorsLength()
-    //     '2'.should.be.equal(l.toString(10))
+        const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
+        console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
+        const expectedReward = blockRewardAmount
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+      })
 
-    //     const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
-    //     console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
+      it('block reward of 1 validator of 2, staking 10% of the total stake', async () => {
+        const minStakeAmount = await consensus.getMinStake()
+        const validator = accounts[1]
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
 
-    //     // expected reward calculation
-    //     const expectedReward = blockRewardAmount.div(toBN(10)).mul(toBN(2))
-    //     expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
-    //   })
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
+        await consensus.setCurrentValidatorsLengthMock(toBN(2))
 
-    //   it('block reward of 1 validator of 2, staking 50% of the total stake', async () => {
-    //     const minStakeAmount = await consensus.getMinStake()
-    //     await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(2)))
-    //     await consensus.setCurrentValidatorsLengthMock(toBN(2))
-    //     const validator = accounts[1]
-    //     await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        const l = await consensus.currentValidatorsLength()
+        '2'.should.be.equal(l.toString(10))
 
-    //     const l = await consensus.currentValidatorsLength()
-    //     '2'.should.be.equal(l.toString(10))
+        const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
+        console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
 
-    //     const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
-    //     console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
+        // expected reward calculation
+        const expectedReward = blockRewardAmount.div(toBN(10)).mul(toBN(2))
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+      })
 
-    //     // expected reward calculation
-    //     const expectedReward = blockRewardAmount.div(toBN(2)).mul(toBN(2))
-    //     expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
-    //   })
+      it('block reward of 1 validator of 2, staking 50% of the total stake', async () => {
+        const minStakeAmount = await consensus.getMinStake()
 
-    //   it('block reward does not changed if the propotion stays the same', async () => {
-    //     const minStakeAmount = await consensus.getMinStake()
-    //     await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(2)))
-    //     await consensus.setCurrentValidatorsLengthMock(toBN(2))
-    //     const validator = accounts[1]
-    //     await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        const validator = accounts[1]
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(2)))
+        await consensus.setCurrentValidatorsLengthMock(toBN(2))
 
-    //     const l = await consensus.currentValidatorsLength()
-    //     '2'.should.be.equal(l.toString(10))
+        const l = await consensus.currentValidatorsLength()
+        '2'.should.be.equal(l.toString(10))
 
-    //     const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
-    //     console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
+        const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
+        console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
 
-    //     // total stake is 50 * minStakeAmount now
-    //     await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(100)))
-    //     // validator stake is 50 * minStakeAmount now
-    //     await consensus.sendTransaction({ from: validator, value: minStakeAmount.mul(toBN(49)) }).should.be.fulfilled
+        // expected reward calculation
+        const expectedReward = blockRewardAmount.div(toBN(2)).mul(toBN(2))
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+      })
 
-    //     // expected reward calculation
-    //     const expectedReward = blockRewardAmount.div(toBN(2)).mul(toBN(2))
-    //     expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
-    //   })
-    // })
+      it('block reward does not changed if the propotion stays the same', async () => {
+        const minStakeAmount = await consensus.getMinStake()
+
+        const validator = accounts[1]
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(2)))
+        await consensus.setCurrentValidatorsLengthMock(toBN(2))
+
+        const l = await consensus.currentValidatorsLength()
+        '2'.should.be.equal(l.toString(10))
+
+        const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
+        console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
+
+        // validator stake is 5 * minStakeAmount now
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount.mul(toBN(4)) }).should.be.fulfilled
+        // total stake is 10 * minStakeAmount now
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
+
+
+        // expected reward calculation
+        const expectedReward = blockRewardAmount.div(toBN(2)).mul(toBN(2))
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+      })
+    })
 
     it('can only be called by system address', async () => {
       await blockReward.reward([accounts[3]], [0]).should.be.rejectedWith(ERROR_MSG)
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+      await consensus.sendTransaction({from: owner, value: minStakeAmount}).should.be.fulfilled
       await blockReward.reward([accounts[3]], [0], {from: mockSystemAddress}).should.be.fulfilled
     })
     it('should revert if input array contains more than one item', async () => {
@@ -338,59 +351,59 @@ contract('BlockReward', async (accounts) => {
     })
   })
 
-  // describe('upgradeTo', async () => {
-  //   let blockRewardOldImplementation, blockRewardNew
-  //   let proxyStorageStub = accounts[3]
-  //   beforeEach(async () => {
-  //     blockReward = await BlockReward.new()
-  //     blockRewardOldImplementation = blockReward.address
-  //     proxy = await EternalStorageProxy.new(proxyStorage.address, blockReward.address)
-  //     blockReward = await BlockReward.at(proxy.address)
-  //     blockRewardNew = await BlockReward.new()
-  //   })
-  //   it('should only be called by ProxyStorage', async () => {
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(blockRewardNew.address, {from: owner}).should.be.rejectedWith(ERROR_MSG)
-  //     let {logs} = await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
-  //     logs[0].event.should.be.equal('Upgraded')
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //   })
-  //   it('should change implementation address', async () => {
-  //     blockRewardOldImplementation.should.be.equal(await proxy.getImplementation())
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //     blockRewardNew.address.should.be.equal(await proxy.getImplementation())
-  //   })
-  //   it('should increment implementation version', async () => {
-  //     let blockRewardOldVersion = await proxy.getVersion()
-  //     let blockRewardNewVersion = blockRewardOldVersion.add(toBN(1))
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //     blockRewardNewVersion.should.be.bignumber.equal(await proxy.getVersion())
-  //   })
-  //   it('should work after upgrade', async () => {
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //     blockRewardNew = await BlockReward.at(proxy.address)
-  //     false.should.be.equal(await blockRewardNew.isInitialized())
-  //     await blockRewardNew.initialize(INITIAL_SUPPLY).should.be.fulfilled
-  //     true.should.be.equal(await blockRewardNew.isInitialized())
-  //   })
-  //   it('should use same proxyStorage after upgrade', async () => {
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
-  //     blockRewardNew = await BlockReward.at(proxy.address)
-  //     proxyStorageStub.should.be.equal(await blockRewardNew.getProxyStorage())
-  //   })
-  //   it('should use same storage after upgrade', async () => {
-  //     await blockReward.setSystemAddressMock(RANDOM_ADDRESS, {from: owner})
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
-  //     blockRewardNew = await BlockReward.at(proxy.address)
-  //     RANDOM_ADDRESS.should.be.equal(await blockReward.getSystemAddress())
-  //   })
-  // })
+  describe('upgradeTo', async () => {
+    let blockRewardOldImplementation, blockRewardNew
+    let proxyStorageStub = accounts[3]
+    beforeEach(async () => {
+      blockReward = await BlockReward.new()
+      blockRewardOldImplementation = blockReward.address
+      proxy = await EternalStorageProxy.new(proxyStorage.address, blockReward.address)
+      blockReward = await BlockReward.at(proxy.address)
+      blockRewardNew = await BlockReward.new()
+    })
+    it('should only be called by ProxyStorage', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(blockRewardNew.address, {from: owner}).should.be.rejectedWith(ERROR_MSG)
+      let {logs} = await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
+      logs[0].event.should.be.equal('Upgraded')
+      await proxy.setProxyStorageMock(proxyStorage.address)
+    })
+    it('should change implementation address', async () => {
+      blockRewardOldImplementation.should.be.equal(await proxy.getImplementation())
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      blockRewardNew.address.should.be.equal(await proxy.getImplementation())
+    })
+    it('should increment implementation version', async () => {
+      let blockRewardOldVersion = await proxy.getVersion()
+      let blockRewardNewVersion = blockRewardOldVersion.add(toBN(1))
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      blockRewardNewVersion.should.be.bignumber.equal(await proxy.getVersion())
+    })
+    it('should work after upgrade', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      blockRewardNew = await BlockReward.at(proxy.address)
+      false.should.be.equal(await blockRewardNew.isInitialized())
+      await blockRewardNew.initialize(INITIAL_SUPPLY).should.be.fulfilled
+      true.should.be.equal(await blockRewardNew.isInitialized())
+    })
+    it('should use same proxyStorage after upgrade', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
+      blockRewardNew = await BlockReward.at(proxy.address)
+      proxyStorageStub.should.be.equal(await blockRewardNew.getProxyStorage())
+    })
+    it('should use same storage after upgrade', async () => {
+      await blockReward.setSystemAddressMock(RANDOM_ADDRESS, {from: owner})
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(blockRewardNew.address, {from: proxyStorageStub})
+      blockRewardNew = await BlockReward.at(proxy.address)
+      RANDOM_ADDRESS.should.be.equal(await blockReward.getSystemAddress())
+    })
+  })
 })

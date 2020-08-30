@@ -45,6 +45,10 @@ contract ConsensusMock is Consensus {
     return 1e22;
   }
 
+  function getMaxStake() public pure returns(uint256) {
+    return 5e22;
+  }
+
   function getCycleDurationBlocks() public pure returns(uint256) {
     return 120;
   }
