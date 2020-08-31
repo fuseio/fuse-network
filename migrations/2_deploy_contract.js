@@ -78,6 +78,8 @@ module.exports = function(deployer, network, accounts) {
       await proxyStorage.initializeAddresses(blockReward.address, voting.address)
       debug(`proxyStorage.initializeAddresses: ${blockReward.address}, ${voting.address}`)
 
+      // TODO:
+      // stake to consensus on behalf of the initial validator
       if (!!SAVE_TO_FILE === true) {
         const contracts = {
           "BlockReward": blockReward.address,

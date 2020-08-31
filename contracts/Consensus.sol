@@ -71,25 +71,7 @@ contract Consensus is ConsensusUtils {
   * @param _amount the amount msg.sender wishes to withdraw from the contract
   */
   function withdraw(uint256 _amount) external {
-    require(_amount > 0);
-    require(_amount <= stakeAmount(msg.sender));
-    require(_amount <= delegatedAmount(msg.sender, msg.sender));
-
-    _delegatedAmountSub(msg.sender, msg.sender, _amount);
-    _stakeAmountSub(msg.sender, _amount);
-    
-    if (stakeAmount(msg.sender) < getMinStake()) {
-      if (isPendingValidator(msg.sender)) {
-        _pendingValidatorsRemove(msg.sender);
-         _totalStakeAmountSub(stakeAmount(msg.sender));
-      }
-    } else {
-      if (isPendingValidator(msg.sender)) {
-        _totalStakeAmountSub(_amount);
-      }
-    }
-
-    msg.sender.transfer(_amount);
+    _withdraw(msg.sender, _amount, msg.sender);
   }
 
   /**
@@ -98,30 +80,7 @@ contract Consensus is ConsensusUtils {
   * @param _amount the amount msg.sender wishes to withdraw from the contract
   */
   function withdraw(address _validator, uint256 _amount) external {
-    require(_validator != address(0));
-    require(_amount > 0);
-    require(_amount <= stakeAmount(_validator));
-    require(_amount <= delegatedAmount(msg.sender, _validator));
-
-    _delegatedAmountSub(msg.sender, _validator, _amount);
-    _stakeAmountSub(_validator, _amount);
-
-    if (stakeAmount(_validator) < getMinStake()) {
-      _pendingValidatorsRemove(_validator);
-    }
-
-    if (stakeAmount(_validator) < getMinStake()) {
-      if (isPendingValidator(_validator)) {
-        _pendingValidatorsRemove(_validator);
-         _totalStakeAmountSub(stakeAmount(_validator));
-      }
-    } else {
-      if (isPendingValidator(_validator)) {
-        _totalStakeAmountSub(_amount);
-      }
-    }
-
-    msg.sender.transfer(_amount);
+    _withdraw(msg.sender, _amount, _validator);
   }
 
   /**
