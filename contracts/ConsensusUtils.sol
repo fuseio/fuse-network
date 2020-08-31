@@ -98,17 +98,52 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
-    
+
+    // stake amount of the validator isn't greater than the max stake
     require(stakeAmount(_validator) <= getMaxStake());
 
-    if (stakeAmount(_validator) >= getMinStake()) {
-      if (!isPendingValidator(_validator)) {
-        _totalStakeAmountAdd(stakeAmount(_validator));
-        _pendingValidatorsAdd(_validator);
-      } else {
-        _totalStakeAmountAdd(_amount);
-      }
+    // the validator must stake himselft the minimum stake
+    if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
+      _pendingValidatorsAdd(_validator);
     }
+
+    // if _validator is one of the current validators
+    if (isValidator(_validator)) {
+      // the total stake needs to be adjusted for the block reward formula
+      _totalStakeAmountAdd(_amount);
+    }
+  }
+
+  function _withdraw(address _staker, uint256 _amount, address _validator) internal {
+    require(_validator != address(0));
+    require(_amount > 0);
+    require(_amount <= stakeAmount(_validator));
+    require(_amount <= delegatedAmount(_staker, _validator));
+
+    bool _isValidator = isValidator(_validator);
+
+    // if new stake amount is lesser than minStake and the validator is one of the current validators
+    if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
+      // do not withdaw the amount until the validator is in current set
+      _pendingValidatorsRemove(_validator);
+      return;
+    }
+
+
+    _delegatedAmountSub(_staker, _validator, _amount);
+    _stakeAmountSub(_validator, _amount);
+
+    // if _validator is one of the current validators
+    if (_isValidator) {
+      // the total stake needs to be adjusted for the block reward formula
+      _totalStakeAmountSub(_amount);
+    }
+
+    // if validator is needed to be removed from pending, but not current
+    if (stakeAmount(_validator) < getMinStake()) {
+      _pendingValidatorsRemove(_validator);
+    }
+    _staker.transfer(_amount);
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -258,6 +293,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
       uint256 stakedAmount = stakeAmount(_currentValidators[i]);
       totalStake = totalStake + stakedAmount;
     }
+    _setTotalStakeAmount(totalStake);
     addressArrayStorage[CURRENT_VALIDATORS] = _currentValidators;
   }
 
@@ -308,6 +344,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
       }
       delete addressArrayStorage[PENDING_VALIDATORS][lastIndex];
       addressArrayStorage[PENDING_VALIDATORS].length--;
+      // if the validator in on of the current validators
     }
   }
 
