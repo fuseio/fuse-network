@@ -74,162 +74,202 @@ contract('Consensus', async (accounts) => {
     await consensus.finalizeChange().should.be.fulfilled
   }
 
-  // describe('initialize', async () => {
-  //   it('default values', async () => {
-  //     ZERO.should.be.bignumber.equal(await consensus.currentValidatorsLength())
-  //     await consensus.initialize(initialValidator)
-  //     await consensus.setProxyStorage(proxyStorage.address)
-  //     owner.should.equal(await proxy.getOwner())
-  //     toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.getSystemAddress()))
-  //     true.should.be.equal(await consensus.isFinalized())
-  //     MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
-  //     MAX_STAKE.should.be.bignumber.equal(await consensus.getMaxStake())
-  //     toBN(MAX_VALIDATORS).should.be.bignumber.equal(await consensus.getMaxValidators())
-  //     toBN(CYCLE_DURATION_BLOCKS).should.be.bignumber.equal(await consensus.getCycleDurationBlocks())
-  //     toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
-  //     ZERO.should.be.bignumber.equal(await consensus.stakeAmount(initialValidator))
-  //     ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
-  //     // toBN(CYCLE_DURATION_BLOCKS / SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getBlocksToSnapshot())
-  //     false.should.be.equal(await consensus.hasCycleEnded())
-  //     ZERO.should.be.bignumber.equal(await consensus.getLastSnapshotTakenAtBlock())
-  //     ZERO.should.be.bignumber.equal(await consensus.getNextSnapshotId())
-  //     ONE.should.be.bignumber.equal(await consensus.currentValidatorsLength())
-  //     let validators = await consensus.getValidators()
-  //     validators.length.should.be.equal(1)
-  //     validators[0].should.be.equal(initialValidator)
-  //     let pendingValidators = await consensus.pendingValidators()
-  //     pendingValidators.length.should.be.equal(0)
-  //   })
-  //   it('initial validator address not defined - owner should be initial validator', async () => {
-  //     await consensus.initialize(ZERO_ADDRESS)
-  //     await consensus.setProxyStorage(proxyStorage.address)
-  //     let validators = await consensus.getValidators()
-  //     validators.length.should.be.equal(1)
-  //     validators[0].should.be.equal(owner)
-  //   })
-  //   it('initial validator address defined', async () => {
-  //     await consensus.initialize(initialValidator)
-  //     let validators = await consensus.getValidators()
-  //     validators.length.should.be.equal(1)
-  //     validators[0].should.be.equal(initialValidator)
-  //   })
+  describe('initialize', async () => {
+    it('default values', async () => {
+      ZERO.should.be.bignumber.equal(await consensus.currentValidatorsLength())
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+      owner.should.equal(await proxy.getOwner())
+      toChecksumAddress(SYSTEM_ADDRESS).should.be.equal(toChecksumAddress(await consensus.getSystemAddress()))
+      true.should.be.equal(await consensus.isFinalized())
+      MIN_STAKE.should.be.bignumber.equal(await consensus.getMinStake())
+      MAX_STAKE.should.be.bignumber.equal(await consensus.getMaxStake())
+      toBN(MAX_VALIDATORS).should.be.bignumber.equal(await consensus.getMaxValidators())
+      toBN(CYCLE_DURATION_BLOCKS).should.be.bignumber.equal(await consensus.getCycleDurationBlocks())
+      toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
+      ZERO.should.be.bignumber.equal(await consensus.stakeAmount(initialValidator))
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      // toBN(CYCLE_DURATION_BLOCKS / SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getBlocksToSnapshot())
+      false.should.be.equal(await consensus.hasCycleEnded())
+      ZERO.should.be.bignumber.equal(await consensus.getLastSnapshotTakenAtBlock())
+      ZERO.should.be.bignumber.equal(await consensus.getNextSnapshotId())
+      ONE.should.be.bignumber.equal(await consensus.currentValidatorsLength())
+      let validators = await consensus.getValidators()
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(initialValidator)
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(0)
+    })
+    it('initial validator address not defined - owner should be initial validator', async () => {
+      await consensus.initialize(ZERO_ADDRESS)
+      await consensus.setProxyStorage(proxyStorage.address)
+      let validators = await consensus.getValidators()
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(owner)
+    })
+    it('initial validator address defined', async () => {
+      await consensus.initialize(initialValidator)
+      let validators = await consensus.getValidators()
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(initialValidator)
+    })
 
-  //   it('initial validator is added to pending after sending fuse', async () => {
-  //     await consensus.initialize(initialValidator)
-  //     await consensus.setProxyStorage(proxyStorage.address)
-  //     true.should.be.equal(await consensus.isFinalized())
-  //     let validators = await consensus.getValidators()
-  //     validators.length.should.be.equal(1)
-  //     validators[0].should.be.equal(initialValidator)
-  //     let pendingValidators = await consensus.pendingValidators()
-  //     pendingValidators.length.should.be.equal(0)
+    it('initial validator is added to pending after sending fuse', async () => {
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+      true.should.be.equal(await consensus.isFinalized())
+      let validators = await consensus.getValidators()
+      validators.length.should.be.equal(1)
+      validators[0].should.be.equal(initialValidator)
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(0)
 
-  //     await consensus.sendTransaction({from: initialValidator, value: MIN_STAKE}).should.be.fulfilled
+      await consensus.sendTransaction({from: initialValidator, value: MIN_STAKE}).should.be.fulfilled
 
-  //     pendingValidators = await consensus.pendingValidators()
-  //     pendingValidators.length.should.be.equal(1)
-  //     pendingValidators[0].should.be.equal(initialValidator)
+      pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      pendingValidators[0].should.be.equal(initialValidator)
 
-  //     toBN(MIN_STAKE).should.be.bignumber.equal(await consensus.stakeAmount(initialValidator))
-  //     toBN(MIN_STAKE).should.be.bignumber.equal(await consensus.totalStakeAmount())
-  //   })
-  // })
+      toBN(MIN_STAKE).should.be.bignumber.equal(await consensus.stakeAmount(initialValidator))
+      toBN(MIN_STAKE).should.be.bignumber.equal(await consensus.totalStakeAmount())
+    })
+  })
 
-  // describe('setProxyStorage', async () => {
-  //   beforeEach(async () => {
-  //     await consensus.initialize(initialValidator)
-  //   })
-  //   it('setProxyStorage should fail if no address', async () => {
-  //     await consensus.setProxyStorage(ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
-  //   })
-  //   it('setProxyStorage should fail if not called by owner', async () => {
-  //     await consensus.setProxyStorage(proxyStorage.address, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
-  //     // success
-  //     await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
-  //     proxyStorage.address.should.be.equal(await consensus.getProxyStorage())
-  //     // should not be able to set again if already set
-  //     await consensus.setProxyStorage(RANDOM_ADDRESS).should.be.rejectedWith(ERROR_MSG)
-  //   })
-  //   it('setProxyStorage successfully', async () => {
-  //     await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
-  //     proxyStorage.address.should.be.equal(await consensus.getProxyStorage())
-  //   })
-  //   it('setProxyStorage should not be able to set again if already set', async () => {
-  //     await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
-  //     await consensus.setProxyStorage(RANDOM_ADDRESS).should.be.rejectedWith(ERROR_MSG)
-  //   })
-  // })
-  
-  // describe('emitInitiateChange', async () => {
-  //   beforeEach(async () => {
-  //     await consensus.initialize(initialValidator)
-  //     await consensus.setProxyStorage(proxyStorage.address)
-  //     await consensus.setFinalizedMock(false)
-  //   })
-  //   it('should fail if not called by validator', async () => {
-  //     await consensus.emitInitiateChange({from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
-  //   })
-  //   it('should fail if newValidatorSet is empty', async () => {
-  //     await consensus.setShouldEmitInitiateChangeMock(true)
-  //     await consensus.emitInitiateChange({from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
-  //   })
-  //   it('should fail if `shouldEmitInitiateChange` is false', async () => {
-  //     let mockSet = [firstCandidate, secondCandidate]
-  //     await consensus.setNewValidatorSetMock(mockSet)
-  //     await consensus.emitInitiateChange({from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
-  //   })
-  //   it('should be successful and emit event', async () => {
-  //     await consensus.setShouldEmitInitiateChangeMock(true)
-  //     let mockSet = [firstCandidate, secondCandidate]
-  //     await consensus.setNewValidatorSetMock(mockSet)
-  //     let {logs} = await consensus.emitInitiateChange({from: initialValidator}).should.be.fulfilled
-  //     false.should.be.equal(await consensus.shouldEmitInitiateChange())
-  //     logs.length.should.be.equal(1)
-  //     logs[0].event.should.be.equal('InitiateChange')
-  //     logs[0].args['newSet'].should.deep.equal(mockSet)
-  //   })
-  // })
-  
-  // describe('finalizeChange', async () => {
-  //   beforeEach(async () => {
-  //     await consensus.initialize(initialValidator)
-  //     await consensus.setProxyStorage(proxyStorage.address)
-  //     await consensus.setFinalizedMock(false)
-  //   })
-  //   it('should only be called by SYSTEM_ADDRESS', async () => {
-  //     await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
-  //     await consensus.setSystemAddressMock(accounts[0], {from: owner})
-  //     await consensus.finalizeChange().should.be.fulfilled
-  //   })
-  //   it('should set finalized to true', async () => {
-  //     false.should.be.equal(await consensus.isFinalized())
-  //     await consensus.setSystemAddressMock(accounts[0])
-  //     await consensus.finalizeChange().should.be.fulfilled
-  //     true.should.be.equal(await consensus.isFinalized())
-  //   })
-  //   it('should not update current validators set if new set is empty', async () => {
-  //     let initialValidators = await consensus.getValidators()
-  //     let mockSet = []
-  //     await consensus.setNewValidatorSetMock(mockSet)
-  //     await consensus.setSystemAddressMock(accounts[0])
-  //     let {logs} = await consensus.finalizeChange().should.be.fulfilled
-  //     let currentValidators = await consensus.getValidators()
-  //     currentValidators.length.should.be.equal(1)
-  //     currentValidators.should.deep.equal(initialValidators)
-  //     logs.length.should.be.equal(0)
-  //   })
-  //   it('should update current validators set', async () => {
-  //     let mockSet = [firstCandidate, secondCandidate]
-  //     await consensus.setNewValidatorSetMock(mockSet)
-  //     await consensus.setSystemAddressMock(accounts[0])
-  //     let {logs} = await consensus.finalizeChange().should.be.fulfilled
-  //     let currentValidators = await consensus.getValidators()
-  //     currentValidators.length.should.be.equal(2)
-  //     currentValidators.should.deep.equal(mockSet)
-  //     logs[0].event.should.be.equal('ChangeFinalized')
-  //     logs[0].args['newSet'].should.deep.equal(mockSet)
-  //   })
-  // })
+  describe('setProxyStorage', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator)
+    })
+    it('setProxyStorage should fail if no address', async () => {
+      await consensus.setProxyStorage(ZERO_ADDRESS).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('setProxyStorage should fail if not called by owner', async () => {
+      await consensus.setProxyStorage(proxyStorage.address, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
+      // success
+      await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
+      proxyStorage.address.should.be.equal(await consensus.getProxyStorage())
+      // should not be able to set again if already set
+      await consensus.setProxyStorage(RANDOM_ADDRESS).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('setProxyStorage successfully', async () => {
+      await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
+      proxyStorage.address.should.be.equal(await consensus.getProxyStorage())
+    })
+    it('setProxyStorage should not be able to set again if already set', async () => {
+      await consensus.setProxyStorage(proxyStorage.address).should.be.fulfilled
+      await consensus.setProxyStorage(RANDOM_ADDRESS).should.be.rejectedWith(ERROR_MSG)
+    })
+  })
+
+  describe('emitInitiateChange', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+      await consensus.setFinalizedMock(false)
+    })
+    it('should fail if not called by validator', async () => {
+      await consensus.emitInitiateChange({from: nonOwner}).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('should fail if newValidatorSet is empty', async () => {
+      await consensus.setShouldEmitInitiateChangeMock(true)
+      await consensus.emitInitiateChange({from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('should fail if `shouldEmitInitiateChange` is false', async () => {
+      let mockSet = [firstCandidate, secondCandidate]
+      await consensus.setNewValidatorSetMock(mockSet)
+      await consensus.emitInitiateChange({from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
+    })
+    it('should be successful and emit event', async () => {
+      await consensus.setShouldEmitInitiateChangeMock(true)
+      let mockSet = [firstCandidate, secondCandidate]
+      await consensus.setNewValidatorSetMock(mockSet)
+      let {logs} = await consensus.emitInitiateChange({from: initialValidator}).should.be.fulfilled
+      false.should.be.equal(await consensus.shouldEmitInitiateChange())
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('InitiateChange')
+      logs[0].args['newSet'].should.deep.equal(mockSet)
+    })
+  })
+
+  describe('finalizeChange', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+      await consensus.setFinalizedMock(false)
+    })
+    it('should only be called by SYSTEM_ADDRESS', async () => {
+      await consensus.finalizeChange().should.be.rejectedWith(ERROR_MSG)
+      await consensus.setSystemAddressMock(accounts[0], {from: owner})
+      await consensus.finalizeChange().should.be.fulfilled
+    })
+    it('should set finalized to true', async () => {
+      false.should.be.equal(await consensus.isFinalized())
+      await consensus.setSystemAddressMock(accounts[0])
+      await consensus.finalizeChange().should.be.fulfilled
+      true.should.be.equal(await consensus.isFinalized())
+    })
+    it('should not update current validators set if new set is empty', async () => {
+      let initialValidators = await consensus.getValidators()
+      let mockSet = []
+      await consensus.setNewValidatorSetMock(mockSet)
+      await consensus.setSystemAddressMock(accounts[0])
+      let {logs} = await consensus.finalizeChange().should.be.fulfilled
+      let currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(1)
+      currentValidators.should.deep.equal(initialValidators)
+      logs.length.should.be.equal(0)
+    })
+    it.only('should update current validators set', async () => {
+      let mockSet = [firstCandidate, secondCandidate]
+      await consensus.setNewValidatorSetMock(mockSet)
+      await consensus.setSystemAddressMock(accounts[0])
+      let {logs} = await consensus.finalizeChange().should.be.fulfilled
+      let currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(2)
+      currentValidators.should.deep.equal(mockSet)
+      logs[0].event.should.be.equal('ChangeFinalized')
+      logs[0].args['newSet'].should.deep.equal(mockSet)
+
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+    })
+
+    context.only('with staking', () => {
+      it('adding validators should update the total stake', async () => {
+        let mockSet = [firstCandidate, secondCandidate]
+
+        await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+        await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+        await consensus.setNewValidatorSetMock(mockSet)
+        await consensus.setSystemAddressMock(accounts[0])
+
+        let {logs} = await consensus.finalizeChange().should.be.fulfilled
+        let currentValidators = await consensus.getValidators()
+        currentValidators.length.should.be.equal(2)
+        currentValidators.should.deep.equal(mockSet)
+        logs[0].event.should.be.equal('ChangeFinalized')
+        logs[0].args['newSet'].should.deep.equal(mockSet)
+
+        MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.totalStakeAmount())
+      })
+
+      it('removing validators should update the total stake', async () => {
+        let mockSet = [firstCandidate, secondCandidate]
+
+        await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+        await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+        await consensus.setNewValidatorSetMock(mockSet)
+        await consensus.setSystemAddressMock(accounts[0])
+
+        let {logs} = await consensus.finalizeChange().should.be.fulfilled
+        let currentValidators = await consensus.getValidators()
+        currentValidators.length.should.be.equal(2)
+        currentValidators.should.deep.equal(mockSet)
+        logs[0].event.should.be.equal('ChangeFinalized')
+        logs[0].args['newSet'].should.deep.equal(mockSet)
+
+        MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.totalStakeAmount())
+      })
+    })
+  })
 
   describe('stake (fallback function)', async () => {
     beforeEach(async () => {
