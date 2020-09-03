@@ -26,6 +26,9 @@ ADDRESS=""
 NODE_KEY=""
 INSTANCE_NAME=""
 PLATFORM=""
+REQUIRED_DRIVE_SPACE_MB=15360
+REQUIRED_RAM_MB=1800
+
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
 declare -a VALID_ROLE_LIST=(
@@ -34,6 +37,40 @@ declare -a VALID_ROLE_LIST=(
   validator
   explorer
 )
+
+function docker {
+  echo -e "\nInstalling docker..."
+
+  $PERMISSION_PREFIX apt-get update
+
+  $PERMISSION_PREFIX apt-get install \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      gnupg-agent \
+      software-properties-common
+
+  curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | $PERMISSION_PREFIX apt-key add -
+
+  $PERMISSION_PREFIX add-apt-repository \
+     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+     $(lsb_release -cs) \
+     stable"
+
+  $PERMISSION_PREFIX apt-get update
+
+  $PERMISSION_PREFIX apt-get install docker-ce docker-ce-cli containerd.io
+}
+
+function docker-compose {
+  echo -e "\nInstalling docker-compose..."
+
+  $PERMISSION_PREFIX curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+  $PERMISSION_PREFIX chmod +x /usr/local/bin/docker-compose
+
+  $PERMISSION_PREFIX ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+}
 
 function setPlatform {
 
@@ -93,19 +130,53 @@ function getAndUpdateBlockNumbers {
   sed -i "s/^FOREIGN_START_BLOCK.*/FOREIGN_START_BLOCK=${ETHBLOCK}/" "$ENV_FILE"
 }
 
+function checkDiskSpace {
+  if [ $PLATFORM == "LINUX" ]; then
+    mountedDrive=$(df --output=target quickstart.sh | tail -n1)
+    totalDriveSpaceBytes=$(df -k --output=size "$mountedDrive" | tail -n1)
+    totalDriveSpaceMB=$(( totalDriveSpaceBytes / 1024 ))
+    if [[ "$totalDriveSpaceMB" < "$REQUIRED_DRIVE_SPACE_MB" ]]; then
+      echo "Not enoguh total drive space! you have $totalDriveSpaceMB MB you require at least $REQUIRED_DRIVE_SPACE_MB MB to be a validator"
+      exit 1
+    fi
+  fi
+}
+
+function checkAmountOfRam {
+  if [ $PLATFORM == "LINUX" ]; then
+    totalMemoryBytes=$(free|awk '/^Mem:/{print $2}')
+    totalMemoryMB=$(( totalMemoryBytes / 1024 ))
+    if [[ "$totalMemoryMB" < "$REQUIRED_RAM_MB" ]]; then
+      echo "Not enough total system memory! you have $totalMemoryMB MB you require at least $REQUIRED_RAM_MB MB to be a validator"
+      exit 1
+    fi
+  fi
+}
+
 function sanityChecks {
   echo -e "\nSanity checks..."
+
+  checkDiskSpace
+  checkAmountOfRam
 
   # Check if docker is ready to use.
   if ! command -v docker>/dev/null ; then
     echo "docker is not available!"
-    exit 1
+    if [ $PLATFORM == "LINUX" ]; then
+      docker
+    else	    
+      exit 1
+    fi
   fi
 
   # Check if docker-compose is ready to use.
   if ! command -v docker-compose>/dev/null ; then
     echo "docker-compose is not available!"
-    exit 1
+    if [ $PLATFORM == "LINUX" ]; then
+      docker-compose
+    else
+      exit 1
+    fi
   fi
 
   # Check if .env file exists.
