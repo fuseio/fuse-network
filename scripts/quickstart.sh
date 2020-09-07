@@ -38,7 +38,7 @@ declare -a VALID_ROLE_LIST=(
   explorer
 )
 
-function docker {
+function install_docker {
   echo -e "\nInstalling docker..."
 
   $PERMISSION_PREFIX apt-get update
@@ -59,10 +59,10 @@ function docker {
 
   $PERMISSION_PREFIX apt-get update
 
-  $PERMISSION_PREFIX apt-get install docker-ce docker-ce-cli containerd.io
+  $PERMISSION_PREFIX apt-get install -y docker-ce docker-ce-cli containerd.io
 }
 
-function docker-compose {
+function install_docker-compose {
   echo -e "\nInstalling docker-compose..."
 
   $PERMISSION_PREFIX curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -160,20 +160,24 @@ function sanityChecks {
   checkAmountOfRam
 
   # Check if docker is ready to use.
-  if ! command -v docker>/dev/null ; then
+  if [[ "$(command -v docker)" && "$(which docker)" ]]; then 
+    echo "docker already installed"
+  else    
     echo "docker is not available!"
     if [ $PLATFORM == "LINUX" ]; then
-      docker
+      install_docker
     else	    
       exit 1
     fi
   fi
 
   # Check if docker-compose is ready to use.
-  if ! command -v docker-compose>/dev/null ; then
+  if [[ "$(command -v docker-compose)" && "$(which docker-compose)" ]]; then  
+    echo "docker-compose already installed"
+  else
     echo "docker-compose is not available!"
     if [ $PLATFORM == "LINUX" ]; then
-      docker-compose
+      install_docker-compose
     else
       exit 1
     fi
