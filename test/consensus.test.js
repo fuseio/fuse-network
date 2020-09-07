@@ -89,7 +89,6 @@ contract('Consensus', async (accounts) => {
       toBN(SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getSnapshotsPerCycle())
       ZERO.should.be.bignumber.equal(await consensus.stakeAmount(initialValidator))
       ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
-      // toBN(CYCLE_DURATION_BLOCKS / SNAPSHOTS_PER_CYCLE).should.be.bignumber.equal(await consensus.getBlocksToSnapshot())
       false.should.be.equal(await consensus.hasCycleEnded())
       ZERO.should.be.bignumber.equal(await consensus.getLastSnapshotTakenAtBlock())
       ZERO.should.be.bignumber.equal(await consensus.getNextSnapshotId())
@@ -1161,97 +1160,97 @@ contract('Consensus', async (accounts) => {
         })
       })
     })
-    // describe('delegators', async () => {
-    //   it('cannot withdraw zero', async () => {
-    //     await consensus.methods['withdraw(address,uint256)'](firstCandidate, ZERO_AMOUNT, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
-    //   })
-    //   it('cannot withdraw if no staker address defined', async () => {
-    //     await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE}).should.be.fulfilled
-    //     await consensus.methods['withdraw(address,uint256)'](ZERO_ADDRESS, MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
-    //   })
-    //   it('cannot withdraw more than staked amount', async () => {
-    //     await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
-    //     await consensus.methods['withdraw(address,uint256)'](firstCandidate, MORE_THAN_MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
-    //   })
-    //   it('can withdraw all staked amount', async () => {
-    //     // stake
-    //     await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
-    //     // stake
-    //     await consensus.delegate(secondCandidate, {from: firstDelegator, value: MIN_STAKE})
-    //     // withdraw
-    //     await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator})
-    //     MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
-    //     ZERO_AMOUNT.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-    //     ZERO_AMOUNT.should.be.bignumber.equal(await consensus.delegatedAmount(firstDelegator, firstCandidate))
-    //     MIN_STAKE.should.be.bignumber.equal(await consensus.delegatedAmount(firstDelegator, secondCandidate))
-    //     // pendingValidators should be updated
-    //     let pendingValidators = await consensus.pendingValidators()
-    //     pendingValidators.length.should.be.equal(1)
-    //     pendingValidators.should.deep.equal([secondCandidate])
-    //     // delegators list should be updated for firstCandidate
-    //     let delegators = await consensus.delegators(firstCandidate)
-    //     delegators.length.should.be.equal(0)
-    //     let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
-    //     delegatorsLength.should.be.bignumber.equal(toBN(0))
-    //     // delegators list should be updated for secondCandidate
-    //     delegators = await consensus.delegators(secondCandidate)
-    //     delegators.length.should.be.equal(1)
-    //     delegators[0].should.be.equal(firstDelegator)
-    //     delegatorsLength = await consensus.delegatorsLength(secondCandidate)
-    //     delegatorsLength.should.be.bignumber.equal(toBN(1))
-    //     firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(secondCandidate, 0))
-    //   })
-    //   it('can withdraw less than staked amount', async () => {
-    //     // stake
-    //     await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
-    //     // withdraw
-    //     await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
-    //     let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
-    //     let expectedValidators = []
-    //     expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
-    //     // pendingValidators should be updated
-    //     let pendingValidators = await consensus.pendingValidators()
-    //     pendingValidators.length.should.be.equal(0)
-    //     // delegators list should be updated
-    //     let delegators = await consensus.delegators(firstCandidate)
-    //     delegators.length.should.be.equal(1)
-    //     delegators[0].should.be.equal(firstDelegator)
-    //     let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
-    //     delegatorsLength.should.be.bignumber.equal(toBN(1))
-    //     firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
-    //   })
-    //   it('can withdraw multiple times', async () => {
-    //     // stake
-    //     await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
-    //     // withdraw 1st time
-    //     await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
-    //     let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
-    //     let expectedValidators = [firstCandidate]
-    //     expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
-    //     let pendingValidators = await consensus.pendingValidators()
-    //     pendingValidators.length.should.be.equal(0)
-    //     // delegators list should be updated
-    //     let delegators = await consensus.delegators(firstCandidate)
-    //     delegators.length.should.be.equal(1)
-    //     delegators[0].should.be.equal(firstDelegator)
-    //     let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
-    //     delegatorsLength.should.be.bignumber.equal(toBN(1))
-    //     firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
-    //     // withdraw 2nd time
-    //     await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
-    //     expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 2), 'ether')
-    //     expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
-    //     pendingValidators = await consensus.pendingValidators()
-    //     pendingValidators.length.should.be.equal(0)
-    //     // delegators list should be updated
-    //     delegators = await consensus.delegators(firstCandidate)
-    //     delegators.length.should.be.equal(1)
-    //     delegators[0].should.be.equal(firstDelegator)
-    //     delegatorsLength = await consensus.delegatorsLength(firstCandidate)
-    //     delegatorsLength.should.be.bignumber.equal(toBN(1))
-    //     firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
-    //   })
-    // })
+    describe.only('delegators', async () => {
+      it('cannot withdraw zero', async () => {
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, ZERO_AMOUNT, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
+      })
+      it('cannot withdraw if no staker address defined', async () => {
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE}).should.be.fulfilled
+        await consensus.methods['withdraw(address,uint256)'](ZERO_ADDRESS, MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
+      })
+      it('cannot withdraw more than staked amount', async () => {
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MORE_THAN_MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
+      })
+      it('can withdraw all staked amount', async () => {
+        // stake
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
+        // stake
+        await consensus.delegate(secondCandidate, {from: firstDelegator, value: MIN_STAKE})
+        // withdraw
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator})
+        MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
+        ZERO_AMOUNT.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
+        ZERO_AMOUNT.should.be.bignumber.equal(await consensus.delegatedAmount(firstDelegator, firstCandidate))
+        MIN_STAKE.should.be.bignumber.equal(await consensus.delegatedAmount(firstDelegator, secondCandidate))
+        // pendingValidators should be updated
+        let pendingValidators = await consensus.pendingValidators()
+        pendingValidators.length.should.be.equal(1)
+        pendingValidators.should.deep.equal([secondCandidate])
+        // delegators list should be updated for firstCandidate
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(0)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(0))
+        // delegators list should be updated for secondCandidate
+        delegators = await consensus.delegators(secondCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(firstDelegator)
+        delegatorsLength = await consensus.delegatorsLength(secondCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(secondCandidate, 0))
+      })
+      it('can withdraw less than staked amount', async () => {
+        // stake
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
+        // withdraw
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
+        let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
+        let expectedValidators = []
+        expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
+        // pendingValidators should be updated
+        let pendingValidators = await consensus.pendingValidators()
+        pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(firstDelegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
+      })
+      it('can withdraw multiple times', async () => {
+        // stake
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
+        // withdraw 1st time
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
+        let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
+        let expectedValidators = [firstCandidate]
+        expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
+        let pendingValidators = await consensus.pendingValidators()
+        pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        let delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(firstDelegator)
+        let delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
+        // withdraw 2nd time
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
+        expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 2), 'ether')
+        expectedAmount.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
+        pendingValidators = await consensus.pendingValidators()
+        pendingValidators.length.should.be.equal(0)
+        // delegators list should be updated
+        delegators = await consensus.delegators(firstCandidate)
+        delegators.length.should.be.equal(1)
+        delegators[0].should.be.equal(firstDelegator)
+        delegatorsLength = await consensus.delegatorsLength(firstCandidate)
+        delegatorsLength.should.be.bignumber.equal(toBN(1))
+        firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(firstCandidate, 0))
+      })
+    })
   })
 
   describe('setValidatorFee', async () => {

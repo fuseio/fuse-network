@@ -18,6 +18,8 @@ exports.ONE = toBN(1)
 exports.TWO = toBN(2)
 exports.THREE = toBN(3)
 exports.FOUR = toBN(4)
+exports.FIVE = toBN(5)
+exports.TEN = toBN(10)
 
 exports.advanceTime = (seconds) => {
   return new Promise((resolve, reject) => {

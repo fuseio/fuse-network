@@ -6,7 +6,7 @@ const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
 const BlockReward = artifacts.require('BlockRewardMock.sol')
 const Voting = artifacts.require('Voting.sol')
 const { ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS } = require('./helpers')
-const { ZERO, ONE, TWO, THREE, FOUR } = require('./helpers')
+const { ZERO, ONE, TWO, THREE, FOUR, TEN } = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
 
 const INITIAL_SUPPLY = toWei(toBN(300000000000000000 || 0), 'gwei')
@@ -72,11 +72,11 @@ contract('BlockReward', async (accounts) => {
   })
 
   describe('reward', async () => {
-    let minStakeAmount
+    let minStakeAmount, doubleMinStakeAmount
     beforeEach(async () => {
       await blockReward.initialize(INITIAL_SUPPLY)
       minStakeAmount = await consensus.getMinStake()
-      // await consensus.setTotalStakeAmountMock(ZERO)
+      doubleMinStakeAmount = minStakeAmount.mul(TWO)
     })
 
     describe('#getBlockRewardAmountPerValidator', () => {
@@ -87,15 +87,14 @@ contract('BlockReward', async (accounts) => {
         validator = accounts[1]
         secondValidator = accounts[2]
       })
+
       it('block reward with one validator', async () => {
-        const minStakeAmount = await consensus.getMinStake()
         ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
 
         await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
-        // await consensus.sendTransaction({ from: validator, value: minStakeAmount.mul(toBN(4)) }).should.be.fulfilled
-
         // mocking total supply
-        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(TEN))
+
         const l = await consensus.currentValidatorsLength()
         console.log(l.toString(10))
         console.log(blockRewardAmount.toString(10))
@@ -103,21 +102,13 @@ contract('BlockReward', async (accounts) => {
 
         const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
         console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
-        const expectedReward = blockRewardAmount.div(toBN(10))
+        const expectedReward = blockRewardAmount.div(TEN)
         expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
       })
 
       it('block reward of one validator staking 100% of the total stake', async () => {
-        const minStakeAmount = await consensus.getMinStake()
-
-        const validator = accounts[1]
         await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
         await consensus.setTotalStakeAmountMock(minStakeAmount)
-
-        const l = await consensus.currentValidatorsLength()
-        console.log(l.toString(10))
-        console.log(blockRewardAmount.toString(10))
-        '1'.should.be.equal(l.toString(10))
 
         const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
         console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
@@ -126,31 +117,23 @@ contract('BlockReward', async (accounts) => {
       })
 
       it('block reward of 1 validator of 2, staking 10% of the total stake', async () => {
-        const minStakeAmount = await consensus.getMinStake()
-        const validator = accounts[1]
         await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
 
-        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
-        await consensus.setCurrentValidatorsLengthMock(toBN(2))
-
-        const l = await consensus.currentValidatorsLength()
-        '2'.should.be.equal(l.toString(10))
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(TEN))
+        await consensus.setCurrentValidatorsLengthMock(TWO)
 
         const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
         console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
 
         // expected reward calculation
-        const expectedReward = blockRewardAmount.div(toBN(10)).mul(toBN(2))
+        const expectedReward = blockRewardAmount.div(TEN).mul(TWO)
         expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
       })
 
       it('block reward of 1 validator of 2, staking 50% of the total stake', async () => {
-        const minStakeAmount = await consensus.getMinStake()
-
-        const validator = accounts[1]
         await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
-        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(2)))
-        await consensus.setCurrentValidatorsLengthMock(toBN(2))
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(TEN))
+        await consensus.setCurrentValidatorsLengthMock(TWO)
 
         const l = await consensus.currentValidatorsLength()
         '2'.should.be.equal(l.toString(10))
@@ -159,20 +142,15 @@ contract('BlockReward', async (accounts) => {
         console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
 
         // expected reward calculation
-        const expectedReward = blockRewardAmount.div(toBN(2)).mul(toBN(2))
+        const expectedReward = blockRewardAmount.div(TEN).mul(TWO)
         expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
       })
 
-      it('block reward does not changed if the propotion stays the same', async () => {
-        const minStakeAmount = await consensus.getMinStake()
-
+      it('block reward does not change if the propotion stays the same', async () => {
         const validator = accounts[0]
         await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
-        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(2)))
-        await consensus.setCurrentValidatorsLengthMock(toBN(2))
-
-        const l = await consensus.currentValidatorsLength()
-        '2'.should.be.equal(l.toString(10))
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(TEN))
+        await consensus.setCurrentValidatorsLengthMock(TWO)
 
         const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
         console.log(`blockReward: ${blockRewardAmount.toString(10)}, blockRewardAmountOfValidator ${blockRewardAmountOfV.toString(10)}`)
@@ -180,10 +158,26 @@ contract('BlockReward', async (accounts) => {
         // validator stake is 5 * minStakeAmount now
         await consensus.sendTransaction({ from: validator, value: minStakeAmount.mul(toBN(4)) }).should.be.fulfilled
         // total stake is 10 * minStakeAmount now
-        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(toBN(10)))
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(TEN))
 
         // expected reward calculation
-        const expectedReward = blockRewardAmount.div(toBN(2)).mul(toBN(2))
+        const expectedReward = blockRewardAmount.div(TEN).mul(TWO)
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+      })
+
+      it('block reward for two validators', async () => {
+        await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
+        await consensus.sendTransaction({ from: secondValidator, value: minStakeAmount.mul(THREE) }).should.be.fulfilled
+
+        await consensus.setTotalStakeAmountMock(minStakeAmount.mul(FOUR))
+        await consensus.setCurrentValidatorsLengthMock(TWO)
+
+        let blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
+        let expectedReward = blockRewardAmount.div(FOUR).mul(TWO)
+        expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
+
+        blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(secondValidator)
+        expectedReward = blockRewardAmount.mul(THREE).div(FOUR).mul(TWO)
         expectedReward.should.be.bignumber.equal(blockRewardAmountOfV)
       })
     })
@@ -265,10 +259,7 @@ contract('BlockReward', async (accounts) => {
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await consensus.setTotalStakeAmountMock(0)
       await consensus.sendTransaction({ from: validator, value: minStakeAmount }).should.be.fulfilled
-      console.log(await consensus.currentValidatorsLength())
-      console.log((await consensus.stakeAmount(validator)).toString(10))
-      console.log((await consensus.totalStakeAmount()).toString(10))
-      console.log((await blockReward.getBlockRewardAmountPerValidator(validator)).toString(10))
+
       let decimals = await blockReward.DECIMALS()
       let initialSupply = await blockReward.getTotalSupply()
       let blocksPerYear = await blockReward.getBlocksPerYear()
@@ -299,9 +290,24 @@ contract('BlockReward', async (accounts) => {
       totalSupply.should.be.bignumber.equal(expectedSupply)
       newBlockRewardAmount.should.be.bignumber.equal((totalSupply.mul(decimals).mul(inflation).div(toBN(100))).div(blocksPerYear).div(decimals))
     })
+
+    it.only('call reward with 0 blockReward', async () => {
+      const validator = accounts[4]
+      await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+      await consensus.setTotalStakeAmountMock(minStakeAmount)
+      let {logs} = await blockReward.reward([validator], [0], {from: mockSystemAddress}).should.be.fulfilled
+
+      ZERO.should.be.bignumber.equal(await blockReward.getBlockRewardAmountPerValidator(validator))
+
+      // await consensus.sendTransaction({from: validator, value: minStakeAmount}).should.be.fulfilled
+
+      // let initialSupply = await blockReward.getTotalSupply()
+      // let blockRewardAmount = await blockReward.getBlockRewardAmountPerValidator(validator)
+      // let {logs} = await blockReward.reward([validator], [0], {from: mockSystemAddress}).should.be.fulfilled
+    })
   })
 
-  describe('emitRewardedOnCycle', function() {
+  describe('emitRewardedOnCycle', function () {
     beforeEach(async () => {
       await blockReward.initialize(INITIAL_SUPPLY)
     })
@@ -332,11 +338,6 @@ contract('BlockReward', async (accounts) => {
       let minStakeAmount = await consensus.getMinStake()
       const validator = accounts[0]
       await consensus.sendTransaction({from: validator, value: minStakeAmount}).should.be.fulfilled
-
-      console.log(await consensus.currentValidatorsLength())
-      console.log((await consensus.stakeAmount(validator)).toString(10))
-      console.log((await consensus.totalStakeAmount()).toString(10))
-      // console.log((await blockReward.getBlockRewardAmountPerValidator(validator)).toString(10))
 
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       for (let i = 0; i < BLOCKS_TO_REWARD; i++) {
