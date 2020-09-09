@@ -291,7 +291,7 @@ contract('BlockReward', async (accounts) => {
       newBlockRewardAmount.should.be.bignumber.equal((totalSupply.mul(decimals).mul(inflation).div(toBN(100))).div(blocksPerYear).div(decimals))
     })
 
-    it.only('call reward with 0 blockReward', async () => {
+    it('call reward with 0 blockReward', async () => {
       const validator = accounts[4]
       await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
       await consensus.setTotalStakeAmountMock(minStakeAmount)

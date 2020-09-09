@@ -217,7 +217,7 @@ contract('Consensus', async (accounts) => {
       currentValidators.should.deep.equal(initialValidators)
       logs.length.should.be.equal(0)
     })
-    it.only('should update current validators set', async () => {
+    it('should update current validators set', async () => {
       let mockSet = [firstCandidate, secondCandidate]
       await consensus.setNewValidatorSetMock(mockSet)
       await consensus.setSystemAddressMock(accounts[0])
@@ -231,7 +231,7 @@ contract('Consensus', async (accounts) => {
       ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
     })
 
-    context.only('with staking', () => {
+    context('with staking', () => {
       it('adding validators should update the total stake', async () => {
         let mockSet = [firstCandidate, secondCandidate]
 
@@ -1160,7 +1160,7 @@ contract('Consensus', async (accounts) => {
         })
       })
     })
-    describe.only('delegators', async () => {
+    describe('delegators', async () => {
       it('cannot withdraw zero', async () => {
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, ZERO_AMOUNT, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
       })
