@@ -87,21 +87,9 @@ contract Consensus is ConsensusUtils {
   * @dev Function to be called by the block reward contract each block to handle cycles and snapshots logic
   */
   function cycle() external onlyBlockReward {
-    // if (_shouldTakeSnapshot()) {
-    //   uint256 snapshotId = getNextSnapshotId();
-    //   if (snapshotId == getSnapshotsPerCycle().sub(1)) {
-    //     _setNextSnapshotId(0);
-    //   } else {
-    //     _setNextSnapshotId(snapshotId.add(1));
-    //   }
-    //   _setSnapshot(snapshotId, pendingValidators());
-    //   _setLastSnapshotTakenAtBlock(block.number);
-    //   delete snapshotId;
-    // }
     if (_hasCycleEnded()) {
       IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
       _setCurrentCycle();
-      // uint256 randomSnapshotId = _getRandom(0, getSnapshotsPerCycle() - 1);
       address[] memory newSet = pendingValidators();
       if (newSet.length > 0) {
         _setNewValidatorSet(newSet);
@@ -111,7 +99,6 @@ contract Consensus is ConsensusUtils {
         _setShouldEmitInitiateChange(true);
         emit ShouldEmitInitiateChange();
       }
-      // delete randomSnapshotId;
       IBlockReward(ProxyStorage(getProxyStorage()).getBlockReward()).onCycleEnd();
     }
   }

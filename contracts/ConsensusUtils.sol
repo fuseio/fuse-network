@@ -92,10 +92,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     require(_amount != 0);
     require(_validator != address(0));
 
-    // overstaking should not be possible
-    // require (stakeAmount(_validator) < getMinStake());
-    // require (stakeAmount(_validator).add(_amount) <= getMinStake());
-
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
 
@@ -283,7 +279,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _currentValidatorsAdd(address _address) internal {
-    // _totalStakeAmountAddValidator(_address);
     addressArrayStorage[CURRENT_VALIDATORS].push(_address);
   }
 
@@ -460,13 +455,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[TOTAL_STAKE_AMOUNT] = _totalStake;
   }
 
-  // function _totalStakeAmountAddValidator(address _address) internal {
-  //   uint256 stakedAmount = stakeAmount(_address);
-  //   uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))].add(stakedAmount);
-
-  //   // uintStorage[keccak256(abi.encodePacked("totalStakeAmount"))] = _totalStake;
-  // }
-
   function _totalStakeAmountAdd(uint256 _stakeAmount) internal {
     uintStorage[TOTAL_STAKE_AMOUNT] = uintStorage[TOTAL_STAKE_AMOUNT].add(_stakeAmount);
   }
@@ -482,14 +470,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   function _setShouldEmitInitiateChange(bool _status) internal {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
   }
-
-  // function _getBlocksToSnapshot() internal pure returns(uint256) {
-  //   return getCycleDurationBlocks().div(getSnapshotsPerCycle());
-  // }
-
-  // function _shouldTakeSnapshot() internal view returns(bool) {
-  //   return (block.number - getLastSnapshotTakenAtBlock() >= _getBlocksToSnapshot());
-  // }
 
   function _hasCycleEnded() internal view returns(bool) {
     return (block.number >= getCurrentCycleEndBlock());
