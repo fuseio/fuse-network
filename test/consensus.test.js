@@ -521,7 +521,7 @@ contract('Consensus', async (accounts) => {
     })
   })
 
-  describe.skip('stake', async () => {
+  describe('stake', async () => {
     beforeEach(async () => {
       await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
@@ -542,27 +542,53 @@ contract('Consensus', async (accounts) => {
         pendingValidators.length.should.be.equal(0)
       })
       it('minimum stake amount', async () => {
+        let pendingValidators = await consensus.pendingValidators()
+        pendingValidators.length.should.be.equal(0)
+        ONE.should.be.bignumber.equal(await consensus.currentValidatorsLength())
+        let validators = await consensus.getValidators()
+        validators.length.should.be.equal(1)
+        validators[0].should.be.equal(initialValidator)
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+
         await consensus.stake({ from: firstCandidate, value: MIN_STAKE }).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
-        let pendingValidators = await consensus.pendingValidators()
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+
+        await mockEoF()
+        MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+
+        // initial validator did not stake so he is not in the pending validators list
+        ONE.should.be.bignumber.equal(await consensus.currentValidatorsLength())
+        validators = await consensus.getValidators()
+        validators.length.should.be.equal(1)
+        validators[0].should.be.equal(firstCandidate)
       })
 
       it('should allow more than minimum stake', async () => {
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         await consensus.stake({ from: firstCandidate, value: MORE_THAN_MIN_STAKE }).should.be.fulfilled
 
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
         // default validator fee should be set
         let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
         defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
+
+        await mockEoF()
+        MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        // initial validator did not stake so he is not in the pending validators list
+        ONE.should.be.bignumber.equal(await consensus.currentValidatorsLength())
+        let validators = await consensus.getValidators()
+        validators.length.should.be.equal(1)
+        validators[0].should.be.equal(firstCandidate)
       })
 
       it('should allow the maximum stake', async () => {
@@ -570,7 +596,7 @@ contract('Consensus', async (accounts) => {
         await consensus.stake({from: firstCandidate, value: MAX_STAKE}).should.be.fulfilled
         MAX_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MAX_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MAX_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
 
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
@@ -578,6 +604,14 @@ contract('Consensus', async (accounts) => {
         // default validator fee should be set
         let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
         defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
+
+        await mockEoF()
+        MAX_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        // initial validator did not stake so he is not in the pending validators list
+        ONE.should.be.bignumber.equal(await consensus.currentValidatorsLength())
+        let validators = await consensus.getValidators()
+        validators.length.should.be.equal(1)
+        validators[0].should.be.equal(firstCandidate)
       })
 
       it('should not allow more the maximum stake', async () => {
@@ -598,10 +632,13 @@ contract('Consensus', async (accounts) => {
         await consensus.stake({from: firstCandidate, value: ONE_ETHER}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+
+        await mockEoF()
+        MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
       })
 
       it('more than minimum stake amount, in more than one transaction', async () => {
@@ -617,25 +654,31 @@ contract('Consensus', async (accounts) => {
         await consensus.stake({from: firstCandidate, value: TWO_ETHER}).should.be.fulfilled
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         pendingValidators[0].should.be.equal(firstCandidate)
+
+        await mockEoF()
+        MORE_THAN_MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
       })
 
       it('more than one validator', async () => {
         // add 1st validator
         await consensus.stake({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(1)
         // add 2nd validator
         await consensus.stake({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(secondCandidate))
-        MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(2)
+
+        await mockEoF()
+        MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.totalStakeAmount())
       })
 
       it('multiple validators, multiple times', async () => {
@@ -644,7 +687,7 @@ contract('Consensus', async (accounts) => {
         expectedValidators.push(firstCandidate)
         await consensus.stake({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MIN_STAKE.should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         let pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
@@ -652,7 +695,7 @@ contract('Consensus', async (accounts) => {
         expectedValidators.push(secondCandidate)
         await consensus.stake({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
         MIN_STAKE.should.be.bignumber.equal(await consensus.stakeAmount(secondCandidate))
-        MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
         pendingValidators = await consensus.pendingValidators()
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
@@ -663,7 +706,7 @@ contract('Consensus', async (accounts) => {
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
         MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
-        MIN_STAKE.mul(THREE).should.be.bignumber.equal(await consensus.totalStakeAmount())
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
 
         // doubling the stake for the 2st validator
         await consensus.stake({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
@@ -671,6 +714,9 @@ contract('Consensus', async (accounts) => {
         pendingValidators.length.should.be.equal(expectedValidators.length)
         pendingValidators.should.deep.equal(expectedValidators)
         MIN_STAKE.mul(TWO).should.be.bignumber.equal(await consensus.stakeAmount(secondCandidate))
+        ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+
+        await mockEoF()
         MIN_STAKE.mul(FOUR).should.be.bignumber.equal(await consensus.totalStakeAmount())
       })
     })
