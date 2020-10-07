@@ -188,7 +188,9 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     uint256 stakeAmount = consensus.stakeAmount(_validator);
     uint256 totalStakeAmount = consensus.totalStakeAmount();
     uint256 currentValidatorsLength = consensus.currentValidatorsLength();
-    if (currentValidatorsLength == 0) {
+    // this may arise in peculiar cases when the consensus totalStakeAmount wasn't calculated yet
+    // for example at the first blocks after the contract was deployed
+    if (totalStakeAmount == 0) {
       return getBlockRewardAmount();
     }
     return getBlockRewardAmount().mul(stakeAmount).mul(currentValidatorsLength).div(totalStakeAmount);
