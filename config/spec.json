@@ -1,30 +1,30 @@
 {
-  "name": "FuseNetwork",
-  "engine": {
-    "authorityRound": {
-      "params": {
-        "stepDuration": "5",
-        "blockReward": "0x0",
-        "blockRewardContractAddress": "0x63D4efeD2e3dA070247bea3073BCaB896dFF6C9B",
-        "blockRewardContractTransition": 100,
-        "validators": {
-          "multi": {
-            "0": {
-              "list": ["0xd9176e84898a0054680aec3f7c056b200c3d96c3"]
-            },
+	"name": "FuseNetwork",
+	"engine": {
+		"authorityRound": {
+			"params": {
+				"stepDuration": "5",
+				"blockReward": "0x0",
+				"blockRewardContractAddress": "0x3b8C048DdEC04709125aF939360BDD619Ec6e9E3",
+				"blockRewardContractTransition": 100,
+				"validators": {
+					"multi": {
+						"0": {
+							"list": [ "0xbb79a903f699f2e54c970ac7ab30403a56f67804" ]
+						},
             "100": {
-              "safeContract": "0x3014ca10b91cb3D0AD85fEf7A3Cb95BCAc9c0f79"
+              "safeContract": "0xF5C4782d61611e12CD9651355841716ea1801d5c"
             }
-          }
-        }
-      }
-    }
-  },
-  "params": {
+					}
+				}
+			}
+		}
+	},
+	"params": {
     "gasLimitBoundDivisor": "0x400",
     "maximumExtraDataSize": "0x20",
     "minGasLimit": "0x1388",
-    "networkID" : "0x07a",
+    "networkID" : "0x07b",
     "eip155Transition": 0,
     "validateChainIdTransition": 0,
     "eip140Transition": 0,
@@ -36,31 +36,63 @@
     "eip161abcTransition": "0x0",
     "eip161dTransition": "0x0",
     "eip98Transition": "0x7fffffffffffff",
-    "eip145Transition": "0x38ada7",
-    "eip1014Transition": "0x38ada7",
-    "eip1052Transition": "0x38ada7",
+    "eip145Transition": "0x6bf64",
+    "eip1014Transition": "0x6bf64",
+    "eip1052Transition": "0x6bf64",
     "maxCodeSize": 24576,
     "maxCodeSizeTransition": "0x0"
-  },
-  "genesis": {
-    "seal": {
-      "authorityRound": {
-        "step": "0x0",
-        "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-      }
-    },
-    "difficulty": "0x20000",
-    "gasLimit": "0x989680"
-  },
-  "accounts": {
-      "0x0000000000000000000000000000000000000001": { "balance": "1", "builtin": { "name": "ecrecover", "pricing": { "linear": { "base": 3000, "word": 0 } } } },
-      "0x0000000000000000000000000000000000000002": { "balance": "1", "builtin": { "name": "sha256", "pricing": { "linear": { "base": 60, "word": 12 } } } },
-      "0x0000000000000000000000000000000000000003": { "balance": "1", "builtin": { "name": "ripemd160", "pricing": { "linear": { "base": 600, "word": 120 } } } },
-      "0x0000000000000000000000000000000000000004": { "balance": "1", "builtin": { "name": "identity", "pricing": { "linear": { "base": 15, "word": 3 } } } },
-      "0x0000000000000000000000000000000000000005": { "builtin": { "name": "modexp", "activate_at": 0, "pricing": { "modexp": { "divisor": 20 } } } },
-      "0x0000000000000000000000000000000000000006": { "builtin": { "name": "alt_bn128_add", "activate_at": 0, "pricing": { "linear": { "base": 500, "word": 0 } } } },
-      "0x0000000000000000000000000000000000000007": { "builtin": { "name": "alt_bn128_mul", "activate_at": 0, "pricing": { "linear": { "base": 40000, "word": 0 } } } },
-      "0x0000000000000000000000000000000000000008": { "builtin": { "name": "alt_bn128_pairing", "activate_at": 0, "pricing": { "alt_bn128_pairing": { "base": 100000, "pair": 80000 } } } },
-      "0xd9176e84898a0054680aec3f7c056b200c3d96c3": { "balance": "300000000000000000000000000" }
-  }
+	},
+	"genesis": {
+		"seal": {
+			"authorityRound": {
+				"step": "0x0",
+				"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+			}
+		},
+		"difficulty": "0x20000",
+		"gasLimit": "0x5F5E100"
+	},
+	"accounts": {
+		"0x0000000000000000000000000000000000000001": {
+			"balance": "1",
+			"builtin": { "name": "ecrecover", "pricing": { "linear": { "base": 3000, "word": 0 } } }
+		},
+		"0x0000000000000000000000000000000000000002": {
+			"balance": "1",
+			"builtin": { "name": "sha256", "pricing": { "linear": { "base": 60, "word": 12 } } }
+		},
+		"0x0000000000000000000000000000000000000003": {
+			"balance": "1",
+			"builtin": { "name": "ripemd160", "pricing": { "linear": { "base": 600, "word": 120 } } }
+		},
+		"0x0000000000000000000000000000000000000004": {
+			"balance": "1",
+			"builtin": { "name": "identity", "pricing": { "linear": { "base": 15, "word": 3 } } }
+		},
+		"0x0000000000000000000000000000000000000005": {
+			"builtin": { "name": "modexp", "activate_at": 0, "pricing": { "modexp": { "divisor": 20 } } }
+		},
+		"0x0000000000000000000000000000000000000006": {
+			"builtin": {
+				"name": "alt_bn128_add",
+				"activate_at": 0,
+				"pricing": { "linear": { "base": 500, "word": 0 } }
+			}
+		},
+		"0x0000000000000000000000000000000000000007": {
+			"builtin": {
+				"name": "alt_bn128_mul",
+				"activate_at": 0,
+				"pricing": { "linear": { "base": 40000, "word": 0 } }
+			}
+		},
+		"0x0000000000000000000000000000000000000008": {
+			"builtin": {
+				"name": "alt_bn128_pairing",
+				"activate_at": 0,
+				"pricing": { "alt_bn128_pairing": { "base": 100000, "pair": 80000 } }
+			}
+		},
+		"0xbb79a903f699f2e54c970ac7ab30403a56f67804": { "balance": "300000000000000000000000000" }
+	}
 }
