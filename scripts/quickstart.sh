@@ -215,6 +215,7 @@ function parseArguments {
       echo "Warning! trying to run a bootnode without BOOTNODES argument!"
     fi
   fi
+
 }
 
 function checkRoleArgument {
@@ -425,6 +426,23 @@ function run {
     "node")
       INSTANCE_NAME=$NODE_KEY
 
+      ## parse parity config
+      NUM_RPC_THREADS=1
+      NUM_HTTP_THREADS=4
+      if [ -z "$NUMBER_OF_RPC_THREADS" ] ; then
+      	echo "using default RPC thread values"
+      else
+      	NUM_RPC_THREADS=$NUMBER_OF_RPC_THREADS
+	echo "reading RPC threads from env file $NUM_RPC_THREADS"
+      fi
+
+      if [ -z "$NUMBER_OF_HTTP_CONNECTIONS_THREADS" ] ; then
+      	echo "using default http thread values"
+      else
+        NUM_HTTP_THREADS=$NUMBER_OF_HTTP_CONNECTIONS_THREADS
+        echo "reading HTTP connection threads from env file $NUM_HTTP_THREADS"
+      fi
+
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         $DOCKER_LOG_OPTS \
@@ -439,7 +457,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $NODE_KEY
+        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS
       ;;
 
     "validator")
@@ -447,6 +465,13 @@ function run {
       local address=$(cat $ADDRESS_FILE)
 
       INSTANCE_NAME=$address
+      if [ -z "$VAL_NAME" ] ; then
+	echo "using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable"
+      else
+	echo "setting netstats name to $VAL_NAME"
+	INSTANCE_NAME=$VAL_NAME
+      fi
+
 
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
