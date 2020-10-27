@@ -130,6 +130,27 @@ function getAndUpdateBlockNumbers {
   sed -i "s/^FOREIGN_START_BLOCK.*/FOREIGN_START_BLOCK=${ETHBLOCK}/" "$ENV_FILE"
 }
 
+function checkEthGasAPI {
+  if [ -z "$FOREIGN_GAS_PRICE_ORACLE_URL" ] ; then
+    echo "No eth gas station api set please update your env file to include FOREIGN_GAS_PRICE_ORACLE_URL which should set an ethgasstation endpoint see https://data.defipulse.com/ for more details"
+    exit 1
+  fi
+  
+  if [[ "$FOREIGN_GAS_PRICE_ORACLE_URL" == *"https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json?api-key="* ]]; then
+    status_code=$(curl --write-out %{http_code} --silent --output /dev/null "$FOREIGN_GAS_PRICE_ORACLE_URL")
+
+    if [[ "$status_code" -ne 200 ]] ; then
+      echo "Positive response from gas oracle"
+    else
+      echo "trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors"
+      exit 1
+    fi
+  else
+    echo "Does not match ethgasstation endpoint see https://data.defipulse.com/ for more details"
+    exit 1
+  fi
+}
+
 function checkDiskSpace {
   if [ $PLATFORM == "LINUX" ]; then
     mountedDrive=$(df --output=target quickstart.sh | tail -n1)
@@ -283,6 +304,8 @@ function setup {
     
     echo -e "\nUpdating block numbers in env file"
     getAndUpdateBlockNumbers
+    
+    checkEthGasAPI
 	  
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
