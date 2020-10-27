@@ -139,7 +139,7 @@ function checkEthGasAPI {
   if [[ "$FOREIGN_GAS_PRICE_ORACLE_URL" == *"https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json?api-key="* ]]; then
     status_code=$(curl --write-out %{http_code} --silent --output /dev/null "$FOREIGN_GAS_PRICE_ORACLE_URL")
 
-    if [[ "$status_code" -ne 200 ]] ; then
+    if [[ "$status_code" == 200 ]] ; then
       echo "Positive response from gas oracle"
     else
       echo "trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors"
