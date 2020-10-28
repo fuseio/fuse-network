@@ -28,7 +28,7 @@ INSTANCE_NAME=""
 PLATFORM=""
 REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
-DEFAULT_GAS_ORACLE="https://ethgasstation.info/json/ethgasAPI.json"
+DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
 WARNINGS=()
 
@@ -138,25 +138,25 @@ function checkEthGasAPI {
 
   if [ -z "$FOREIGN_GAS_PRICE_ORACLE_URL" ] ; then
     WARNINGS+=("No eth gas station api set please update your env file to include FOREIGN_GAS_PRICE_ORACLE_URL which should set an ethgasstation endpoint see https://data.defipulse.com/ for more details")
-  fi
-  
-  if [[ "$FOREIGN_GAS_PRICE_ORACLE_URL" == *"https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json?api-key="* ]]; then
-    status_code=$(curl --write-out %{http_code} --silent --output /dev/null "$FOREIGN_GAS_PRICE_ORACLE_URL")
+  else
+    if [[ "$FOREIGN_GAS_PRICE_ORACLE_URL" == *"https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json?api-key="* ]]; then
+      status_code=$(curl --write-out %{http_code} --silent --output /dev/null "$FOREIGN_GAS_PRICE_ORACLE_URL")
 
-    if [[ "$status_code" == 200 ]] ; then
-      echo "Positive response from gas oracle"
+      if [[ "$status_code" == 200 ]] ; then
+        echo "Positive response from gas oracle"
+      else
+        WARNINGS+=("trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors, using the default oracle")
+        resetOracle=true
+      fi
     else
-      WARNINGS+=("trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors, using the default oracle")
+      WARNINGS+=("FOREIGN_GAS_PRICE_ORACLE_URL Does not match ethgasstation endpoint see https://data.defipulse.com/ for more details, using the default oracle, recommend to create your own!")
       resetOracle=true
     fi
-  else
-    WARNINGS+=("FOREIGN_GAS_PRICE_ORACLE_URL Does not match ethgasstation endpoint see https://data.defipulse.com/ for more details, using the default oracle, recommend to create your own!")
-    resetOracle=true
-  fi
-  
-  if [ "$resetOracle" = true ] ; then
-    echo "resetting the oracle to default in the env file"
-    sed -i "s/^FOREIGN_GAS_PRICE_ORACLE_URL.*/FOREIGN_GAS_PRICE_ORACLE_URL=${DEFAULT_GAS_ORACLE}/" "$ENV_FILE"
+
+    if [ "$resetOracle" = true ] ; then
+      echo "Reset FOREIGN_GAS_PRICE_ORACLE_URL back to default"
+      sed -i "s/^FOREIGN_GAS_PRICE_ORACLE_URL.*/FOREIGN_GAS_PRICE_ORACLE_URL=$DEFAULT_GAS_ORACLE/" "$ENV_FILE"
+    fi
   fi
 }
 
@@ -551,7 +551,7 @@ function run {
 function displayWarning {
   for warning in "${WARNINGS[@]}"
   do
-    echo "$(tput setaf 1)$warning"
+    echo "$(tput setaf 1)WARN: $warning$(tput sgr 0)"
   done
 }
 
