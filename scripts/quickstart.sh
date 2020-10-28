@@ -28,6 +28,9 @@ INSTANCE_NAME=""
 PLATFORM=""
 REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
+DEFAULT_GAS_ORACLE="https://ethgasstation.info/json/ethgasAPI.json"
+
+WARNINGS=()
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
@@ -131,9 +134,10 @@ function getAndUpdateBlockNumbers {
 }
 
 function checkEthGasAPI {
+  resetOracle=false
+
   if [ -z "$FOREIGN_GAS_PRICE_ORACLE_URL" ] ; then
-    echo "No eth gas station api set please update your env file to include FOREIGN_GAS_PRICE_ORACLE_URL which should set an ethgasstation endpoint see https://data.defipulse.com/ for more details"
-    exit 1
+    WARNINGS+=("No eth gas station api set please update your env file to include FOREIGN_GAS_PRICE_ORACLE_URL which should set an ethgasstation endpoint see https://data.defipulse.com/ for more details")
   fi
   
   if [[ "$FOREIGN_GAS_PRICE_ORACLE_URL" == *"https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json?api-key="* ]]; then
@@ -142,12 +146,17 @@ function checkEthGasAPI {
     if [[ "$status_code" == 200 ]] ; then
       echo "Positive response from gas oracle"
     else
-      echo "trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors"
-      exit 1
+      WARNINGS+=("trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors, using the default oracle")
+      resetOracle=true
     fi
   else
-    echo "Does not match ethgasstation endpoint see https://data.defipulse.com/ for more details"
-    exit 1
+    WARNINGS+=("FOREIGN_GAS_PRICE_ORACLE_URL Does not match ethgasstation endpoint see https://data.defipulse.com/ for more details, using the default oracle, recommend to create your own!")
+    resetOracle=true
+  fi
+  
+  if [ "$resetOracle" = true ] ; then
+    echo "resetting the oracle to default in the env file"
+    sed -i "s/^FOREIGN_GAS_PRICE_ORACLE_URL.*/FOREIGN_GAS_PRICE_ORACLE_URL=${DEFAULT_GAS_ORACLE}/" "$ENV_FILE"
   fi
 }
 
@@ -539,6 +548,13 @@ function run {
   echo -e "\nContainers started and running in background!"
 }
 
+function displayWarning {
+  for warning in "${WARNINGS[@]}"
+  do
+    echo "$(tput setaf 1)$warning"
+  done
+}
+
 
 # Go :)
 setPlatform
@@ -546,4 +562,5 @@ sanityChecks
 parseArguments
 setup
 run
+displayWarning
 IFS=$OLDIFS
