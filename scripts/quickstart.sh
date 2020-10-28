@@ -15,7 +15,7 @@ DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/fuse-bridge/mast
 DOCKER_IMAGE_ORACLE_VERSION="2.0.5"
 DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
-DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=100 --log-opt compress=true"
+DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=25 --log-opt compress=true"
 BASE_DIR=$(pwd)/fusenet
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
@@ -28,6 +28,9 @@ INSTANCE_NAME=""
 PLATFORM=""
 REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
+DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
+
+WARNINGS=()
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
@@ -128,6 +131,33 @@ function getAndUpdateBlockNumbers {
   #NOTE: this assumes that the env file only contains one line for HOME/FOREIGN_START_BLOCK
   sed -i "s/^HOME_START_BLOCK.*/HOME_START_BLOCK=${FUSEBLOCK}/" "$ENV_FILE"
   sed -i "s/^FOREIGN_START_BLOCK.*/FOREIGN_START_BLOCK=${ETHBLOCK}/" "$ENV_FILE"
+}
+
+function checkEthGasAPI {
+  resetOracle=false
+
+  if [ -z "$FOREIGN_GAS_PRICE_ORACLE_URL" ] ; then
+    WARNINGS+=("No eth gas station api set please update your env file to include FOREIGN_GAS_PRICE_ORACLE_URL which should set an ethgasstation endpoint see https://data.defipulse.com/ for more details")
+  else
+    if [[ "$FOREIGN_GAS_PRICE_ORACLE_URL" == *"https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json?api-key="* ]]; then
+      status_code=$(curl --write-out %{http_code} --silent --output /dev/null "$FOREIGN_GAS_PRICE_ORACLE_URL")
+
+      if [[ "$status_code" == 200 ]] ; then
+        echo "Positive response from gas oracle"
+      else
+        WARNINGS+=("trying to grab data from $FOREIGN_GAS_PRICE_ORACLE_URL is giving errors, using the default oracle")
+        resetOracle=true
+      fi
+    else
+      WARNINGS+=("FOREIGN_GAS_PRICE_ORACLE_URL Does not match ethgasstation endpoint see https://data.defipulse.com/ for more details, using the default oracle, recommend to create your own!")
+      resetOracle=true
+    fi
+
+    if [ "$resetOracle" = true ] ; then
+      echo "Reset FOREIGN_GAS_PRICE_ORACLE_URL back to default"
+      sed -i "s/^FOREIGN_GAS_PRICE_ORACLE_URL.*/FOREIGN_GAS_PRICE_ORACLE_URL=$DEFAULT_GAS_ORACLE/" "$ENV_FILE"
+    fi
+  fi
 }
 
 function checkDiskSpace {
@@ -283,6 +313,8 @@ function setup {
     
     echo -e "\nUpdating block numbers in env file"
     getAndUpdateBlockNumbers
+    
+    checkEthGasAPI
 	  
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
@@ -516,6 +548,13 @@ function run {
   echo -e "\nContainers started and running in background!"
 }
 
+function displayWarning {
+  for warning in "${WARNINGS[@]}"
+  do
+    echo "$(tput setaf 1)WARN: $warning$(tput sgr 0)"
+  done
+}
+
 
 # Go :)
 setPlatform
@@ -523,4 +562,5 @@ sanityChecks
 parseArguments
 setup
 run
+displayWarning
 IFS=$OLDIFS
