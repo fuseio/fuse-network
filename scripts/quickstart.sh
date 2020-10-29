@@ -427,13 +427,17 @@ function run {
       INSTANCE_NAME=$NODE_KEY
 
       ## parse parity config
-      NUM_RPC_THREADS=1
-      NUM_HTTP_THREADS=4
+      cpuCores=1
+      if [ $PLATFORM == "LINUX" ]; then
+        cpuCores=$(nproc --all)
+      fi
+      NUM_RPC_THREADS=cpuCores
+      NUM_HTTP_THREADS=$(( 4*cpuCores ))
       if [ -z "$NUMBER_OF_RPC_THREADS" ] ; then
       	echo "using default RPC thread values"
       else
       	NUM_RPC_THREADS=$NUMBER_OF_RPC_THREADS
-	echo "reading RPC threads from env file $NUM_RPC_THREADS"
+        echo "reading RPC threads from env file $NUM_RPC_THREADS"
       fi
 
       if [ -z "$NUMBER_OF_HTTP_CONNECTIONS_THREADS" ] ; then
