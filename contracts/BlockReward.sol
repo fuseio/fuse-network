@@ -80,7 +80,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * @param kind array of reward types. We support only arrays with one item and type = 0 (Author - Reward attributed to the block author)
   * See https://wiki.parity.io/Block-Reward-Contract.html
   */
-  function reward(address[] benefactors, uint16[] kind) external onlySystem returns (address[], uint256[]) {
+  function reward(address[] benefactors, uint16[] kind) external returns (address[], uint256[]) {
     require(benefactors.length == kind.length);
     require(benefactors.length == 1);
     require(kind[0] == 0);
@@ -107,7 +107,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
       _setBlockRewardAmount();
     }
 
-    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+    // IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
 
     emit Rewarded(receivers, rewards);
     return (receivers, rewards);
@@ -176,7 +176,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   }
 
   function _setBlockRewardAmount() private {
-    uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply().mul(getInflation().mul(DECIMALS).div(100))).div(getBlocksPerYear()).div(DECIMALS);
+    uintStorage[BLOCK_REWARD_AMOUNT] = 2497144252241838855;
   }
 
   function getBlockRewardAmount() public view returns(uint256) {
