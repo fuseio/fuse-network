@@ -189,7 +189,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   /**
   * returns number of blocks per cycle (block time is 5 seconds)
   */
-  function getCycleDurationBlocks() public pure returns(uint256) {
+  function getCycleDurationBlocks() public view returns(uint256) {
     return CYCLE_DURATION_BLOCKS;
   }
 

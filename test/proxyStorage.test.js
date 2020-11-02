@@ -119,4 +119,39 @@ contract('ProxyStorage', async (accounts) => {
       true.should.be.equal(await proxyStorageNew.isInitialized())
     })
   })
+  describe('Ownership', async () => {
+    let proxyStorageNew
+    let proxyStorageStub = accounts[8]
+    beforeEach(async () => {
+      proxyStorageNew = await ProxyStorage.new()
+      await proxy.setProxyStorageMock(proxyStorageStub)
+    })
+    it('transfer ownership', async () => {
+      await proxy.transferOwnership(accounts[1], {from: owner}).should.be.fulfilled
+      accounts[1].should.be.equal(await proxy.getOwner.call())
+    })
+
+      it('remove owner', async () => {
+          await proxy.renounceOwnership({from: owner}).should.be.fulfilled
+          '0x0000000000000000000000000000000000000000'.should.be.equal(await proxy.getOwner.call())
+      })
+  })
+
+  describe('_finalizeBallot', async () => {
+    let proxyStorageNew
+    let proxyStorageStub = accounts[8]
+    beforeEach(async () => {
+      proxyStorageNew = await ProxyStorage.new()
+      await proxy.setProxyStorageMock(proxyStorageStub)
+    })
+    it('transfer ownership', async () => {
+      await proxy.transferOwnership(accounts[1], {from: owner}).should.be.fulfilled
+      accounts[1].should.be.equal(await proxy.getOwner.call())
+    })
+
+      it('remove owner', async () => {
+          await proxy.renounceOwnership({from: owner}).should.be.fulfilled
+          '0x0000000000000000000000000000000000000000'.should.be.equal(await proxy.getOwner.call())
+      })
+  })
 })

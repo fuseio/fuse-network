@@ -1,0 +1,22 @@
+{
+  "extends": "solhint:default",
+  "rules": {
+    "avoid-throw": "off",
+    "avoid-suicide": "error",
+    "avoid-sha3": "warn",
+    "indent": ["warn", 4],
+    "compiler-fixed": "off",
+    "not-rely-on-time": "off",
+    "quotes": ["error", "double"],
+    "no-empty-blocks": "off",
+    "no-complex-fallback": "off",
+    "two-lines-top-level-separator": "off",
+    "code-complexity": 8,
+    "avoid-call-value": "off",
+    "no-simple-event-func-name": "off",
+    "avoid-low-level-calls": "off",
+    "no-inline-assembly": "off",
+    "max-line-length": 170,
+    "bracket-align": "off"
+  }
+}

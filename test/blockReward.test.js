@@ -4,10 +4,12 @@ const Consensus = artifacts.require('ConsensusMock.sol')
 const ProxyStorage = artifacts.require('ProxyStorageMock.sol')
 const EternalStorageProxy = artifacts.require('EternalStorageProxyMock.sol')
 const BlockReward = artifacts.require('BlockRewardMock.sol')
-const Voting = artifacts.require('Voting.sol')
+const Voting = artifacts.require('VotingMock.sol')
 const { ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS } = require('./helpers')
+const utils = require("./utils");
 const { ZERO, ONE, TWO, THREE, FOUR, TEN } = require('./helpers')
 const {toBN, toWei, toChecksumAddress} = web3.utils
+const CONTRACT_TYPES = { INVALID: 0, CONSENSUS: 1, BLOCK_REWARD: 2, PROXY_STORAGE: 3, VOTING: 4 }
 
 const INITIAL_SUPPLY = toWei(toBN(300000000000000000 || 0), 'gwei')
 const BLOCKS_PER_YEAR = 100
@@ -19,7 +21,7 @@ contract('BlockReward', async (accounts) => {
   let owner = accounts[0]
   let nonOwner = accounts[1]
   let mockSystemAddress = accounts[2]
-  let voting = accounts[3]
+  let voting
 
   beforeEach(async () => {
     // Consensus
@@ -43,7 +45,7 @@ contract('BlockReward', async (accounts) => {
     // Voting
     const votingImpl = await Voting.new()
     proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
-    const voting = await Voting.at(proxy.address)
+    voting = await Voting.at(proxy.address)
 
     // Initialize ProxyStorage
     await proxyStorage.initializeAddresses(
@@ -185,6 +187,8 @@ contract('BlockReward', async (accounts) => {
 
         const l = await consensus.currentValidatorsLength()
         '1'.should.be.equal(l.toString(10))
+         const k = await consensus.requiredSignatures()
+        '1'.should.be.equal(k.toString(10))
 
         const blockRewardAmountOfV = await blockReward.getBlockRewardAmountPerValidator(validator)
         const expectedReward = blockRewardAmount
@@ -308,6 +312,225 @@ contract('BlockReward', async (accounts) => {
       // let blockRewardAmount = await blockReward.getBlockRewardAmountPerValidator(validator)
       // let {logs} = await blockReward.reward([validator], [0], {from: mockSystemAddress}).should.be.fulfilled
     })
+
+    describe('custom', async () =>{
+      const validator = accounts[3]
+        beforeEach(async () => {
+    // Consensus
+    consensusImpl = await Consensus.new()
+    proxy = await EternalStorageProxy.new(ZERO_ADDRESS, consensusImpl.address)
+    consensus = await Consensus.at(proxy.address)
+    await consensus.initialize(owner)
+
+    // ProxyStorage
+    proxyStorageImpl = await ProxyStorage.new()
+    proxy = await EternalStorageProxy.new(ZERO_ADDRESS, proxyStorageImpl.address)
+    proxyStorage = await ProxyStorage.at(proxy.address)
+    await proxyStorage.initialize(consensus.address)
+    await consensus.setProxyStorage(proxyStorage.address)
+
+    // BlockReward
+    blockRewardImpl = await BlockReward.new()
+    proxy = await EternalStorageProxy.new(proxyStorage.address, blockRewardImpl.address)
+    blockReward = await BlockReward.at(proxy.address)
+    await blockReward.initialize(toWei(toBN(300000000000000000 || 0), 'gwei'))
+
+    // Voting
+    votingImpl = await Voting.new()
+    proxy = await EternalStorageProxy.new(proxyStorage.address, votingImpl.address)
+    voting = await Voting.at(proxy.address)
+
+    // Initialize ProxyStorage
+    await proxyStorage.initializeAddresses(
+      blockReward.address,
+      voting.address
+    )
+    let ballotLimitPerValidator = (await voting.getBallotLimitPerValidator()).toNumber()
+    ballotLimitPerValidator.should.be.equal(Math.floor(100))
+    await consensus.setNewValidatorSetMock([validator])
+    await consensus.setFinalizedMock(false, {from: owner})
+    await consensus.setSystemAddressMock(owner, {from: owner})
+    await consensus.finalizeChange().should.be.fulfilled
+
+    true.should.be.equal(await voting.isValidVotingKey(validator))
+
+  })
+      it('new test', async () => {
+        const validator = accounts[3];
+        await voting.initialize().should.be.fulfilled
+        const minStakeAmount = await consensus.getMinStake();
+        await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+        await consensus.setTotalStakeAmountMock(minStakeAmount)
+        await consensus.sendTransaction({from: validator, value: minStakeAmount}).should.be.fulfilled
+        await consensus.setCycleDurationBlocks(1);
+
+        let proposedValue = RANDOM_ADDRESS
+        let contractType = CONTRACT_TYPES.CONSENSUS
+        const CYCLE_DURATION_BLOCKS = 120;
+        const voteCyclesDuration = 10
+        let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+        let voteStartAfterNumberOfCycles = 1
+        let voteStartAfterNumberOfBlocks = toBN(voteStartAfterNumberOfCycles).mul(toBN(CYCLE_DURATION_BLOCKS))
+        let startBlock = currentCycleEndBlock.add(voteStartAfterNumberOfBlocks)
+        let voteEndAfterNumberOfBlocks = toBN(voteCyclesDuration).mul(toBN(CYCLE_DURATION_BLOCKS))
+        let endBlock = startBlock.add(voteEndAfterNumberOfBlocks)
+
+       let {logs} = await voting.newBallot(
+           voteStartAfterNumberOfCycles,
+           voteCyclesDuration,
+           contractType,
+           proposedValue, 'description', {from: validator}).should.be.fulfilled
+        console.log(logs[0].event);
+        logs[0].args['id'].should.be.bignumber.equal(toBN(0))
+        logs[0].args['creator'].should.be.equal(validator)
+
+        console.log('activeBallots',await voting.activeBallots.call());
+        await consensus.setCycleDurationBlocks(1);
+        await consensus.setCurrentCycleEndBlock(5);
+        console.log('getCurrentCycleEndBlock', toBN(await consensus.getCurrentCycleEndBlock.call()).toString());
+        let block = await web3.eth.getBlock("latest")
+        console.log('block.number', block.number)
+        console.log('getCurrentCycleEndBlock', toBN(await consensus.getCurrentCycleEndBlock.call()).toString());
+        true.should.be.equal(await consensus.hasCycleEnded.call())
+        console.log('currentValidatorsLength',await consensus.currentValidatorsLength.call())
+        console.log('activeBallotsLength',await voting.activeBallotsLength.call())
+        console.log('activeBallotsAtIndex',await voting.activeBallotsAtIndex(0))
+        console.log('canBeFinalized',await voting.canBeFinalized(0))
+        await voting.setAcceptedMock(0,3);
+        console.log('getAccepted',await voting.getAccepted(0))
+        console.log('getRejected',await voting.getRejected(0))
+        console.log('getContractType',await voting.getContractType(0))
+        console.log('getProposedValue',await voting.getProposedValue(0))
+        {
+          await voting.setBalotStartBlockMock(0, block.number -2);
+          await voting.setBalotEndBlockMock(0, block.number + 2);
+          console.log('getStartBlock', await voting.getStartBlock(0))
+          console.log('getFinalizeCalled', await voting.getFinalizeCalled(0))
+          console.log('canBeFinalized', await voting.canBeFinalized(0))
+          await blockReward.reward([validator], [0], {from: mockSystemAddress})
+              .then(utils.receiptShouldSucceed)
+              // .catch(utils.catchReceiptShouldFailed);
+
+          // let {logs} =
+
+        // console.log('****',logs.length);
+        // console.log('****',logs[0].event);
+        }
+      })
+      it('new test2', async () => {
+        const validator = accounts[3];
+        await voting.initialize().should.be.fulfilled
+        const minStakeAmount = await consensus.getMinStake();
+        await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+        await consensus.setTotalStakeAmountMock(minStakeAmount)
+        await consensus.sendTransaction({from: validator, value: minStakeAmount}).should.be.fulfilled
+        await consensus.setCycleDurationBlocks(1);
+
+        let proposedValue = RANDOM_ADDRESS
+        let contractType = CONTRACT_TYPES.PROXY_STORAGE
+        const voteCyclesDuration = 10
+        let voteStartAfterNumberOfCycles = 1
+
+        let {logs} = await voting.newBallot(
+            voteStartAfterNumberOfCycles,
+            voteCyclesDuration,
+            contractType,
+            proposedValue, 'description', {from: validator}).should.be.fulfilled
+        console.log(logs[0].event);
+        logs[0].args['id'].should.be.bignumber.equal(toBN(0))
+        logs[0].args['creator'].should.be.equal(validator)
+
+        console.log('activeBallots',await voting.activeBallots.call());
+        await consensus.setCycleDurationBlocks(1);
+        await consensus.setCurrentCycleEndBlock(5);
+        console.log('getCurrentCycleEndBlock', toBN(await consensus.getCurrentCycleEndBlock.call()).toString());
+        let block = await web3.eth.getBlock("latest")
+        console.log('block.number', block.number)
+        console.log('getCurrentCycleEndBlock', toBN(await consensus.getCurrentCycleEndBlock.call()).toString());
+        true.should.be.equal(await consensus.hasCycleEnded.call())
+        console.log('currentValidatorsLength',await consensus.currentValidatorsLength.call())
+        console.log('activeBallotsLength',await voting.activeBallotsLength.call())
+        console.log('activeBallotsAtIndex',await voting.activeBallotsAtIndex(0))
+        console.log('canBeFinalized',await voting.canBeFinalized(0))
+        await voting.setAcceptedMock(0,3);
+        console.log('getAccepted',await voting.getAccepted(0))
+        console.log('getRejected',await voting.getRejected(0))
+        console.log('getContractType',await voting.getContractType(0))
+        console.log('getProposedValue',await voting.getProposedValue(0))
+        {
+          await voting.setBalotStartBlockMock(0, block.number -2);
+          await voting.setBalotEndBlockMock(0, block.number + 2);
+          console.log('getStartBlock', await voting.getStartBlock(0))
+          console.log('getFinalizeCalled', await voting.getFinalizeCalled(0))
+          console.log('canBeFinalized', await voting.canBeFinalized(0))
+          // await blockReward.reward([validator], [0], {from: mockSystemAddress})
+          //     .then(utils.receiptShouldSucceed)
+        }
+      })
+      it('new test3', async () => {
+        const validator = accounts[3];
+        await voting.initialize().should.be.fulfilled
+        const minStakeAmount = await consensus.getMinStake();
+        await blockReward.setSystemAddressMock(mockSystemAddress, {from: owner})
+        await consensus.setTotalStakeAmountMock(minStakeAmount)
+        await consensus.sendTransaction({from: validator, value: minStakeAmount}).should.be.fulfilled
+        await consensus.setCycleDurationBlocks(1);
+
+        let proposedValue = RANDOM_ADDRESS
+        let contractType = CONTRACT_TYPES.VOTING
+        const CYCLE_DURATION_BLOCKS = 120;
+        const voteCyclesDuration = 10
+        let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+        let voteStartAfterNumberOfCycles = 1
+        let voteStartAfterNumberOfBlocks = toBN(voteStartAfterNumberOfCycles).mul(toBN(CYCLE_DURATION_BLOCKS))
+        let startBlock = currentCycleEndBlock.add(voteStartAfterNumberOfBlocks)
+        let voteEndAfterNumberOfBlocks = toBN(voteCyclesDuration).mul(toBN(CYCLE_DURATION_BLOCKS))
+        let endBlock = startBlock.add(voteEndAfterNumberOfBlocks)
+
+        let {logs} = await voting.newBallot(
+            voteStartAfterNumberOfCycles,
+            voteCyclesDuration,
+            contractType,
+            proposedValue, 'description', {from: validator}).should.be.fulfilled
+        console.log(logs[0].event);
+        logs[0].args['id'].should.be.bignumber.equal(toBN(0))
+        logs[0].args['creator'].should.be.equal(validator)
+
+        console.log('activeBallots',await voting.activeBallots.call());
+        await consensus.setCycleDurationBlocks(1);
+        await consensus.setCurrentCycleEndBlock(5);
+        console.log('getCurrentCycleEndBlock', toBN(await consensus.getCurrentCycleEndBlock.call()).toString());
+        let block = await web3.eth.getBlock("latest")
+        console.log('block.number', block.number)
+        console.log('getCurrentCycleEndBlock', toBN(await consensus.getCurrentCycleEndBlock.call()).toString());
+        true.should.be.equal(await consensus.hasCycleEnded.call())
+        console.log('currentValidatorsLength',await consensus.currentValidatorsLength.call())
+        console.log('activeBallotsLength',await voting.activeBallotsLength.call())
+        console.log('activeBallotsAtIndex',await voting.activeBallotsAtIndex(0))
+        console.log('canBeFinalized',await voting.canBeFinalized(0))
+        await voting.setAcceptedMock(0,3);
+        console.log('getAccepted',await voting.getAccepted(0))
+        console.log('getRejected',await voting.getRejected(0))
+        console.log('getContractType',await voting.getContractType(0))
+        console.log('getProposedValue',await voting.getProposedValue(0))
+        {
+          await voting.setBalotStartBlockMock(0, block.number -2);
+          await voting.setBalotEndBlockMock(0, block.number + 2);
+          console.log('getStartBlock', await voting.getStartBlock(0))
+          console.log('getFinalizeCalled', await voting.getFinalizeCalled(0))
+          console.log('canBeFinalized', await voting.canBeFinalized(0))
+          await blockReward.reward([validator], [0], {from: mockSystemAddress})
+              .then(utils.receiptShouldSucceed)
+          // .catch(utils.catchReceiptShouldFailed);
+
+          // let {logs} =
+
+          // console.log('****',logs.length);
+          // console.log('****',logs[0].event);
+        }
+      })
+    });
+
   })
 
   describe('emitRewardedOnCycle', function () {

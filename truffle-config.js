@@ -36,6 +36,7 @@ module.exports = {
       network_id: '*',
       gas: 10000000
     },
+
     fuse: {
       provider: walletProvider,
       network_id: 122,
@@ -58,6 +59,7 @@ module.exports = {
       }
     }
   },
+  plugins: ["solidity-coverage"],
   mocha: {
     reporter: 'eth-gas-reporter',
     reporterOptions: {

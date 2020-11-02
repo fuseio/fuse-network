@@ -4,6 +4,7 @@ import "../Consensus.sol";
 
 contract ConsensusMock is Consensus {
   uint256 currentValidatorsLengthMock = 0;
+  uint256 private blockTest = 120;
 
   function setSystemAddressMock(address _newAddress) public onlyOwner {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
@@ -49,8 +50,16 @@ contract ConsensusMock is Consensus {
     return 5e22;
   }
 
-  function getCycleDurationBlocks() public pure returns(uint256) {
-    return 120;
+  function getCycleDurationBlocks() public view returns(uint256) {
+    return blockTest == 0 ? 120 : blockTest;
+  }
+
+  function setCycleDurationBlocks(uint256 _block) public {
+    blockTest = _block;
+  }
+
+  function setCurrentCycleEndBlock(uint256 _value) public {
+    uintStorage[CURRENT_CYCLE_END_BLOCK] = _value;
   }
 
   function getSnapshotsPerCycle() public pure returns(uint256) {

@@ -52,7 +52,8 @@ contract('Voting', async (accounts) => {
       blockReward.address,
       voting.address
     )
-
+    let ballotLimitPerValidator = (await voting.getBallotLimitPerValidator()).toNumber()
+    ballotLimitPerValidator.should.be.equal(Math.floor(100))
     await consensus.setNewValidatorSetMock(validators)
     await consensus.setFinalizedMock(false, {from: owner})
     await consensus.setSystemAddressMock(owner, {from: owner})
@@ -146,6 +147,7 @@ contract('Voting', async (accounts) => {
     it('should fail if creating ballot over the ballots limit', async () => {
       let maxLimitOfBallots = (await voting.MAX_LIMIT_OF_BALLOTS()).toNumber()
       let validatorsCount = (await consensus.currentValidatorsLength()).toNumber()
+      console.log({validatorsCount});
       let ballotLimitPerValidator = (await voting.getBallotLimitPerValidator()).toNumber()
       ballotLimitPerValidator.should.be.equal(Math.floor(maxLimitOfBallots / validatorsCount))
       // create ballots successfully up to the limit
@@ -158,6 +160,17 @@ contract('Voting', async (accounts) => {
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
       // create a ballot with different key successfully
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[1]}).should.be.fulfilled
+    })
+    it(' getBallotLimitPerValidator should return 1 if currentValidatorsLength > MAX_LIMIT_OF_BALLOTS', async () => {
+      await consensus.setNewValidatorSetMock(accounts)
+      await consensus.setFinalizedMock(false, {from: owner})
+      await consensus.setSystemAddressMock(owner, {from: owner})
+      await consensus.finalizeChange().should.be.fulfilled
+      let maxLimitOfBallots = (await voting.MAX_LIMIT_OF_BALLOTS()).toNumber()
+      let validatorsCount = (await consensus.currentValidatorsLength()).toNumber()
+      console.log({validatorsCount});
+      let ballotLimitPerValidator = (await voting.getBallotLimitPerValidator()).toNumber()
+      ballotLimitPerValidator.should.be.equal(1)
     })
   })
 
@@ -559,137 +572,138 @@ contract('Voting', async (accounts) => {
     })
   })
 
-  // describe('finalize', async () => {
-  //   let currentValidators
-  //   beforeEach(async () => {
-  //     await voting.initialize().should.be.fulfilled
-  //     voteStartAfterNumberOfCycles = 1
-  //     voteCyclesDuration = 10
-  //     currentValidators = await consensus.getValidators()
-  //   })
-  //   it('should change to proposed value successfully if quorum is reached', async () => {
-  //     let id = await voting.getNextBallotId()
-  //     let proposedValue = RANDOM_ADDRESS
-  //     let contractType = CONTRACT_TYPES.BLOCK_REWARD
-  //     await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
-  //     let currentBlock = toBN(await web3.eth.getBlockNumber())
-  //     let voteStartBlock = await voting.getStartBlock(id)
-  //     let blocksToAdvance = voteStartBlock.sub(currentBlock)
-  //     await advanceBlocks(blocksToAdvance.toNumber())
-  //     await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
-  //     await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[1]}).should.be.fulfilled
-  //     await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
-  //     let voteEndBlock = await voting.getEndBlock(id)
-  //     blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
-  //     await advanceBlocks(blocksToAdvance.toNumber())
-  //     await proxyStorage.setConsensusMock(owner)
-  //     let {logs} = await voting.onCycleEnd(currentValidators).should.be.fulfilled
-  //     logs.length.should.be.equal(1)
-  //     logs[0].event.should.be.equal('BallotFinalized')
-  //     logs[0].args['id'].should.be.bignumber.equal(id)
-  //     let ballotInfo = await voting.getBallotInfo(id, validators[0])
-  //     ballotInfo.startBlock.should.be.bignumber.equal(voteStartBlock)
-  //     ballotInfo.endBlock.should.be.bignumber.equal(voteEndBlock)
-  //     ballotInfo.isFinalized.should.be.equal(true)
-  //     ballotInfo.proposedValue.should.be.equal(proposedValue)
-  //     ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))
-  //     ballotInfo.creator.should.be.equal(validators[0])
-  //     ballotInfo.description.should.be.equal('description')
-  //     ballotInfo.canBeFinalizedNow.should.be.equal(false)
-  //     ballotInfo.alreadyVoted.should.be.equal(true)
-  //     toBN(QUORUM_STATES.ACCEPTED).should.be.bignumber.equal(await voting.getQuorumState(id))
-  //     proposedValue.should.be.equal(await (await EternalStorageProxy.at(await proxyStorage.getBlockReward())).getImplementation())
-  //   })
-  //   it('should not change to proposed value if quorum is not reached', async () => {
-  //     let id = await voting.getNextBallotId()
-  //     let proposedValue = RANDOM_ADDRESS
-  //     let contractType = CONTRACT_TYPES.BLOCK_REWARD
-  //     await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
-  //     let currentBlock = toBN(await web3.eth.getBlockNumber())
-  //     let voteStartBlock = await voting.getStartBlock(id)
-  //     let blocksToAdvance = voteStartBlock.sub(currentBlock)
-  //     await advanceBlocks(blocksToAdvance.toNumber())
-  //     await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
-  //     await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[1]}).should.be.fulfilled
-  //     await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
-  //     let voteEndBlock = await voting.getEndBlock(id)
-  //     blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
-  //     await advanceBlocks(blocksToAdvance.toNumber())
-  //     await proxyStorage.setConsensusMock(owner)
-  //     let {logs} = await voting.onCycleEnd(currentValidators).should.be.fulfilled
-  //     logs.length.should.be.equal(1)
-  //     logs[0].event.should.be.equal('BallotFinalized')
-  //     logs[0].args['id'].should.be.bignumber.equal(id)
-  //     let ballotInfo = await voting.getBallotInfo(id, validators[0])
-  //     ballotInfo.startBlock.should.be.bignumber.equal(voteStartBlock)
-  //     ballotInfo.endBlock.should.be.bignumber.equal(voteEndBlock)
-  //     ballotInfo.isFinalized.should.be.equal(true)
-  //     ballotInfo.proposedValue.should.be.equal(proposedValue)
-  //     ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))
-  //     ballotInfo.creator.should.be.equal(validators[0])
-  //     ballotInfo.description.should.be.equal('description')
-  //     ballotInfo.canBeFinalizedNow.should.be.equal(false)
-  //     ballotInfo.alreadyVoted.should.be.equal(true)
-  //     toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
-  //     proposedValue.should.not.be.equal(await (await EternalStorageProxy.at(await proxyStorage.getBlockReward())).getImplementation())
-  //   })
-  // })
+  describe('finalize', async () => {
+    let currentValidators
+    beforeEach(async () => {
+      await voting.initialize().should.be.fulfilled
+      voteStartAfterNumberOfCycles = 1
+      voteCyclesDuration = 10
+      currentValidators = await consensus.getValidators()
+    })
+    it('should change to proposed value successfully if quorum is reached', async () => {
+      let id = await voting.getNextBallotId()
+      let proposedValue = RANDOM_ADDRESS
+      let contractType = CONTRACT_TYPES.BLOCK_REWARD
+      await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
+      let voteStartBlock = await voting.getStartBlock(id)
+      let blocksToAdvance = voteStartBlock.sub(currentBlock)
+      await advanceBlocks(blocksToAdvance.toNumber())
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[1]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
+      let voteEndBlock = await voting.getEndBlock(id)
+      blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
+      await advanceBlocks(blocksToAdvance.toNumber())
+      await proxyStorage.setConsensusMock(owner)
+      let {logs} = await voting.onCycleEnd(currentValidators).should.be.fulfilled
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('BallotFinalized')
+      logs[0].args['id'].should.be.bignumber.equal(id)
+      let ballotInfo = await voting.getBallotInfo(id, validators[0])
+      ballotInfo.startBlock.should.be.bignumber.equal(voteStartBlock)
+      ballotInfo.endBlock.should.be.bignumber.equal(voteEndBlock)
+      ballotInfo.isFinalized.should.be.equal(true)
+      ballotInfo.proposedValue.should.be.equal(proposedValue)
+      ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))
+      ballotInfo.creator.should.be.equal(validators[0])
+      ballotInfo.description.should.be.equal('description')
+      ballotInfo.canBeFinalizedNow.should.be.equal(false)
+      ballotInfo.alreadyVoted.should.be.equal(true)
+      toBN(QUORUM_STATES.ACCEPTED).should.be.bignumber.equal(await voting.getQuorumState(id))
+      proposedValue.should.be.equal(await (await EternalStorageProxy.at(await proxyStorage.getBlockReward())).getImplementation())
+    })
+    it('should not change to proposed value if quorum is not reached', async () => {
+      let id = await voting.getNextBallotId()
+      let proposedValue = RANDOM_ADDRESS
+      let contractType = CONTRACT_TYPES.BLOCK_REWARD
+      await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
+      let voteStartBlock = await voting.getStartBlock(id)
+      let blocksToAdvance = voteStartBlock.sub(currentBlock)
+      await advanceBlocks(blocksToAdvance.toNumber())
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[1]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
+      let voteEndBlock = await voting.getEndBlock(id)
+      blocksToAdvance = voteEndBlock.sub(currentBlock).add(toBN(1))
+      await advanceBlocks(blocksToAdvance.toNumber())
+      await proxyStorage.setConsensusMock(owner)
+      let {logs} = await voting.onCycleEnd(currentValidators).should.be.fulfilled
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('BallotFinalized')
+      logs[0].args['id'].should.be.bignumber.equal(id)
+      let ballotInfo = await voting.getBallotInfo(id, validators[0])
+      ballotInfo.startBlock.should.be.bignumber.equal(voteStartBlock)
+      ballotInfo.endBlock.should.be.bignumber.equal(voteEndBlock)
+      ballotInfo.isFinalized.should.be.equal(true)
+      ballotInfo.proposedValue.should.be.equal(proposedValue)
+      ballotInfo.contractType.should.be.bignumber.equal(toBN(contractType))
+      ballotInfo.creator.should.be.equal(validators[0])
+      ballotInfo.description.should.be.equal('description')
+      ballotInfo.canBeFinalizedNow.should.be.equal(false)
+      ballotInfo.alreadyVoted.should.be.equal(true)
+      toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
+      proposedValue.should.not.be.equal(await (await EternalStorageProxy.at(await proxyStorage.getBlockReward())).getImplementation())
+    })
+  })
 
-  // describe('upgradeTo', async () => {
-  //   let votingOldImplementation, votingNew
-  //   let proxyStorageStub = accounts[13]
-  //   beforeEach(async () => {
-  //     voting = await Voting.new()
-  //     votingOldImplementation = voting.address
-  //     proxy = await EternalStorageProxy.new(proxyStorage.address, voting.address)
-  //     voting = await Voting.at(proxy.address)
-  //     votingNew = await Voting.new()
-  //   })
-  //   it('should only be called by ProxyStorage', async () => {
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(votingNew.address, {from: owner}).should.be.rejectedWith(ERROR_MSG)
-  //     let {logs} = await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
-  //     logs[0].event.should.be.equal('Upgraded')
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //   })
-  //   it('should change implementation address', async () => {
-  //     votingOldImplementation.should.be.equal(await proxy.getImplementation())
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //     votingNew.address.should.be.equal(await proxy.getImplementation())
-  //   })
-  //   it('should increment implementation version', async () => {
-  //     let votingOldVersion = await proxy.getVersion()
-  //     let votingNewVersion = votingOldVersion.add(toBN(1))
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //     votingNewVersion.should.be.bignumber.equal(await proxy.getVersion())
-  //   })
-  //   it('should work after upgrade', async () => {
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
-  //     await proxy.setProxyStorageMock(proxyStorage.address)
-  //     votingNew = await Voting.at(proxy.address)
-  //     false.should.be.equal(await votingNew.isInitialized())
-  //     await votingNew.initialize().should.be.fulfilled
-  //     true.should.be.equal(await votingNew.isInitialized())
-  //   })
-  //   it('should use same proxyStorage after upgrade', async () => {
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
-  //     votingNew = await Voting.at(proxy.address)
-  //     proxyStorageStub.should.be.equal(await votingNew.getProxyStorage())
-  //   })
-  //   it('should use same storage after upgrade', async () => {
-  //     let nextBallotId = await voting.getNextBallotId()
-  //     let newValue = nextBallotId.toNumber() + 1
-  //     await voting.setNextBallotIdMock(newValue)
-  //     await proxy.setProxyStorageMock(proxyStorageStub)
-  //     await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
-  //     votingNew = await Voting.at(proxy.address)
-  //     toBN(newValue).should.be.bignumber.equal(await votingNew.getNextBallotId())
-  //   })
-  // })
+  describe('upgradeTo', async () => {
+    let votingOldImplementation, votingNew
+    let proxyStorageStub = accounts[13]
+    beforeEach(async () => {
+      voting = await Voting.new()
+      votingOldImplementation = voting.address
+      proxy = await EternalStorageProxy.new(proxyStorage.address, voting.address)
+      voting = await Voting.at(proxy.address)
+      votingNew = await Voting.new()
+    })
+    it('should only be called by ProxyStorage', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(votingNew.address, {from: owner}).should.be.rejectedWith(ERROR_MSG)
+      let {logs} = await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
+      logs[0].event.should.be.equal('Upgraded')
+      await proxy.setProxyStorageMock(proxyStorage.address)
+    })
+    it('should change implementation address', async () => {
+      votingOldImplementation.should.be.equal(await proxy.getImplementation())
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      votingNew.address.should.be.equal(await proxy.getImplementation())
+    })
+    it('should increment implementation version', async () => {
+      let votingOldVersion = await proxy.getVersion()
+      let votingNewVersion = votingOldVersion.add(toBN(1))
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      votingNewVersion.should.be.bignumber.equal(await proxy.getVersion())
+    })
+    it('should work after upgrade', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
+      await proxy.setProxyStorageMock(proxyStorage.address)
+      votingNew = await Voting.at(proxy.address)
+      false.should.be.equal(await votingNew.isInitialized())
+      await votingNew.initialize().should.be.fulfilled
+      true.should.be.equal(await votingNew.isInitialized())
+    })
+    it('should use same proxyStorage after upgrade', async () => {
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
+      votingNew = await Voting.at(proxy.address)
+      proxyStorageStub.should.be.equal(await votingNew.getProxyStorage())
+    })
+    it('should use same storage after upgrade', async () => {
+      let nextBallotId = await voting.getNextBallotId()
+      let newValue = nextBallotId.toNumber() + 1
+      await voting.setNextBallotIdMock(newValue)
+      await proxy.setProxyStorageMock(proxyStorageStub)
+      await proxy.upgradeTo(votingNew.address, {from: proxyStorageStub})
+      votingNew = await Voting.at(proxy.address)
+      toBN(newValue).should.be.bignumber.equal(await votingNew.getNextBallotId())
+    })
+  })
+
 })
