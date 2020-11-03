@@ -16,8 +16,9 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant MAX_VALIDATORS = 100;
   uint256 public constant MIN_STAKE = 1e23; // 100,000
-  uint256 public constant CYCLE_DURATION_BLOCKS = 120960; // 7 days [7*24*60*60/5]
-  uint256 public constant SNAPSHOTS_PER_CYCLE = 10; // snapshot each 1008 minutes [120960/10/60*5]
+  uint256 public constant MAX_STAKE = 5e24; // 5,000,000
+  uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
+  uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 1e17; // 10%
 
   /**
@@ -84,22 +85,61 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   bytes32 internal constant WAS_PROXY_STORAGE_SET = keccak256(abi.encodePacked("wasProxyStorageSet"));
   bytes32 internal constant NEW_VALIDATOR_SET = keccak256(abi.encodePacked("newValidatorSet"));
   bytes32 internal constant SHOULD_EMIT_INITIATE_CHANGE = keccak256(abi.encodePacked("shouldEmitInitiateChange"));
+  bytes32 internal constant TOTAL_STAKE_AMOUNT = keccak256(abi.encodePacked("totalStakeAmount"));
 
   function _delegate(address _staker, uint256 _amount, address _validator) internal {
     require(_staker != address(0));
     require(_amount != 0);
     require(_validator != address(0));
 
-    // overstaking should not be possible
-    require (stakeAmount(_validator) < getMinStake());
-    require (stakeAmount(_validator).add(_amount) <= getMinStake());
-
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
 
+    // stake amount of the validator isn't greater than the max stake
+    require(stakeAmount(_validator) <= getMaxStake());
+
+    // the validator must stake himselft the minimum stake
     if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
       _pendingValidatorsAdd(_validator);
     }
+
+    // if _validator is one of the current validators
+    if (isValidator(_validator)) {
+      // the total stake needs to be adjusted for the block reward formula
+      _totalStakeAmountAdd(_amount);
+    }
+  }
+
+  function _withdraw(address _staker, uint256 _amount, address _validator) internal {
+    require(_validator != address(0));
+    require(_amount > 0);
+    require(_amount <= stakeAmount(_validator));
+    require(_amount <= delegatedAmount(_staker, _validator));
+
+    bool _isValidator = isValidator(_validator);
+
+    // if new stake amount is lesser than minStake and the validator is one of the current validators
+    if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
+      // do not withdaw the amount until the validator is in current set
+      _pendingValidatorsRemove(_validator);
+      return;
+    }
+
+
+    _delegatedAmountSub(_staker, _validator, _amount);
+    _stakeAmountSub(_validator, _amount);
+
+    // if _validator is one of the current validators
+    if (_isValidator) {
+      // the total stake needs to be adjusted for the block reward formula
+      _totalStakeAmountSub(_amount);
+    }
+
+    // if validator is needed to be removed from pending, but not current
+    if (stakeAmount(_validator) < getMinStake()) {
+      _pendingValidatorsRemove(_validator);
+    }
+    _staker.transfer(_amount);
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -137,6 +177,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   */
   function getMinStake() public pure returns(uint256) {
     return MIN_STAKE;
+  }
+
+  /**
+  * returns maximum stake (wei) for a validator
+  */
+  function getMaxStake() public pure returns(uint256) {
+    return MAX_STAKE;
   }
 
   /**
@@ -236,6 +283,12 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _setCurrentValidators(address[] _currentValidators) internal {
+    uint256 totalStake = 0;
+    for (uint i = 0; i < _currentValidators.length; i++) {
+      uint256 stakedAmount = stakeAmount(_currentValidators[i]);
+      totalStake = totalStake + stakedAmount;
+    }
+    _setTotalStakeAmount(totalStake);
     addressArrayStorage[CURRENT_VALIDATORS] = _currentValidators;
   }
 
@@ -286,11 +339,16 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
       }
       delete addressArrayStorage[PENDING_VALIDATORS][lastIndex];
       addressArrayStorage[PENDING_VALIDATORS].length--;
+      // if the validator in on of the current validators
     }
   }
 
   function stakeAmount(address _address) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))];
+  }
+
+  function totalStakeAmount() public view returns(uint256) {
+    return uintStorage[TOTAL_STAKE_AMOUNT];
   }
 
   function _stakeAmountAdd(address _address, uint256 _amount) internal {
@@ -393,20 +451,24 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
   }
 
+  function _setTotalStakeAmount(uint256 _totalStake) internal {
+    uintStorage[TOTAL_STAKE_AMOUNT] = _totalStake;
+  }
+
+  function _totalStakeAmountAdd(uint256 _stakeAmount) internal {
+    uintStorage[TOTAL_STAKE_AMOUNT] = uintStorage[TOTAL_STAKE_AMOUNT].add(_stakeAmount);
+  }
+
+  function _totalStakeAmountSub(uint256 _stakeAmount) internal {
+    uintStorage[TOTAL_STAKE_AMOUNT] = uintStorage[TOTAL_STAKE_AMOUNT].sub(_stakeAmount);
+  }
+
   function shouldEmitInitiateChange() public view returns(bool) {
     return boolStorage[SHOULD_EMIT_INITIATE_CHANGE];
   }
 
   function _setShouldEmitInitiateChange(bool _status) internal {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
-  }
-
-  function _getBlocksToSnapshot() internal pure returns(uint256) {
-    return getCycleDurationBlocks().div(getSnapshotsPerCycle());
-  }
-
-  function _shouldTakeSnapshot() internal view returns(bool) {
-    return (block.number - getLastSnapshotTakenAtBlock() >= _getBlocksToSnapshot());
   }
 
   function _hasCycleEnded() internal view returns(bool) {

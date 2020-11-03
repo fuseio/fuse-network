@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/BlockReward.sol";
+import "../BlockReward.sol";
 
 contract BlockRewardMock is BlockReward {
   function setSystemAddressMock(address _newAddress) public onlyOwner {
@@ -17,5 +17,9 @@ contract BlockRewardMock is BlockReward {
 
   function setShouldEmitRewardedOnCycleMock(bool _status) public {
     boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE] = _status;
+  }
+
+  function cycleMock() public {
+    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
   }
 }

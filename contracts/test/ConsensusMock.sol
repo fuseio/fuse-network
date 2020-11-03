@@ -1,8 +1,10 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/Consensus.sol";
+import "../Consensus.sol";
 
 contract ConsensusMock is Consensus {
+  uint256 currentValidatorsLengthMock = 0;
+
   function setSystemAddressMock(address _newAddress) public onlyOwner {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
   }
@@ -15,17 +17,17 @@ contract ConsensusMock is Consensus {
     return _hasCycleEnded();
   }
 
-  function shouldTakeSnapshot() public view returns(bool) {
-    return _shouldTakeSnapshot();
-  }
+  // function shouldTakeSnapshot() public view returns(bool) {
+  //   return _shouldTakeSnapshot();
+  // }
 
   function getRandom(uint256 _from, uint256 _to) public view returns(uint256) {
     return _getRandom(_from, _to);
   }
 
-  function getBlocksToSnapshot() public pure returns(uint256) {
-    return _getBlocksToSnapshot();
-  }
+  // function getBlocksToSnapshot() public pure returns(uint256) {
+  //   return _getBlocksToSnapshot();
+  // }
 
   function setNewValidatorSetMock(address[] _newSet) public {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
@@ -43,6 +45,10 @@ contract ConsensusMock is Consensus {
     return 1e22;
   }
 
+  function getMaxStake() public pure returns(uint256) {
+    return 5e22;
+  }
+
   function getCycleDurationBlocks() public pure returns(uint256) {
     return 120;
   }
@@ -51,8 +57,23 @@ contract ConsensusMock is Consensus {
     return 10;
   }
 
+  function setCurrentValidatorsLengthMock(uint256 _currentValidatorsLengthMock) external {
+    currentValidatorsLengthMock = _currentValidatorsLengthMock;
+  }
+
+  function currentValidatorsLength() public view returns(uint256) {
+    if (currentValidatorsLengthMock != 0) {
+      return currentValidatorsLengthMock;
+    }
+    return super.currentValidatorsLength();
+  }
+
   function setValidatorFeeMock(uint256 _amount) external {
     require (_amount <= 1 * DECIMALS);
     _setValidatorFee(msg.sender, _amount);
+  }
+
+  function setTotalStakeAmountMock(uint256 _totalStake) public {
+    _setTotalStakeAmount(_totalStake);
   }
 }
