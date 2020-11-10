@@ -1406,27 +1406,69 @@ contract('Consensus', async (accounts) => {
   })
 
   describe('setValidatorFee', async () => {
+    let decimals
     beforeEach(async () => {
       await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
+      decimals = await consensus.DECIMALS()
     })
     it('should only be called by validator', async () => {
-      decimals = await consensus.DECIMALS()
       await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
       let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
       defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
-      let newValidatorFee = defaultValidatorFee.sub(toBN(0.01 * decimals))
+      let newValidatorFee = defaultValidatorFee.add(toBN(0.1 * decimals))
       await consensus.setValidatorFee(newValidatorFee, {from: initialValidator}).should.be.fulfilled
+
       newValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(initialValidator))
+      await consensus.setValidatorFee(newValidatorFee, {from: secondCandidate}).should.be.rejectedWith(ERROR_MSG)
+    })
+
+    it('cannot be called by pending validator', async () => {
+      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
+      let newValidatorFee = defaultValidatorFee.add(toBN(0.1 * decimals))
       await consensus.setValidatorFee(newValidatorFee, {from: secondCandidate}).should.be.rejectedWith(ERROR_MSG)
     })
     it('should only be able to set a valid fee', async () => {
       decimals = await consensus.DECIMALS()
       let i;
-      for (i = 0; i <= 100; i++) {
+      for (i = 15; i <= 100; i++) {
         await consensus.setValidatorFee(toBN(i/100 * decimals), {from: initialValidator}).should.be.fulfilled
       }
       await consensus.setValidatorFee(toBN(i/100 * decimals), {from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
+    })
+
+    it('should not allow set less than a minimum', async () => {
+      decimals = await consensus.DECIMALS()
+      let i;
+      for (i = 0; i <= 14; i++) {
+        await consensus.setValidatorFee(toBN(i/100 * decimals), {from: initialValidator}).should.be.rejectedWith(ERROR_MSG)
+      }
+    })
+
+    it('should update the fee to minimum if less than than on end of the cycle', async () => {
+      let defaultValidatorFee = await consensus.DEFAULT_VALIDATOR_FEE()
+
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      await consensus.sendTransaction({from: thirdCandidate, value: MIN_STAKE}).should.be.fulfilled
+
+      await mockEoC()
+      const secondCandidateFee = defaultValidatorFee.add(toBN(0.1 * decimals))
+      const thirdCandidateFee = defaultValidatorFee.sub(toBN(0.1 * decimals))
+
+      await consensus.setValidatorFee(secondCandidateFee, {from: secondCandidate}).should.be.fulfilled
+      await consensus.setValidatorFeeMock(thirdCandidateFee, {from: thirdCandidate}).should.be.fulfilled
+
+      defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
+      secondCandidateFee.should.be.bignumber.equal(await consensus.validatorFee(secondCandidate))
+      thirdCandidateFee.should.be.bignumber.equal(await consensus.validatorFee(thirdCandidate))
+
+      await mockEoC()
+
+      defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(firstCandidate))
+      secondCandidateFee.should.be.bignumber.equal(await consensus.validatorFee(secondCandidate))
+      defaultValidatorFee.should.be.bignumber.equal(await consensus.validatorFee(thirdCandidate))
     })
   })
 

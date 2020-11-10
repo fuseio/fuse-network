@@ -19,7 +19,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant MAX_STAKE = 5e24; // 5,000,000
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
-  uint256 public constant DEFAULT_VALIDATOR_FEE = 1e17; // 10%
+  uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -187,6 +187,14 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   /**
+  * @dev Function returns the minimum validator fee amount in wei
+    While 100% is 1e18
+  */
+  function getMinValidatorFee() public pure returns(uint256) {
+    return DEFAULT_VALIDATOR_FEE;
+  }
+
+  /**
   * returns number of blocks per cycle (block time is 5 seconds)
   */
   function getCycleDurationBlocks() public pure returns(uint256) {
@@ -287,6 +295,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     for (uint i = 0; i < _currentValidators.length; i++) {
       uint256 stakedAmount = stakeAmount(_currentValidators[i]);
       totalStake = totalStake + stakedAmount;
+
+      // setting fee on all active validators to at least minimum fee
+      // needs to run only once for the existing validators
+      uint _validatorFee = validatorFee(_currentValidators[i]);
+      if (_validatorFee < getMinValidatorFee()) {
+        _setValidatorFee(_currentValidators[i],  getMinValidatorFee());
+      }
     }
     _setTotalStakeAmount(totalStake);
     addressArrayStorage[CURRENT_VALIDATORS] = _currentValidators;
