@@ -2,7 +2,6 @@
 .DS_Store
 build
 flats
-abis
 fusenet*
 contracts.json
 runlocal.txt
