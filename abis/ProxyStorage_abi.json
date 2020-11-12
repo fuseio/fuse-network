@@ -1,0 +1,171 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "isInitialized",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "consensus",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "blockReward",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "voting",
+        "type": "address"
+      }
+    ],
+    "name": "ProxyInitialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "contractType",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "contractAddress",
+        "type": "address"
+      }
+    ],
+    "name": "AddressSet",
+    "type": "event"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_consensus",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_blockReward",
+        "type": "address"
+      },
+      {
+        "name": "_voting",
+        "type": "address"
+      }
+    ],
+    "name": "initializeAddresses",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_contractType",
+        "type": "uint256"
+      },
+      {
+        "name": "_contractAddress",
+        "type": "address"
+      }
+    ],
+    "name": "setContractAddress",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_contractType",
+        "type": "uint256"
+      }
+    ],
+    "name": "isValidContractType",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getConsensus",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getBlockReward",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "getVoting",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
