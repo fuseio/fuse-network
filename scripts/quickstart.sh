@@ -46,7 +46,7 @@ function install_docker {
 
   $PERMISSION_PREFIX apt-get update
 
-  $PERMISSION_PREFIX apt-get install \
+  $PERMISSION_PREFIX apt-get install -y \
       apt-transport-https \
       ca-certificates \
       curl \
@@ -502,10 +502,10 @@ function run {
 
       INSTANCE_NAME=$address
       if [ -z "$VAL_NAME" ] ; then
-	echo "using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable"
+        WARNINGS+=("using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable")
       else
-	echo "setting netstats name to $VAL_NAME"
-	INSTANCE_NAME=$VAL_NAME
+        echo "setting netstats name to $VAL_NAME"
+        INSTANCE_NAME=$VAL_NAME
       fi
 
 
