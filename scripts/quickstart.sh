@@ -165,7 +165,7 @@ function checkDiskSpace {
     mountedDrive=$(df --output=target quickstart.sh | tail -n1)
     totalDriveSpaceBytes=$(df -k --output=size "$mountedDrive" | tail -n1)
     totalDriveSpaceMB=$(( totalDriveSpaceBytes / 1024 ))
-    if [[ "$totalDriveSpaceMB" < "$REQUIRED_DRIVE_SPACE_MB" ]]; then
+    if [ "$totalDriveSpaceMB" -lt "$REQUIRED_DRIVE_SPACE_MB" ]; then
       echo "Not enoguh total drive space! you have $totalDriveSpaceMB MB you require at least $REQUIRED_DRIVE_SPACE_MB MB to be a validator"
       exit 1
     fi
@@ -176,7 +176,7 @@ function checkAmountOfRam {
   if [ $PLATFORM == "LINUX" ]; then
     totalMemoryBytes=$(free|awk '/^Mem:/{print $2}')
     totalMemoryMB=$(( totalMemoryBytes / 1024 ))
-    if [[ "$totalMemoryMB" < "$REQUIRED_RAM_MB" ]]; then
+    if [ "$totalMemoryMB" -lt "$REQUIRED_RAM_MB" ]; then
       echo "Not enough total system memory! you have $totalMemoryMB MB you require at least $REQUIRED_RAM_MB MB to be a validator"
       exit 1
     fi
