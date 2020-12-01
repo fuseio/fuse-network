@@ -299,12 +299,12 @@ function setup {
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
 
-  if [[ $ROLE == validator ]] || [[ $ROLE != bridge_validator ]] ; then
+  if [[ $ROLE == validator ]] || [[ $ROLE == bridge_validator ]] ; then
     echo -e "\nPull additional docker images..."
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
   fi
   
-  if [[ $ROLE != bridge_validator ]] ; then
+  if [[ $ROLE == bridge_validator ]] ; then
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
@@ -319,7 +319,7 @@ function setup {
   # Create directories.
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
-  if [[ $ROLE == validator ]] || [[ $ROLE != bridge_validator ]] ; then
+  if [[ $ROLE == validator ]] || [[ $ROLE == bridge_validator ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
 	IFS=$'\n'
@@ -409,7 +409,7 @@ function run {
     $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_NETSTAT
   fi
 
-  if [[ $ROLE == "validator" ]] || [[ $ROLE != bridge_validator ]] ; then
+  if [[ $ROLE == "validator" ]] || [[ $ROLE == bridge_validator ]] ; then
     # Check if the validator-app container is already running.
     if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_APP"* ]] ; then
       echo -e "\nThe validator app is already running as container with name '$DOCKER_CONTAINER_APP', stopping it..."
