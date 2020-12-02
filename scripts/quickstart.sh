@@ -39,6 +39,7 @@ declare -a VALID_ROLE_LIST=(
   node
   validator
   explorer
+  bridge_validator
 )
 
 function install_docker {
@@ -233,7 +234,7 @@ function parseArguments {
 
   checkRoleArgument
 
-  if [[ $ROLE != validator ]] ; then
+  if [[ $ROLE != validator ]] && [[ $ROLE != bridge_validator ]]; then
     if ! [[ "$NODE_KEY" ]] ; then
       echo "Missing NODE_KEY argument!"
       exit 1
@@ -298,25 +299,27 @@ function setup {
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
 
-  if [[ $ROLE == validator ]] ; then
+  if [[ $ROLE == validator ]] || [[ $ROLE == bridge_validator ]] ; then
     echo -e "\nPull additional docker images..."
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
+  fi
+  
+  if [[ $ROLE == bridge_validator ]] ; then
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
     wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
-  fi
-
-  # Create directories.
-  mkdir -p $DATABASE_DIR
-  mkdir -p $CONFIG_DIR
-  if [[ $ROLE == validator ]] ; then
     
     echo -e "\nUpdating block numbers in env file"
     getAndUpdateBlockNumbers
     
     checkEthGasAPI
-	  
+  fi
+
+  # Create directories.
+  mkdir -p $DATABASE_DIR
+  mkdir -p $CONFIG_DIR
+  if [[ $ROLE == validator ]] || [[ $ROLE == bridge_validator ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
 	IFS=$'\n'
@@ -406,7 +409,7 @@ function run {
     $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_NETSTAT
   fi
 
-  if [[ $ROLE == "validator" ]] ; then
+  if [[ $ROLE == "validator" ]] || [[ $ROLE == bridge_validator ]] ; then
     # Check if the validator-app container is already running.
     if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_APP"* ]] ; then
       echo -e "\nThe validator app is already running as container with name '$DOCKER_CONTAINER_APP', stopping it..."
@@ -534,12 +537,52 @@ function run {
         --restart=always \
         --memory="250m" \
         $DOCKER_IMAGE_APP
-
-      ## Start oracle container with all necessary arguments.
-      $PERMISSION_PREFIX docker-compose up \
-        --build \
-        -d
       ;;
+      
+     "bridge_validator")
+       ## Read in the stored address file.
+       local address=$(cat $ADDRESS_FILE)
+
+        INSTANCE_NAME=$address
+        if [ -z "$VAL_NAME" ] ; then
+          WARNINGS+=("using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable")
+        else
+          echo "setting netstats name to $VAL_NAME"
+          INSTANCE_NAME=$VAL_NAME
+        fi
+
+
+        ## Start parity container with all necessary arguments.
+        $PERMISSION_PREFIX docker run \
+          $DOCKER_LOG_OPTS \
+          --detach \
+          --name $DOCKER_CONTAINER_PARITY \
+          --volume $DATABASE_DIR:/data \
+          --volume $CONFIG_DIR:/config/custom \
+          -p 30303:30300/tcp \
+          -p 30303:30300/udp \
+          -p 8545:8545 \
+          --restart=always \
+          $DOCKER_IMAGE_PARITY \
+          --role validator \
+          --address $address \
+          --parity-args --no-warp
+
+        ## Start validator-app container with all necessary arguments.
+        $PERMISSION_PREFIX docker run \
+          $DOCKER_LOG_OPTS \
+          --detach \
+          --name $DOCKER_CONTAINER_APP \
+          --volume $CONFIG_DIR:/config \
+          --restart=always \
+          --memory="250m" \
+          $DOCKER_IMAGE_APP
+
+        ## Start oracle container with all necessary arguments.
+        $PERMISSION_PREFIX docker-compose up \
+          --build \
+          -d
+        ;;
 
     "explorer")
       INSTANCE_NAME=$NODE_KEY
