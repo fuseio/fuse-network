@@ -113,8 +113,14 @@ contract Consensus is ConsensusUtils {
     _setShouldEmitInitiateChange(false);
   }
 
+
+  /**
+  * @dev Function to be called by validators to update the validator fee, that's the fee cut the validator takes from his delegatots.
+  * @param _amount fee percentage when 1e18 represents 100%.
+  */
   function setValidatorFee(uint256 _amount) external onlyValidator {
     require (_amount <= 1 * DECIMALS);
+    require(_amount >= getMinValidatorFee());
     _setValidatorFee(msg.sender, _amount);
   }
 }
