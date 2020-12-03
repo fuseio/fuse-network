@@ -31,6 +31,7 @@ REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
 WARNINGS=()
+INFOS=()
 
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
@@ -39,7 +40,7 @@ declare -a VALID_ROLE_LIST=(
   node
   validator
   explorer
-  bridge_validator
+  bridge-validator
 )
 
 function install_docker {
@@ -234,7 +235,7 @@ function parseArguments {
 
   checkRoleArgument
 
-  if [[ $ROLE != validator ]] && [[ $ROLE != bridge_validator ]]; then
+  if [[ $ROLE != validator ]] && [[ $ROLE != bridge-validator ]]; then
     if ! [[ "$NODE_KEY" ]] ; then
       echo "Missing NODE_KEY argument!"
       exit 1
@@ -299,12 +300,12 @@ function setup {
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
 
-  if [[ $ROLE == validator ]] || [[ $ROLE == bridge_validator ]] ; then
+  if [[ $ROLE == validator ]] || [[ $ROLE == bridge-validator ]] ; then
     echo -e "\nPull additional docker images..."
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
   fi
   
-  if [[ $ROLE == bridge_validator ]] ; then
+  if [[ $ROLE == bridge-validator ]] ; then
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
@@ -319,7 +320,7 @@ function setup {
   # Create directories.
   mkdir -p $DATABASE_DIR
   mkdir -p $CONFIG_DIR
-  if [[ $ROLE == validator ]] || [[ $ROLE == bridge_validator ]] ; then
+  if [[ $ROLE == validator ]] || [[ $ROLE == bridge-validator ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
 	IFS=$'\n'
@@ -409,7 +410,7 @@ function run {
     $PERMISSION_PREFIX docker rm $DOCKER_CONTAINER_NETSTAT
   fi
 
-  if [[ $ROLE == "validator" ]] || [[ $ROLE == bridge_validator ]] ; then
+  if [[ $ROLE == "validator" ]] || [[ $ROLE == bridge-validator ]] ; then
     # Check if the validator-app container is already running.
     if [[ $($PERMISSION_PREFIX docker ps) == *"$DOCKER_CONTAINER_APP"* ]] ; then
       echo -e "\nThe validator app is already running as container with name '$DOCKER_CONTAINER_APP', stopping it..."
@@ -505,10 +506,10 @@ function run {
 
       INSTANCE_NAME=$address
       if [ -z "$VAL_NAME" ] ; then
-        WARNINGS+=("using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable")
+        INFOS+=("using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable")
       else
         echo "setting netstats name to $VAL_NAME"
-        INSTANCE_NAME=$VAL_NAME
+        INSTANCE_NAME="${VAL_NAME}_${address}"
       fi
 
 
@@ -539,16 +540,16 @@ function run {
         $DOCKER_IMAGE_APP
       ;;
       
-     "bridge_validator")
+     "bridge-validator")
        ## Read in the stored address file.
        local address=$(cat $ADDRESS_FILE)
 
         INSTANCE_NAME=$address
         if [ -z "$VAL_NAME" ] ; then
-          WARNINGS+=("using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable")
+          INFOS+=("using the address as the netstats name to update this pull the latest env file and set the VAL_NAME variable")
         else
           echo "setting netstats name to $VAL_NAME"
-          INSTANCE_NAME=$VAL_NAME
+          INSTANCE_NAME="${VAL_NAME}_${address}"
         fi
 
 
@@ -621,10 +622,15 @@ function run {
 }
 
 function displayWarning {
+  for info in "${INFOS[@]}"
+  do
+    echo "$(tput setaf 3)INFO: $info$(tput sgr 0)"
+  done
+  
   for warning in "${WARNINGS[@]}"
   do
     echo "$(tput setaf 1)WARN: $warning$(tput sgr 0)"
-  done
+  done 
 }
 
 
