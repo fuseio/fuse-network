@@ -43,6 +43,18 @@ declare -a VALID_ROLE_LIST=(
   bridge-validator
 )
 
+function displayErrorAndExit {
+  local arg1=$1
+  if [[ $arg1 != "" ]];
+  then
+    echo "$(tput setaf 1)ERROR: $arg1$(tput sgr 0)"
+  else
+    echo "${FUNCNAME[0]} No Argument supplied"
+  fi
+  
+  exit 1
+}
+
 function install_docker {
   echo -e "\nInstalling docker..."
 
@@ -96,8 +108,7 @@ function setPlatform {
        PLATFORM="WINDOWS"
        ;;
      *)
-       echo 'UNKNOWN OS exiting the script here'
-       exit 1
+       displayErrorAndExit "UNKNOWN OS exiting the script here"
        ;;
   esac
 }
@@ -116,14 +127,12 @@ function getAndUpdateBlockNumbers {
 
   if [[ "$ETHBLOCK" == 0 ]]; then
 	  echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL$ADDPORT)
-	  echo "Could not pull mainnet block please check your foreign RPC config"
-	  exit 1
+	  displayErrorAndExit "Could not pull mainnet block please check your foreign RPC config"
   fi
 
   if [[ "$FUSEBLOCK" == 0 ]]; then
 	  echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL)
-	  echo "Could not pull fuse block please check your fuse RPC config"
-          exit 1
+	  displayErrorAndExit "Could not pull fuse block please check your fuse RPC config"
   fi
 
   echo "ETH BLOCK = $ETHBLOCK"
@@ -168,8 +177,7 @@ function checkDiskSpace {
     totalDriveSpaceBytes=$(df -k --output=size "$mountedDrive" | tail -n1)
     totalDriveSpaceMB=$(( totalDriveSpaceBytes / 1024 ))
     if [ "$totalDriveSpaceMB" -lt "$REQUIRED_DRIVE_SPACE_MB" ]; then
-      echo "Not enoguh total drive space! you have $totalDriveSpaceMB MB you require at least $REQUIRED_DRIVE_SPACE_MB MB to be a validator"
-      exit 1
+      displayErrorAndExit "Not enoguh total drive space! you have $totalDriveSpaceMB MB you require at least $REQUIRED_DRIVE_SPACE_MB MB to be a validator"
     fi
   fi
 }
@@ -179,8 +187,7 @@ function checkAmountOfRam {
     totalMemoryBytes=$(free|awk '/^Mem:/{print $2}')
     totalMemoryMB=$(( totalMemoryBytes / 1024 ))
     if [ "$totalMemoryMB" -lt "$REQUIRED_RAM_MB" ]; then
-      echo "Not enough total system memory! you have $totalMemoryMB MB you require at least $REQUIRED_RAM_MB MB to be a validator"
-      exit 1
+      displayErrorAndExit "Not enough total system memory! you have $totalMemoryMB MB you require at least $REQUIRED_RAM_MB MB to be a validator"
     fi
   fi
 }
@@ -217,8 +224,7 @@ function sanityChecks {
 
   # Check if .env file exists.
   if [[ ! -f "$ENV_FILE" ]] ; then
-    echo "$ENV_FILE does not exist!"
-    exit 1
+    displayErrorAndExit "$ENV_FILE does not exist!"
   fi
 }
 
@@ -229,16 +235,18 @@ function parseArguments {
 
   # Check if ROLE arg exists.
   if ! [[ "$ROLE" ]] ; then
-    echo "Missing ROLE argument!"
-    exit 1
+    displayErrorAndExit "Missing ROLE argument!"
   fi
 
   checkRoleArgument
 
   if [[ $ROLE != validator ]] && [[ $ROLE != bridge-validator ]]; then
     if ! [[ "$NODE_KEY" ]] ; then
-      echo "Missing NODE_KEY argument!"
-      exit 1
+      displayErrorAndExit "Missing NODE_KEY argument!"
+    fi
+    
+    if [[ "$NODE_KEY" == "<your_node_key>" ]]; then
+      displayErrorAndExit "NODE_KEY is still set to default update it in the env file"
     fi
   fi
 
@@ -259,9 +267,7 @@ function checkRoleArgument {
   done
 
   # Error report to the user with the correct usage.
-  echo "The defined role ('$ROLE') is invalid."
-  echo "Please choose of the following: ${VALID_ROLE_LIST[@]}"
-  exit 1
+  displayErrorAndExit "The defined role ('$ROLE') is invalid.\nPlease choose of the following: ${VALID_ROLE_LIST[@]}"
 }
 
 function setup {
@@ -467,7 +473,7 @@ function run {
       if [ $PLATFORM == "LINUX" ]; then
         cpuCores=$(nproc --all)
       fi
-      NUM_RPC_THREADS=cpuCores
+      NUM_RPC_THREADS=$cpuCores
       NUM_HTTP_THREADS=$(( 4*cpuCores ))
       if [ -z "$NUMBER_OF_RPC_THREADS" ] ; then
       	echo "using default RPC thread values"
