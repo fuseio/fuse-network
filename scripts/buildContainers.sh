@@ -31,7 +31,7 @@ function buildFuseParity {
 
 function pushChanges {
   local appsChanged=$1
-  branchName='update_$appsChanged'
+  branchName="update_$appsChanged"
   
   git branch -m "$branchName"
   git commit -m "$branchName" ../Version
