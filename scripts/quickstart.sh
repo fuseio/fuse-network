@@ -310,7 +310,7 @@ function setup {
     $PERMISSION_PREFIX sntp -sS 0.pool.ntp.org
   fi
 
-  if [ "$OVERRIDE_VERSION_FILE" = false] ; then
+  if [ "$OVERRIDE_VERSION_FILE" == false] ; then
     echo -e "\nGrab docker Versions"
     wget -O versionFile $VERSION_FILE
     export $(grep -v '^#' versionFile | xargs)
