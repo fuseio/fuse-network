@@ -4,6 +4,16 @@ set -e
 
 OLDIFS=$IFS
 
+QUICKSTART_VERSION="1.0.0"
+
+#set this to true to allow for hardcoded versioning for debugging
+OVERRIDE_VERSION_FILE=false
+VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/version"
+DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
+DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
+DOCKER_IMAGE_FUSE_PARITY_VERSION="1.0.0"
+DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
+
 ENV_FILE=".env"
 DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
@@ -12,8 +22,7 @@ DOCKER_CONTAINER_APP="fuseapp"
 DOCKER_IMAGE_NETSTAT="fusenet/netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
 DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/fuse-bridge/master/native-to-erc20/oracle/docker-compose.keystore.yml"
-DOCKER_IMAGE_ORACLE_VERSION="2.0.6"
-DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle:$DOCKER_IMAGE_ORACLE_VERSION"
+DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=25 --log-opt compress=true"
 BASE_DIR=$(pwd)/fusenet
@@ -301,18 +310,26 @@ function setup {
     $PERMISSION_PREFIX sntp -sS 0.pool.ntp.org
   fi
 
+  if [ "$OVERRIDE_VERSION_FILE" = false] ; then
+    echo -e "\nGrab docker Versions"
+    wget -O versionFile $VERSION_FILE
+    export $(grep -v '^#' versionFile | xargs)
+  else
+    echo -e "\n Using hardcoded version Info"
+  fi
+
   # Pull the docker images.
   echo -e "\nPull the docker images..."
-  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
-  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
+  $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_PARITY:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
+  $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_NETSTAT:$DOCKER_IMAGE_NET_STATS_VERSION"
 
   if [[ $ROLE == validator ]] || [[ $ROLE == bridge-validator ]] ; then
     echo -e "\nPull additional docker images..."
-    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
+    $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_APP:$DOCKER_IMAGE_FUSE_APP_VERSION"
   fi
   
   if [[ $ROLE == bridge-validator ]] ; then
-    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
+    $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_ORACLE:$DOCKER_IMAGE_ORACLE_VERSION"
 
     echo -e "\nDownload oracle docker-compose.yml"
     wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
@@ -622,7 +639,12 @@ function run {
     --memory="250m" \
     $DOCKER_IMAGE_NETSTAT \
     --instance-name "$INSTANCE_NAME" \
-    --bridge-version "$DOCKER_IMAGE_ORACLE_VERSION"
+    --bridge-version "$DOCKER_IMAGE_ORACLE_VERSION" \
+    --role "$ROLE" \
+    --parity-version "$DOCKER_IMAGE_FUSE_PARITY_VERSION" \
+    --fuseapp-version "$DOCKER_IMAGE_FUSE_APP_VERSION" \
+    --netstats-version "$DOCKER_IMAGE_NET_STATS_VERSION" \
+    --quickstart-version "$QUICKSTART_VERSION"
 
   echo -e "\nContainers started and running in background!"
 }
