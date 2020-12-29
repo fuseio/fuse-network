@@ -118,7 +118,7 @@ function setPlatform {
        echo -e '\nRunning on Linux'
        PLATFORM="LINUX"
        PLATFORM_VARIENT=$(lsb_release -si)
-       echo -e 'Linux varient $PLATFORM_VARIENT'
+       echo "Linux varient $PLATFORM_VARIENT"
        ;;
 
      CYGWIN*|MINGW32*|MSYS*|MINGW*)
