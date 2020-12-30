@@ -26,6 +26,7 @@ ADDRESS=""
 NODE_KEY=""
 INSTANCE_NAME=""
 PLATFORM=""
+PLATFORM_VARIENT=""
 REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
@@ -57,26 +58,41 @@ function displayErrorAndExit {
 
 function install_docker {
   echo -e "\nInstalling docker..."
+  if [ $PLATFORM_VARIENT == "Ubuntu" ]; then
+    $PERMISSION_PREFIX apt-get update
 
-  $PERMISSION_PREFIX apt-get update
+    $PERMISSION_PREFIX apt-get install -y \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        gnupg-agent \
+        software-properties-common
 
-  $PERMISSION_PREFIX apt-get install -y \
-      apt-transport-https \
-      ca-certificates \
-      curl \
-      gnupg-agent \
-      software-properties-common
+    curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | $PERMISSION_PREFIX apt-key add -
 
-  curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | $PERMISSION_PREFIX apt-key add -
+    $PERMISSION_PREFIX add-apt-repository \
+       "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+       $(lsb_release -cs) \
+       stable"
 
-  $PERMISSION_PREFIX add-apt-repository \
-     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-     $(lsb_release -cs) \
-     stable"
+    $PERMISSION_PREFIX apt-get update
 
-  $PERMISSION_PREFIX apt-get update
+    $PERMISSION_PREFIX apt-get install -y docker-ce docker-ce-cli containerd.io
+  elif [ $PLATFORM_VARIENT == "Debian" ]; then
+    $PERMISSION_PREFIX apt update
+    
+    $PERMISSION_PREFIX apt install apt-transport-https ca-certificates curl gnupg2 software-properties-common
+    
+    curl -fsSL https://download.docker.com/linux/debian/gpg | $PERMISSION_PREFIX apt-key add -
+    
+    $PERMISSION_PREFIX add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
 
-  $PERMISSION_PREFIX apt-get install -y docker-ce docker-ce-cli containerd.io
+    $PERMISSION_PREFIX apt update
+    apt-cache policy docker-ce
+    $PERMISSION_PREFIX apt install docker-ce docker-ce-cli containerd.io
+  else
+    displayErrorAndExit "UNKNOWN OS please install docker"
+  fi
 }
 
 function install_docker-compose {
@@ -101,6 +117,8 @@ function setPlatform {
      Linux)
        echo -e '\nRunning on Linux'
        PLATFORM="LINUX"
+       PLATFORM_VARIENT=$(lsb_release -si)
+       echo "Linux varient $PLATFORM_VARIENT"
        ;;
 
      CYGWIN*|MINGW32*|MSYS*|MINGW*)
@@ -276,27 +294,36 @@ function setup {
    # Configure the NTP service before starting so all nodes in the network are synced
   echo -e "\nConfiguring and starting ntp"
   if [ $PLATFORM == "LINUX" ]; then
-    $PERMISSION_PREFIX apt-get install -y ntp
-    $PERMISSION_PREFIX apt-get install -y ntpdate
-    $PERMISSION_PREFIX service ntp stop
-    $PERMISSION_PREFIX ntpdate 0.pool.ntp.org
-    $PERMISSION_PREFIX service ntp start
-    
+    if [ $PLATFORM_VARIENT == "Ubuntu" ]; then
+      $PERMISSION_PREFIX apt-get install -y ntp
+      $PERMISSION_PREFIX apt-get install -y ntpdate
+      $PERMISSION_PREFIX service ntp stop
+      $PERMISSION_PREFIX ntpdate 0.pool.ntp.org
+      $PERMISSION_PREFIX service ntp start
+      
 
-    echo -e "\nDisable Transparant Huge Pages (THP)"
-    #check the version since hugepages isn't avaliable in U20.04
-    VER=$(lsb_release -sr)
-    VERSION_MAIN=$(echo "$VER" | cut -f1 -d".")
-    if (( $VERSION_MAIN < 20 )) ; then
-	$PERMISSION_PREFIX apt-get install -y hugepages
-    else
-	$PERMISSION_PREFIX apt-get install -y libhugetlbfs-bin
+      echo -e "\nDisable Transparant Huge Pages (THP)"
+      #check the version since hugepages isn't avaliable in U20.04
+      VER=$(lsb_release -sr)
+      VERSION_MAIN=$(echo "$VER" | cut -f1 -d".")
+      if (( $VERSION_MAIN < 20 )) ; then
+    $PERMISSION_PREFIX apt-get install -y hugepages
+      else
+    $PERMISSION_PREFIX apt-get install -y libhugetlbfs-bin
+      fi
+
+      $PERMISSION_PREFIX hugeadm --thp-never
+      
+      echo -e "\nEnable Overcommit Memory"
+      $PERMISSION_PREFIX  sysctl vm.overcommit_memory=1
+    elif [ $PLATFORM_VARIENT == "Debian" ]; then
+      $PERMISSION_PREFIX purge ntp
+      $PERMISSION_PREFIX systemctl start systemd-timesyncd
+    elif [[ $PLATFORM_VARIENT == "CentOS" ]] || [[ $PLATFORM_VARIENT == "Fedora" ]] || [[ $PLATFORM_VARIENT == "RHEL" ]] ; then
+      $PERMISSION_PREFIX yum install -y ntp
+      $PERMISSION_PREFIX systemctl start ntpd
+      $PERMISSION_PREFIX systemctl enable ntpd
     fi
-
-    $PERMISSION_PREFIX hugeadm --thp-never
-    
-    echo -e "\nEnable Overcommit Memory"
-    $PERMISSION_PREFIX  sysctl vm.overcommit_memory=1
   elif [ $PLATFORM == "MAC" ]; then
     $PERMISSION_PREFIX sntp -sS 0.pool.ntp.org
   fi
