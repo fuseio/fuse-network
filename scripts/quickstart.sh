@@ -320,16 +320,21 @@ function setup {
 
   # Pull the docker images.
   echo -e "\nPull the docker images..."
-  $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_PARITY:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
-  $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_NETSTAT:$DOCKER_IMAGE_NET_STATS_VERSION"
+  DOCKER_IMAGE_PARITY="$DOCKER_IMAGE_PARITY:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
+  DOCKER_IMAGE_NETSTAT="$DOCKER_IMAGE_NETSTAT:$DOCKER_IMAGE_NET_STATS_VERSION"
+  DOCKER_IMAGE_APP="$DOCKER_IMAGE_APP:$DOCKER_IMAGE_FUSE_APP_VERSION"
+  DOCKER_IMAGE_ORACLE="$DOCKER_IMAGE_ORACLE:$DOCKER_IMAGE_ORACLE_VERSION"
+  
+  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
+  $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
 
   if [[ $ROLE == validator ]] || [[ $ROLE == bridge-validator ]] ; then
     echo -e "\nPull additional docker images..."
-    $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_APP:$DOCKER_IMAGE_FUSE_APP_VERSION"
+    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_APP
   fi
   
   if [[ $ROLE == bridge-validator ]] ; then
-    $PERMISSION_PREFIX docker pull "$DOCKER_IMAGE_ORACLE:$DOCKER_IMAGE_ORACLE_VERSION"
+    $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
     wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
@@ -338,6 +343,8 @@ function setup {
     getAndUpdateBlockNumbers
     
     checkEthGasAPI
+  else
+    DOCKER_IMAGE_ORACLE_VERSION=""
   fi
 
   # Create directories.
