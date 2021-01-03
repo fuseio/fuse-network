@@ -318,6 +318,12 @@ function setup {
     echo -e "\n Using hardcoded version Info"
   fi
 
+  # Print versions
+  echo "Oracle version = $DOCKER_IMAGE_ORACLE_VERSION"
+  echo "Parity version = $DOCKER_IMAGE_FUSE_PARITY_VERSION"
+  echo "Fuse app version = $DOCKER_IMAGE_FUSE_APP_VERSION"
+  echo "Netstats version = $DOCKER_IMAGE_NET_STATS_VERSION"
+
   # Pull the docker images.
   echo -e "\nPull the docker images..."
   DOCKER_IMAGE_PARITY="$DOCKER_IMAGE_PARITY:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
