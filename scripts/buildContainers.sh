@@ -12,7 +12,7 @@ function readVersion {
 function buildFuseApp {
   read -p "Please input your new Version number for FuseApp (currentVersion=$DOCKER_IMAGE_FUSE_APP_VERSION): " newVersion
   
-  docker build -t "$DOCKER_IMAGE_APP" ../app/Dockerfile
+  docker build -t "$DOCKER_IMAGE_APP" ../app
   docker tag "$DOCKER_IMAGE_APP" "$DOCKER_IMAGE_APP:$newVersion"
   docker push "$DOCKER_IMAGE_APP:$newVersion"
   
@@ -22,7 +22,7 @@ function buildFuseApp {
 function buildFuseParity {
   read -p "Please input your new Version number for FuseParity (currentVersion=$DOCKER_IMAGE_FUSE_PARITY_VERSION): " newVersion
   
-  docker build -t "$DOCKER_IMAGE_PARITY" ../Dockerfile
+  docker build -t "$DOCKER_IMAGE_PARITY" ../
   docker tag "$DOCKER_IMAGE_PARITY" "$DOCKER_IMAGE_PARITY:$newVersion"
   docker push "$DOCKER_IMAGE_PARITY:$newVersion"
   
