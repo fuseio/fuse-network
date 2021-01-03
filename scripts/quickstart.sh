@@ -343,8 +343,6 @@ function setup {
     getAndUpdateBlockNumbers
     
     checkEthGasAPI
-  else
-    DOCKER_IMAGE_ORACLE_VERSION=""
   fi
 
   # Create directories.
@@ -637,21 +635,36 @@ function run {
   esac
 
   ## Start netstat container with all necessary arguments.
-  $PERMISSION_PREFIX docker run \
-    $DOCKER_LOG_OPTS \
-    --detach \
-    --name $DOCKER_CONTAINER_NETSTAT \
-    --net=container:$DOCKER_CONTAINER_PARITY \
-    --restart=always \
-    --memory="250m" \
-    $DOCKER_IMAGE_NETSTAT \
-    --instance-name "$INSTANCE_NAME" \
-    --bridge-version "$DOCKER_IMAGE_ORACLE_VERSION" \
-    --role "$ROLE" \
-    --parity-version "$DOCKER_IMAGE_FUSE_PARITY_VERSION" \
-    --fuseapp-version "$DOCKER_IMAGE_FUSE_APP_VERSION" \
-    --netstats-version "$DOCKER_IMAGE_NET_STATS_VERSION" \
-    --quickstart-version "$QUICKSTART_VERSION"
+  if [[ $ROLE == bridge-validator ]] ; then
+    $PERMISSION_PREFIX docker run \
+      $DOCKER_LOG_OPTS \
+      --detach \
+      --name $DOCKER_CONTAINER_NETSTAT \
+      --net=container:$DOCKER_CONTAINER_PARITY \
+      --restart=always \
+      --memory="250m" \
+      $DOCKER_IMAGE_NETSTAT \
+      --instance-name "$INSTANCE_NAME" \
+      --bridge-version "$DOCKER_IMAGE_ORACLE_VERSION" \
+      --role "$ROLE" \
+      --parity-version "$DOCKER_IMAGE_FUSE_PARITY_VERSION" \
+      --fuseapp-version "$DOCKER_IMAGE_FUSE_APP_VERSION" \
+      --netstats-version "$DOCKER_IMAGE_NET_STATS_VERSION"
+  else
+    $PERMISSION_PREFIX docker run \
+      $DOCKER_LOG_OPTS \
+      --detach \
+      --name $DOCKER_CONTAINER_NETSTAT \
+      --net=container:$DOCKER_CONTAINER_PARITY \
+      --restart=always \
+      --memory="250m" \
+      $DOCKER_IMAGE_NETSTAT \
+      --instance-name "$INSTANCE_NAME" \
+      --role "$ROLE" \
+      --parity-version "$DOCKER_IMAGE_FUSE_PARITY_VERSION" \
+      --fuseapp-version "$DOCKER_IMAGE_FUSE_APP_VERSION" \
+      --netstats-version "$DOCKER_IMAGE_NET_STATS_VERSION"
+  fi
 
   echo -e "\nContainers started and running in background!"
 }
