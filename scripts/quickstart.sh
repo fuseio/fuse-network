@@ -30,6 +30,7 @@ PLATFORM_VARIENT=""
 REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
+FUSE_BOT_ASSIGNED_ENDPOINT="https://bot.fuse.io/api/v1/isNodeAssigned="
 
 WARNINGS=()
 INFOS=()
@@ -416,6 +417,55 @@ function setup {
   fi
 }
 
+function checkAndAssign {
+  local address=$(cat $ADDRESS_FILE)
+
+  if [ $PLATFORM == "LINUX" ]; then
+    #check if not already assigned with the bot
+    if (( $( curl $FUSE_BOT_ASSIGNED_ENDPOINT$address | grep -c "false" ) > 0 )) ; then 
+      read -r -p "Do you have telegarm? [y/N] " response
+      if [[ $response == "y" || $response == "Y" || $response == "yes" || $response == "Yes" ]]
+      then
+        #install telegram-cli
+        if [ $PLATFORM_VARIENT == "Ubuntu" ]; then
+          $PERMISSION_PREFIX apt update
+          $PERMISSION_PREFIX apt install -Y snapd
+          $PERMISSION_PREFIX snap install telegram-cli
+        elif [ $PLATFORM_VARIENT == "Debian" ]; then
+          $PERMISSION_PREFIX apt update
+          $PERMISSION_PREFIX apt install -Y snapd
+          $PERMISSION_PREFIX snap install core
+          $PERMISSION_PREFIX snap install telegram-cli
+        elif [[ $PLATFORM_VARIENT == "CentOS" ]]; then
+          $PERMISSION_PREFIX yum install epel-release
+          $PERMISSION_PREFIX yum install snapd
+          $PERMISSION_PREFIX systemctl enable --now snapd.socket
+          $PERMISSION_PREFIX ln -s /var/lib/snapd/snap /snap
+          $PERMISSION_PREFIX snap install telegram-cli
+        else
+          INFOS+=("Not able to add nodes in $PLATFORM_VARIENT")
+          return
+        fi
+        
+        telegram-cli -W -e "msg @Fuse_Down_Detector_Bot /start"
+        telegram-cli -W -e "msg @Fuse_Down_Detector_Bot /add_node $address"
+        
+        if (( $( curl "$FUSE_BOT_ASSIGNED_ENDPOINT$address" | grep -c "false" ) > 0 )) ; then
+          WARN+=("Failed to add node, are you an admin in the validator group? please contact @APOHLY for assistance")
+        else
+          echo "Node added succsessfully"
+        fi
+      else
+        INFOS+=("Node could not be added, user selected No to telegram")
+      fi
+    else 
+      echo "node already assigned" 
+    fi
+  else
+    INFOS+=("Only able to add nodes in linux")
+  fi
+}
+
 function run {
   echo -e "\nRun..."
 
@@ -673,5 +723,6 @@ sanityChecks
 parseArguments
 setup
 run
+checkAndAssign
 displayWarning
 IFS=$OLDIFS
