@@ -396,11 +396,14 @@ $ docker run \
 The [buildContainers script](https://github.com/fuseio/fuse-network/blob/master/scripts/buildContainers.sh) is used to automate the process of building containers and version control within this repo.
 
 ```
-1. cd into the scripts directory
-2. set the script to be executable (sudo chmod 777 buildContainer.sh)
-3. run the script with elevated privileges (sudo ./buildConatiner.sh) - an on screen prompt will be displayed
-4. (skip if not first time) If running for the first time the script will need to install it's dependencies  this is done by selecting option 4 ("First time configure")
-5. you are given 3 options ("Build Fuse APP container", "Build Fuse Parity container" and "Build both") select the appropriate option
-6. the script will build the containers and ask you for the new version info in the format x.y.z (where x,y,z are numbers). It will then push the newly built and tagged containers to the fusenet docker repo
-7. (optional) A Y/N prompt is given to update the fuse git repo with the new version info. if Y is selected the script will branch at your current head and create and commit the new version file and also create a PR to merge this file back into master (you may be required to input your git creds here)
+1.  cd into the scripts directory
+2.  set the script to be executable (sudo chmod 777 buildContainer.sh)
+3.  run the script with elevated privileges (sudo ./buildConatiner.sh) - an on screen prompt will be displayed
+4.  (skip if not first time) If running for the first time the script will need to install it's dependencies  this is done by selecting option 4 
+    ("First time configure")
+5.  You are given 3 options ("Build Fuse APP container", "Build Fuse Parity container" and "Build both") select the appropriate option
+6.  The script will build the containers and ask you for the new version info in the format x.y.z (where x,y,z are numbers). It will then push the 
+    newly built and tagged containers to the fusenet docker repo
+7.  (optional) A Y/N prompt is given to update the fuse git repo with the new version info. if Y is selected the script will branch at your current 
+    head and create and commit the new version file and also create a PR to merge this file back into master (you may be required to input your git creds here)
 ```
