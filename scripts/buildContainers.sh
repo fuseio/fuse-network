@@ -70,7 +70,9 @@ function buildFuseParity {
 
 function pushChanges {
   local appsChanged=$1
-  branchName="update_$appsChanged"
+  dt=$(date '+%d_%m_%Y_%H_%M_%S')
+  dt="_$dt"
+  branchName="update_$appsChanged$dt"
   
   git branch -m "$branchName"
   git commit -m "$branchName" ../Version
