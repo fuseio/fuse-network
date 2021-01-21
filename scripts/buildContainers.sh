@@ -140,61 +140,63 @@ function installDeps {
   install_docker
   install_hub
   
-  $PLATFORM_VARIENT docker login
+  docker login
 }
 
 setPlatform
 readVersion
-PS3='Please enter your choice: '
-options=("Build Fuse APP container" "Build Fuse Parity container" "Build both" "First time configure" "Exit")
-select opt in "${options[@]}";
-do
-  case $opt in
-    "${options[0]}")
-      #Build Fuse APP container
-      echo "building fuse APP"
-      buildFuseApp
-      read -p "Do you want to push the new version file[Y/N]: " yn
-      case $yn in
-        [Y/y]* ) 
-        pushChanges "FuseApp"; break;;
-      esac
-      break
-    ;;
-    "${options[1]}")
-      #Build Fuse Parity container
-      echo "building Fuse Parity"
-      buildFuseParity
-      read -p "Do you want to push the new version file[Y/N]: " yn
-      case $yn in
-        [Y/y]* ) 
-        pushChanges "FuseParity"; break;;
-      esac
-      break
-    ;;
-    "${options[2]}")
-      #Build both
-      echo "building fuse APP"
-      buildFuseApp
-      echo "building Fuse Parity"
-      buildFuseParity
-      read -p "Do you want to push the new version file[Y/N]: " yn
-      case $yn in
-        [Y/y]* ) 
-        pushChanges "FuseAPP_And_FuseParity"; break;;
-      esac
-      break
-    ;;
-    "${options[3]}")
-      #Configure
-      echo "Configure env"
-      installDeps
-      break
-    ;;
-    "${options[4]}")
-      #Exit
-      exit 0
-    ;;
-    *) echo "invalid option $REPLY";;
-  esac
+while true; do
+  PS3='Please enter your choice: '
+  options=("Build Fuse APP container" "Build Fuse Parity container" "Build both" "First time configure" "Exit")
+  select opt in "${options[@]}";
+  do
+    case $opt in
+      "${options[0]}")
+        #Build Fuse APP container
+        echo "building fuse APP"
+        buildFuseApp
+        read -p "Do you want to push the new version file[Y/N]: " yn
+        case $yn in
+          [Y/y]* ) 
+          pushChanges "FuseApp"; break;;
+        esac
+        break
+      ;;
+      "${options[1]}")
+        #Build Fuse Parity container
+        echo "building Fuse Parity"
+        buildFuseParity
+        read -p "Do you want to push the new version file[Y/N]: " yn
+        case $yn in
+          [Y/y]* ) 
+          pushChanges "FuseParity"; break;;
+        esac
+        break
+      ;;
+      "${options[2]}")
+        #Build both
+        echo "building fuse APP"
+        buildFuseApp
+        echo "building Fuse Parity"
+        buildFuseParity
+        read -p "Do you want to push the new version file[Y/N]: " yn
+        case $yn in
+          [Y/y]* ) 
+          pushChanges "FuseAPP_And_FuseParity"; break;;
+        esac
+        break
+      ;;
+      "${options[3]}")
+        #Configure
+        echo "Configure env"
+        installDeps
+        break
+      ;;
+      "${options[4]}")
+        #Exit
+        exit 0
+      ;;
+      *) echo "invalid option $REPLY";;
+    esac
+  done
 done
