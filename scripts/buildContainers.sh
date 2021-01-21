@@ -55,7 +55,7 @@ function buildFuseApp {
   docker tag "$DOCKER_IMAGE_APP" "$DOCKER_IMAGE_APP:$newVersion"
   docker push "$DOCKER_IMAGE_APP:$newVersion"
   
-  sed -i "s/^DOCKER_IMAGE_FUSE_APP_VERSION.*/DOCKER_IMAGE_FUSE_APP_VERSION=${newVersion}/" "../Version"
+  sed -i "s/^DOCKER_IMAGE_FUSE_APP_VERSION.*/DOCKER_IMAGE_FUSE_APP_VERSION="\""${newVersion}"\""/" "../Version"
 }
 
 function buildFuseParity {
@@ -65,7 +65,7 @@ function buildFuseParity {
   docker tag "$DOCKER_IMAGE_PARITY" "$DOCKER_IMAGE_PARITY:$newVersion"
   docker push "$DOCKER_IMAGE_PARITY:$newVersion"
   
-  sed -i "s/^DOCKER_IMAGE_FUSE_PARITY_VERSION.*/DOCKER_IMAGE_FUSE_PARITY_VERSION=${newVersion}/" "../Version"
+  sed -i "s/^DOCKER_IMAGE_FUSE_PARITY_VERSION.*/DOCKER_IMAGE_FUSE_PARITY_VERSION="\""${newVersion}"\""/" "../Version"
 }
 
 function pushChanges {
