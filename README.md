@@ -1,28 +1,30 @@
 # Fuse Network
 
-- [General](#general)
-  - [Clone Repository](#clone-repository)
-  - [Install Dependencies](#install-dependencies)
-  - [Run Unit Tests](#run-unit-tests)
-- [Contracts](#contracts)
-  - [Documentation](https://github.com/fuseio/fuse-network/blob/master/CONTRACTS.md)
-  - [Compile](#compile)
-  - [Flatten](#flatten)
-  - [Deploy](#deploy)
-- [Run Local Node](#run-local-node)
-  - [Pre-Requisites](#pre-requisites)
-  - [Hardware](#hardware) 
-  - [Quickstart](#using-quickstart)
-  - [Using Docker](#using-docker)
-    - [Usage](#usage)
-    - [Examples](#examples)
-	    - [Bootnode](#bootnode)
-	    - [Node](#node)
-	    - [Validator](#validator)
-	    	- [Create New Account](#create-new-account)
-	    - [Explorer node](#explorer-node)
-- [Building containers](#build-containers)	    
-- [Validators App](https://github.com/fuseio/fuse-network/tree/master/app/README.md)
+- [Fuse Network](#fuse-network)
+  - [General](#general)
+    - [Clone Repository](#clone-repository)
+    - [Install Dependencies](#install-dependencies)
+    - [Run Unit Tests](#run-unit-tests)
+  - [Contracts](#contracts)
+    - [Compile](#compile)
+    - [ABIs](#abis)
+    - [Flatten](#flatten)
+    - [Deploy](#deploy)
+  - [Run Local Node](#run-local-node)
+    - [Pre-Requisites](#pre-requisites)
+    - [Hardware](#hardware)
+        - [Bootnode, Node or Explorer Node](#bootnode-node-or-explorer-node)
+        - [Validator](#validator)
+    - [Using Quickstart](#using-quickstart)
+    - [Using Docker](#using-docker)
+      - [Usage](#usage)
+      - [Examples](#examples)
+        - [Bootnode](#bootnode)
+        - [Node](#node)
+        - [Validator](#validator-1)
+        - [Create New Account](#create-new-account)
+        - [Explorer node](#explorer-node)
+  - [Building containers](#building-containers)
 
 ## General
 ### Clone Repository
@@ -397,13 +399,12 @@ The [buildContainers script](https://github.com/fuseio/fuse-network/blob/master/
 
 ```
 1.  cd into the scripts directory
-2.  set the script to be executable (sudo chmod 777 buildContainer.sh)
-3.  run the script with elevated privileges (sudo ./buildConatiner.sh) - an on screen prompt will be displayed
-4.  (skip if not first time) If running for the first time the script will need to install it's dependencies  this is done by selecting option 4 
+2.  run the script with elevated privileges (./buildConatiner.sh) - an on screen prompt will be displayed
+3.  (skip if not first time) If running for the first time the script will need to install it's dependencies  this is done by selecting option 4 
     ("First time configure")
-5.  You are given 3 options ("Build Fuse APP container", "Build Fuse Parity container" and "Build both") select the appropriate option
-6.  The script will build the containers and ask you for the new version info in the format x.y.z (where x,y,z are numbers). It will then push the 
+4.  You are given 3 options ("Build Fuse APP container", "Build Fuse Parity container" and "Build both") select the appropriate option
+5.  The script will build the containers and ask you for the new version info in the format x.y.z (where x,y,z are numbers). It will then push the 
     newly built and tagged containers to the fusenet docker repo
-7.  (optional) A Y/N prompt is given to update the fuse git repo with the new version info. if Y is selected the script will branch at your current 
+6.  (optional) A Y/N prompt is given to update the fuse git repo with the new version info. if Y is selected the script will branch at your current 
     head and create and commit the new version file and also create a PR to merge this file back into master (you may be required to input your git creds here)
 ```
