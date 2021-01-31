@@ -8,7 +8,7 @@ QUICKSTART_VERSION="1.0.0"
 
 #set this to true to allow for hardcoded versioning for debugging
 OVERRIDE_VERSION_FILE=false
-VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/version"
+VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
 DOCKER_IMAGE_FUSE_PARITY_VERSION="1.0.0"
