@@ -1,9 +1,10 @@
 #!/bin/bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
 
 function updateContainers {
-  ./quickstart.sh
+  "$DIR/quickstart.sh"
 }
 
 function getContainerImageNames {
@@ -11,7 +12,7 @@ function getContainerImageNames {
 }
 
 function grabAndParseVersionFile {
-  wget -O versionFile $VERSION_FILE
+  wget -O "$DIR/versionFile" $VERSION_FILE
   export $(grep -v '^#' versionFile | xargs)
   
   # Print versions
