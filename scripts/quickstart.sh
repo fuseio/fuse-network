@@ -18,7 +18,7 @@ DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
 
 AUTOUPDATE_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/checkForUpdates.sh"
 
-ENV_FILE=".env"
+ENV_FILE="$DIR/.env"
 DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
 DOCKER_IMAGE_APP="fusenet/validator-app"
@@ -757,10 +757,8 @@ sanityChecks
 parseArguments
 setup
 run
-if [[ "$ENABLE_AUTO_UPDATE" == 0 ]]; then
+if [[ "$ENABLE_AUTO_UPDATE" == 1 ]]; then
   addCronTask
 fi
 displayWarning
-if 
-
 IFS=$OLDIFS
