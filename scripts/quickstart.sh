@@ -238,7 +238,7 @@ function checkEthGasAPI {
 
 function checkDiskSpace {
   if [ $PLATFORM == "LINUX" ]; then
-    mountedDrive=$(df --output=target "$DIR/quickstart.sh": | tail -n1)
+    mountedDrive=$(df --output=target "$DIR/quickstart.sh" | tail -n1)
     totalDriveSpaceBytes=$(df -k --output=size "$mountedDrive" | tail -n1)
     totalDriveSpaceMB=$(( totalDriveSpaceBytes / 1024 ))
     if [ "$totalDriveSpaceMB" -lt "$REQUIRED_DRIVE_SPACE_MB" ]; then
