@@ -376,7 +376,7 @@ function setup {
   if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
     echo -e "\nGrab docker Versions"
     wget -O "$DIR/versionFile" $VERSION_FILE
-    export $(grep -v '^#' versionFile | xargs)
+    export $(grep -v '^#' "$DIR/versionFile" | xargs)
   else
     echo -e "\n Using hardcoded version Info"
   fi
