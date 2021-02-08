@@ -13,7 +13,7 @@ function getContainerImageNames {
 
 function grabAndParseVersionFile {
   wget -O "$DIR/versionFile" $VERSION_FILE
-  export $(grep -v '^#' versionFile | xargs)
+  export $(grep -v '^#' "$DIR/versionFile" | xargs)
   
   # Print versions
   echo "Oracle version = $DOCKER_IMAGE_ORACLE_VERSION"
@@ -25,14 +25,10 @@ function grabAndParseVersionFile {
 function versionComp {
   local nodeName=$1
   local expectedVersion=$2
-  if[[ $nodeName != "" ]] $$ [[ $expectedVersion != "" ]]; then
-    if [[ $nodeName == *"$expectedVersion"* ]]; then
-      return 0
-    else
-      return 1
-    fi
+  if [[ $nodeName == *"$expectedVersion"* ]]; then
+    return 0
   else
-    echo "versionComp() needs 2 arguments"
+    return 1
   fi
   
   return 0
@@ -46,16 +42,20 @@ function checkContainers {
   for IMAGE_NAME_WITH_TAG in ${conatiners[@]}; do
     if [[ $IMAGE_NAME_WITH_TAG == *"netstat"* ]]; then
       #netstats container
-      update=$(versionComp $IMAGE_NAME_WITH_TAG $DOCKER_IMAGE_NET_STATS_VERSION)
+      versionComp "$IMAGE_NAME_WITH_TAG" "$DOCKER_IMAGE_NET_STATS_VERSION"
+      update=$?
     elif [[ $IMAGE_NAME_WITH_TAG == *"validator-app"* ]]; then
       #fuseapp container
-      update=$(versionComp $IMAGE_NAME_WITH_TAG $DOCKER_IMAGE_FUSE_APP_VERSION)
+      versionComp "$IMAGE_NAME_WITH_TAG" "$DOCKER_IMAGE_FUSE_APP_VERSION"
+      update=$?
     elif [[ $IMAGE_NAME_WITH_TAG == *"node"* ]]; then
       #parity container
-      update=$(versionComp $IMAGE_NAME_WITH_TAG $DOCKER_IMAGE_FUSE_PARITY_VERSION)
+      versionComp "$IMAGE_NAME_WITH_TAG" "$DOCKER_IMAGE_FUSE_PARITY_VERSION"
+      update=$?
     elif [[ $IMAGE_NAME_WITH_TAG == *"native-to-erc20-oracle"* ]]; then
       #bridge container
-      update=$(versionComp $IMAGE_NAME_WITH_TAG $DOCKER_IMAGE_ORACLE_VERSION)
+      versionComp "$IMAGE_NAME_WITH_TAG" "$DOCKER_IMAGE_ORACLE_VERSION"
+      update=$?
     fi
     
     if [[ $update == 1 ]]; then

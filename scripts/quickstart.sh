@@ -84,7 +84,7 @@ function addCronTask {
   Hour=$(($RANDOM % 23))
   Mins=$(($RANDOM % 59))
   
-  CRONSTRING="$Mins $Hour * * * $DIR/autoUpdate.sh"
+  CRONSTRING="$Mins $Hour * * * $USER $DIR/autoUpdate.sh > $DIR/autoUpdateOut.log 2>&1"
   
   echo "$CRONSTRING" >> "$FILE"
   echo "Running auto update everyday at $Hour:$Mins"
@@ -237,7 +237,7 @@ function checkEthGasAPI {
 
 function checkDiskSpace {
   if [ $PLATFORM == "LINUX" ]; then
-    mountedDrive=$(df --output=target quickstart.sh | tail -n1)
+    mountedDrive=$(df --output=target "$DIR/quickstart.sh": | tail -n1)
     totalDriveSpaceBytes=$(df -k --output=size "$mountedDrive" | tail -n1)
     totalDriveSpaceMB=$(( totalDriveSpaceBytes / 1024 ))
     if [ "$totalDriveSpaceMB" -lt "$REQUIRED_DRIVE_SPACE_MB" ]; then
