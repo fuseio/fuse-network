@@ -43,7 +43,13 @@ DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 WARNINGS=()
 INFOS=()
 
-export $(grep -v '^#' "$ENV_FILE" | xargs)
+# grab the contents of the env file and export them as env variables. 
+# Set IFS to be a "universal" carriage return to avoid issues with spaces in variables.
+IFS='
+'
+export $(grep -v '^#' "$ENV_FILE" | xargs -0)
+# reset back to the OLD IFS
+IFS=$OLDIFS
 
 declare -a VALID_ROLE_LIST=(
   bootnode
@@ -257,8 +263,6 @@ function sanityChecks {
 
 function parseArguments {
   echo -e "\nParse arguments..."
-
-  export $(grep -v '^#' "$ENV_FILE" | xargs)
 
   # Check if ROLE arg exists.
   if ! [[ "$ROLE" ]] ; then
