@@ -51,6 +51,10 @@ export $(grep -v '^#' "$ENV_FILE" | xargs -0)
 # reset back to the OLD IFS
 IFS=$OLDIFS
 
+# If VAL_NAME or PERMISSION_PREFIX haven't been set and are still "" then make them blank
+PERMISSION_PREFIX="${PERMISSION_PREFIX//\"}"
+VAL_NAME="${VAL_NAME//\"}"
+
 declare -a VALID_ROLE_LIST=(
   bootnode
   node
