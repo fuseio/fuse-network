@@ -1,6 +1,9 @@
 #!/bin/bash
 
+
 set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 OLDIFS=$IFS
 
@@ -14,7 +17,9 @@ DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
 DOCKER_IMAGE_FUSE_PARITY_VERSION="1.0.0"
 DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
 
-ENV_FILE=".env"
+AUTOUPDATE_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/checkForUpdates.sh"
+
+ENV_FILE="$DIR/.env"
 DOCKER_IMAGE_PARITY="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
 DOCKER_IMAGE_APP="fusenet/validator-app"
@@ -25,7 +30,7 @@ DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/fuse-bridge/mast
 DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=25 --log-opt compress=true"
-BASE_DIR=$(pwd)/fusenet
+BASE_DIR="$DIR/fusenet"
 DATABASE_DIR=$BASE_DIR/database
 CONFIG_DIR=$BASE_DIR/config
 PASSWORD_FILE=$CONFIG_DIR/pass.pwd
@@ -62,6 +67,29 @@ declare -a VALID_ROLE_LIST=(
   explorer
   bridge-validator
 )
+
+function stopCronTask {
+  FILE="/etc/cron.d/autoUpdateFuse"
+  
+  if [ -f "$FILE" ]; then
+    $PERMISSION_PREFIX rm "$FILE"
+  fi
+}
+
+function addCronTask {
+  FILE="/etc/cron.d/autoUpdateFuse"
+
+  #grab the auto update script
+  wget -O "$DIR/autoUpdate.sh" $AUTOUPDATE_FILE
+  
+  Hour=$(($RANDOM % 23))
+  Mins=$(($RANDOM % 59))
+  
+  CRONSTRING="$Mins $Hour * * * $USER $DIR/autoUpdate.sh > $DIR/autoUpdateOut.log 2>&1"
+  
+  echo "$CRONSTRING" >> "$FILE"
+  echo "Running auto update everyday at $Hour:$Mins"
+}
 
 function displayErrorAndExit {
   local arg1=$1
@@ -210,7 +238,7 @@ function checkEthGasAPI {
 
 function checkDiskSpace {
   if [ $PLATFORM == "LINUX" ]; then
-    mountedDrive=$(df --output=target quickstart.sh | tail -n1)
+    mountedDrive=$(df --output=target "$DIR/quickstart.sh" | tail -n1)
     totalDriveSpaceBytes=$(df -k --output=size "$mountedDrive" | tail -n1)
     totalDriveSpaceMB=$(( totalDriveSpaceBytes / 1024 ))
     if [ "$totalDriveSpaceMB" -lt "$REQUIRED_DRIVE_SPACE_MB" ]; then
@@ -347,8 +375,8 @@ function setup {
 
   if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
     echo -e "\nGrab docker Versions"
-    wget -O versionFile $VERSION_FILE
-    export $(grep -v '^#' versionFile | xargs)
+    wget -O "$DIR/versionFile" $VERSION_FILE
+    export $(grep -v '^#' "$DIR/versionFile" | xargs)
   else
     echo -e "\n Using hardcoded version Info"
   fi
@@ -378,7 +406,7 @@ function setup {
     $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_ORACLE
 
     echo -e "\nDownload oracle docker-compose.yml"
-    wget -O docker-compose.yml $DOCKER_COMPOSE_ORACLE
+    wget -O "$DIR/docker-compose.yml" $DOCKER_COMPOSE_ORACLE
     
     echo -e "\nUpdating block numbers in env file"
     getAndUpdateBlockNumbers
@@ -724,10 +752,14 @@ function displayWarning {
 
 
 # Go :)
+stopCronTask
 setPlatform
 sanityChecks
 parseArguments
 setup
 run
+if [[ "$ENABLE_AUTO_UPDATE" == 1 ]]; then
+  addCronTask
+fi
 displayWarning
 IFS=$OLDIFS
