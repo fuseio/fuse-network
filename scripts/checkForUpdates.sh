@@ -9,12 +9,12 @@ function updateContainers {
 }
 
 function getContainerImageNames {
-  docker ps -a | awk '{ print $2 }'
+  docker ps -a --format '{{.Image}}'
 }
 
 function grabAndParseVersionFile {
   wget -O "$DIR/versionFile" $VERSION_FILE
-  export $(grep -v '^#' "$DIR/versionFile" | xargs)
+  source "$DIR/versionFile"
   
   # Print versions
   echo "Oracle version = $DOCKER_IMAGE_ORACLE_VERSION"
@@ -31,8 +31,6 @@ function versionComp {
   else
     return 1
   fi
-  
-  return 0
 }
 
 function checkContainers {
