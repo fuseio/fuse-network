@@ -20,6 +20,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
+  uint256 public constant UNBOUNDING_PERIOD = 86400; // 120 hours [120*60*60/5]
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -94,6 +95,9 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
+    if (_staker != _validator) {
+      _setUnboundingPeriod(_staker);
+    }
 
     // stake amount of the validator isn't greater than the max stake
     require(stakeAmount(_validator) <= getMaxStake());
@@ -117,6 +121,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     require(_amount <= delegatedAmount(_staker, _validator));
 
     bool _isValidator = isValidator(_validator);
+    require(block.number > unboundingBlock(_staker));
 
     // if new stake amount is lesser than minStake and the validator is one of the current validators
     if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
@@ -366,12 +371,20 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return uintStorage[TOTAL_STAKE_AMOUNT];
   }
 
+  function unboundingBlock(address _address) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("unboundingBlock", _address))];
+  }
+
   function _stakeAmountAdd(address _address, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].add(_amount);
   }
 
   function _stakeAmountSub(address _address, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].sub(_amount);
+  }
+
+  function _setUnboundingPeriod(address _address) internal {
+    uintStorage[keccak256(abi.encodePacked("unboundingBlock", _address))] = block.number + UNBOUNDING_PERIOD;
   }
 
   function delegatedAmount(address _address, address _validator) public view returns(uint256) {
