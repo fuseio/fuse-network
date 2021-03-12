@@ -11,4 +11,5 @@ interface IConsensus {
     function isFinalized() external view returns(bool);
     function stakeAmount(address _address) external view returns(uint256);
     function totalStakeAmount() external view returns(uint256);
+    function unboundingBlock(address _address) external view returns(uint256);
 }
