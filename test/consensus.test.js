@@ -1344,7 +1344,7 @@ contract('Consensus', async (accounts) => {
         let oldunBound = await consensus.unboundingBlock(firstDelegator)
         //check for updated
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE}).should.be.fulfilled
-        oldunBound.should.be.bignumber.notEqual(await consensus.unboundingBlock(firstDelegator))
+        oldunBound.should.be.bignumber.below(await consensus.unboundingBlock(firstDelegator))
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
         await advanceBlocks(UNBOUNDING_PERIOD)
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.fulfilled
