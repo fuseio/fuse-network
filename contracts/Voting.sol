@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./VotingUtils.sol";
+import "./interfaces/IConsensus.sol";
 
 /**
 * @title Contract handling vote to change implementations network contracts
@@ -79,22 +80,23 @@ contract Voting is VotingUtils {
     for (uint256 i = 0; i < ballots.length; i++) {
       uint256 ballotId = ballots[i];
       if (getStartBlock(ballotId) < block.number && !getFinalizeCalled(ballotId)) {
-        uint256 accepts = 0;
-        uint256 rejects = 0;
-        for (uint256 j = 0; j < numOfValidators; j++) {
-          uint256 choice = getVoterChoice(ballotId, validators[j]);
-          if (choice == uint(ActionChoices.Accept)) {
-            accepts = accepts.add(1);
-          } else if (choice == uint256(ActionChoices.Reject)) {
-            rejects = rejects.add(1);
-          }
-        }
-        accepts = accepts.mul(DECIMALS).div(numOfValidators);
-        rejects = rejects.mul(DECIMALS).div(numOfValidators);
-        _setAccepted(ballotId, getAccepted(ballotId).add(accepts));
-        _setRejected(ballotId, getRejected(ballotId).add(rejects));
-
+        
         if (canBeFinalized(ballotId)) {
+          uint256 accepts = 0;
+          uint256 rejects = 0;
+          IConsensus consensus = IConsensus(ProxyStorage(getProxyStorage()).getConsensus());
+          for (uint256 j = 0; j < numOfValidators; j++) {
+            uint256 choice = getVoterChoice(ballotId, validators[j]);
+            if (choice == uint(ActionChoices.Accept)) {
+              accepts = accepts + consensus.stakeAmount(validators[j]);
+            } else if (choice == uint256(ActionChoices.Reject)) {
+              rejects = rejects + consensus.stakeAmount(validators[j]);
+            }
+          }
+
+          _setAccepted(ballotId, accepts);
+          _setRejected(ballotId, rejects);
+
           _finalize(ballotId);
         }
       }
