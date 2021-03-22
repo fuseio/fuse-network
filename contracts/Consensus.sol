@@ -86,10 +86,12 @@ contract Consensus is ConsensusUtils {
   /**
   * @dev Function to be called by the block reward contract each block to handle cycles and snapshots logic
   */
-  function cycle() external onlyBlockReward {
+  function cycle(address _validator) external onlyBlockReward {
+    _incBlockCounter(_validator);
     if (_hasCycleEnded()) {
       IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
       _setCurrentCycle();
+      _checkJail(currentValidators());
       address[] memory newSet = pendingValidators();
       if (newSet.length > 0) {
         _setNewValidatorSet(newSet);
