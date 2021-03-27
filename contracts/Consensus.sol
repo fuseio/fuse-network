@@ -125,4 +125,10 @@ contract Consensus is ConsensusUtils {
     require(_amount >= getMinValidatorFee());
     _setValidatorFee(msg.sender, _amount);
   }
+
+  function unJail() external onlyJailedValidator {
+    require(getReleaseBlock(msg.sender) <= getCurrentCycleEndBlock());
+
+    _removeFromJail(msg.sender);
+  }
 }
