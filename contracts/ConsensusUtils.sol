@@ -465,9 +465,9 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _setJailRelease(address _address) internal {
-    uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] + 1;
-    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))].add(block.number + (CYCLE_DURATION_BLOCKS * strike) - 1);
-    uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike;
+    uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))];
+    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))].add(getCurrentCycleEndBlock() + (CYCLE_DURATION_BLOCKS * strike) - 1);
+    uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
   }
 
   function delegatedAmount(address _address, address _validator) public view returns(uint256) {
