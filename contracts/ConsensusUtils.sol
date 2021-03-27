@@ -20,6 +20,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
+  uint256 public constant VALIDATOR_PRODUCTIVITY = 7; //must be a whole number (1-10) 1 = 10%, 2 = 20%..... 10=100%
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -72,6 +73,14 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     _;
   }
 
+  /**
+  * @dev This modifier verifies that msg.sender is currently jailed
+  */
+  modifier onlyJailedValidator() {
+    require(isJailed(msg.sender));
+    _;
+  }
+
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant SYSTEM_ADDRESS = keccak256(abi.encodePacked("SYSTEM_ADDRESS"));
   bytes32 internal constant IS_FINALIZED = keccak256(abi.encodePacked("isFinalized"));
@@ -86,6 +95,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   bytes32 internal constant NEW_VALIDATOR_SET = keccak256(abi.encodePacked("newValidatorSet"));
   bytes32 internal constant SHOULD_EMIT_INITIATE_CHANGE = keccak256(abi.encodePacked("shouldEmitInitiateChange"));
   bytes32 internal constant TOTAL_STAKE_AMOUNT = keccak256(abi.encodePacked("totalStakeAmount"));
+  bytes32 internal constant JAILED_VALIDATORS = keccak256(abi.encodePacked("jailedValidators"));
 
   function _delegate(address _staker, uint256 _amount, address _validator) internal {
     require(_staker != address(0));
@@ -194,6 +204,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return DEFAULT_VALIDATOR_FEE;
   }
 
+  
+
   /**
   * returns number of blocks per cycle (block time is 5 seconds)
   */
@@ -206,12 +218,34 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[CURRENT_CYCLE_END_BLOCK] = block.number + getCycleDurationBlocks();
   }
 
+  function _checkJail(address[] _validatorSet) internal {
+    uint256 expectedNumberOfBlocks = ((CYCLE_DURATION_BLOCKS / _validatorSet.length) * VALIDATOR_PRODUCTIVITY)/10;
+    for (uint i = 0; i < _validatorSet.length; i++) {
+      if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
+        _jailVal(_validatorSet[i]);
+      }
+      //reset the block counter
+      _resetBlockCounter(_validatorSet[i]);
+    }
+  }
+
+  function _removeFromJail(address _validator) internal {
+    _jailedValidatorRemove(_validator);
+    if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
+      _pendingValidatorsAdd(_validator);
+    }
+  }
+
   function getCurrentCycleStartBlock() external view returns(uint256) {
     return uintStorage[CURRENT_CYCLE_START_BLOCK];
   }
 
   function getCurrentCycleEndBlock() public view returns(uint256) {
     return uintStorage[CURRENT_CYCLE_END_BLOCK];
+  }
+
+  function getReleaseBlock(address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("releaseBlock", _validator))];
   }
 
   /**
@@ -269,13 +303,30 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return addressArrayStorage[CURRENT_VALIDATORS].length;
   }
 
+  function jailedValidatorsLength() public view returns(uint256) {
+    return addressArrayStorage[JAILED_VALIDATORS].length;
+  }
+
   function currentValidatorsAtPosition(uint256 _p) public view returns(address) {
     return addressArrayStorage[CURRENT_VALIDATORS][_p];
+  }
+
+  function jailedValidatorsAtPosition(uint256 _p) public view returns(address) {
+    return addressArrayStorage[JAILED_VALIDATORS][_p];
   }
 
   function isValidator(address _address) public view returns(bool) {
     for (uint256 i; i < currentValidatorsLength(); i++) {
       if (_address == currentValidatorsAtPosition(i)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function isJailed(address _address) public view returns(bool) {
+    for (uint256 i; i < jailedValidatorsLength(); i++) {
+      if (_address == jailedValidatorsAtPosition(i)) {
         return true;
       }
     }
@@ -319,6 +370,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return addressArrayStorage[PENDING_VALIDATORS][_p];
   }
 
+  function jailedValidators() public view returns(address[]) {
+    return addressArrayStorage[JAILED_VALIDATORS];
+  }
+
   function isPendingValidator(address _address) public view returns(bool) {
     for (uint256 i; i < pendingValidatorsLength(); i++) {
       if (_address == pendingValidatorsAtPosition(i)) {
@@ -328,13 +383,53 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return false;
   }
 
+  function _jailVal(address _address) internal {
+    _pendingValidatorsRemove(_address);
+    _addJailedVal(_address);
+    _setJailRelease(_address);
+  }
+
+  function _maintenance(address _address) internal {
+    _pendingValidatorsRemove(_address);
+    _addJailedVal(_address);
+  }
+
   function _setPendingValidatorsAtPosition(uint256 _p, address _address) internal {
     addressArrayStorage[PENDING_VALIDATORS][_p] = _address;
+  }
+
+  function _setJailedValidatorsAtPosition(uint256 _p, address _address) internal {
+    addressArrayStorage[JAILED_VALIDATORS][_p] = _address;
   }
 
   function _pendingValidatorsAdd(address _address) internal {
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
     _setValidatorFee(_address, DEFAULT_VALIDATOR_FEE);
+  }
+
+  function _addJailedVal(address _address) internal {
+    addressArrayStorage[JAILED_VALIDATORS].push(_address);
+  }
+
+  function _jailedValidatorRemove(address _address) internal {
+    bool found = false;
+    uint256 removeIndex;
+    for (uint256 i; i < jailedValidatorsLength(); i++) {
+      if (_address == jailedValidatorsAtPosition(i)) {
+        removeIndex = i;
+        found = true;
+      }
+    }
+    if (found) {
+      uint256 lastIndex = jailedValidatorsLength() - 1;
+      address lastValidator = jailedValidatorsAtPosition(lastIndex);
+      if (lastValidator != address(0)) {
+        _setJailedValidatorsAtPosition(removeIndex, lastValidator);
+      }
+      delete addressArrayStorage[JAILED_VALIDATORS][lastIndex];
+      addressArrayStorage[JAILED_VALIDATORS].length--;
+      // if the validator in on of the current validators
+    }
   }
 
   function _pendingValidatorsRemove(address _address) internal {
@@ -374,6 +469,12 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].sub(_amount);
   }
 
+  function _setJailRelease(address _address) internal {
+    uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))];
+    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))].add(getCurrentCycleEndBlock() + (CYCLE_DURATION_BLOCKS * strike) - 1);
+    uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
+  }
+
   function delegatedAmount(address _address, address _validator) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))];
   }
@@ -402,6 +503,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function delegatorsAtPosition(address _validator, uint256 _p) public view returns(address) {
     return addressArrayStorage[keccak256(abi.encodePacked("delegators", _validator))][_p];
+  }
+
+  function blockCounter(address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))];
   }
 
   function isDelegator(address _validator, address _address) public view returns(bool) {
@@ -504,5 +609,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _setValidatorFee(address _validator, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("validatorFee", _validator))] = _amount;
+  }
+
+  function _incBlockCounter(address _validator) internal {
+    uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] = uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] + 1;
+  }
+
+  function _resetBlockCounter(address _validator) internal {
+    uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] = 0;
   }
 }

@@ -20,6 +20,6 @@ contract BlockRewardMock is BlockReward {
   }
 
   function cycleMock() public {
-    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle(getSystemAddress());
   }
 }

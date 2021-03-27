@@ -107,7 +107,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
       _setBlockRewardAmount();
     }
 
-    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle();
+    IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).cycle(benefactors[0]);
 
     emit Rewarded(receivers, rewards);
     return (receivers, rewards);
