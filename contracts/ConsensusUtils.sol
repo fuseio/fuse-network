@@ -400,6 +400,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     _addJailedVal(_address);
   }
 
+  function _maintenance(address _address) internal {
+    _pendingValidatorsRemove(_address);
+    _addJailedVal(_address);
+  }
+
   function _setPendingValidatorsAtPosition(uint256 _p, address _address) internal {
     addressArrayStorage[PENDING_VALIDATORS][_p] = _address;
   }
