@@ -41,6 +41,7 @@ REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
 SNAPSHOT_NODE="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
+TEST_NET_STRING = ""
 
 WARNINGS=()
 INFOS=()
@@ -292,6 +293,16 @@ function parseArguments {
       echo "Warning! trying to run a bootnode without BOOTNODES argument!"
     fi
   fi
+  
+  if [ -z "$TESTNET" ] ; then
+    if [ $TESTNET == "true" ]
+      if [[ $ROLE == bridge-validator ]] ; then
+        displayErrorAndExit "bridge-validators not supported on Spark"
+      fi
+      TEST_NET_STRING = "-spark"
+      VERSION_FILE = "https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
+    fi
+  fi
 
 }
 
@@ -383,9 +394,9 @@ function setup {
 
   # Pull the docker images.
   echo -e "\nPull the docker images..."
-  DOCKER_IMAGE_PARITY="$DOCKER_IMAGE_PARITY:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
-  DOCKER_IMAGE_NETSTAT="$DOCKER_IMAGE_NETSTAT:$DOCKER_IMAGE_NET_STATS_VERSION"
-  DOCKER_IMAGE_APP="$DOCKER_IMAGE_APP:$DOCKER_IMAGE_FUSE_APP_VERSION"
+  DOCKER_IMAGE_PARITY="$DOCKER_IMAGE_PARITY$TEST_NET_STRING:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
+  DOCKER_IMAGE_NETSTAT="$DOCKER_IMAGE_NETSTAT$TEST_NET_STRING:$DOCKER_IMAGE_NET_STATS_VERSION"
+  DOCKER_IMAGE_APP="$DOCKER_IMAGE_APP$TEST_NET_STRING:$DOCKER_IMAGE_FUSE_APP_VERSION"
   DOCKER_IMAGE_ORACLE="$DOCKER_IMAGE_ORACLE:$DOCKER_IMAGE_ORACLE_VERSION"
   
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
