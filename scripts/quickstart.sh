@@ -309,7 +309,7 @@ function checkRoleArgument {
 
 function pullSnapShot {
   echo -e "\nPulling snapshot..."
-  
+
   if [[ $ROLE != explorer ]] ; then
     echo -e "clearing out old folder"
     if [[ -d "$DATABASE_DIR/FuseNetwork/db" ]] ; then
@@ -471,12 +471,6 @@ function setup {
     fi
   else
     echo Running node - no need to create account
-  fi
-  
-  if ! [ -z "$USE_SNAPSHOT" ] ; then
-    if [[ $USE_SNAPSHOT == 1 ]] ; then
-      pullSnapShot
-    fi
   fi
 }
 
