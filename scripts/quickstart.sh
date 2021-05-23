@@ -310,17 +310,16 @@ function checkRoleArgument {
 function pullSnapShot {
   echo -e "\nPulling snapshot..."
   
-  if [[ $ROLE != explorer ]] then
+  if [[ $ROLE != explorer ]] ; then
     echo -e "clearing out old folder"
-    if [[ -d "$DATABASE_DIR/FuseNetwork/db"] ; then
+    if [[ -d "$DATABASE_DIR/FuseNetwork/db" ]] ; then
       rm -r "$DATABASE_DIR/FuseNetwork/db"
     fi
     mkdir -p "$DATABASE_DIR/FuseNetwork"
-    mkdir -p "$DATABASE_DIR/FuseNetwork/db"
     echo -e "\nDownloading snapshot"
-    wget -O db.tar.gz SNAPSHOT_NODE
+    wget -O db.tar.gz "$SNAPSHOT_NODE"
     echo -e "\nExtracting"
-    tar -xzvf db.tar.gz -C "$DATABASE_DIR/FuseNetwork/db"
+    tar -xzvf db.tar.gz -C "$DATABASE_DIR/FuseNetwork"
     echo -e "\nDeleting temp file"
     rm db.tar.gz
   else
@@ -474,7 +473,7 @@ function setup {
     echo Running node - no need to create account
   fi
   
-  if [ -z "$USE_SNAPSHOT" ] ; then
+  if ! [ -z "$USE_SNAPSHOT" ] ; then
     if [[ $USE_SNAPSHOT == 1 ]] ; then
       pullSnapShot
     fi
@@ -527,7 +526,12 @@ function run {
       $PERMISSION_PREFIX docker-compose down
     fi
   fi
-
+  
+  if ! [ -z "$USE_SNAPSHOT" ] ; then
+    if [[ $USE_SNAPSHOT == 1 ]] ; then
+      pullSnapShot
+    fi
+  fi
 
   # Create and start a new container.
   echo -e "\nStarting as ${ROLE}..."
