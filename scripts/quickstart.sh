@@ -334,7 +334,7 @@ function setup {
       echo -e "\nEnable Overcommit Memory"
       $PERMISSION_PREFIX  sysctl vm.overcommit_memory=1
     elif [ $PLATFORM_VARIENT == "Debian" ]; then
-      $PERMISSION_PREFIX purge ntp
+      $PERMISSION_PREFIX apt-get purge ntp
       $PERMISSION_PREFIX systemctl start systemd-timesyncd
     elif [[ $PLATFORM_VARIENT == "CentOS" ]] || [[ $PLATFORM_VARIENT == "Fedora" ]] || [[ $PLATFORM_VARIENT == "RHEL" ]] ; then
       $PERMISSION_PREFIX yum install -y ntp
