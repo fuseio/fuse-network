@@ -522,7 +522,7 @@ function run {
   fi
   
   if ! [ -z "$USE_SNAPSHOT" ] ; then
-    if [[ $USE_SNAPSHOT == 1 ]] ; then
+    if [[ $USE_SNAPSHOT == true ]] ; then
       pullSnapShot
     fi
   fi
