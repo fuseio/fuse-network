@@ -40,6 +40,8 @@ REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
+SNAPSHOT_NODE="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
+
 WARNINGS=()
 INFOS=()
 
@@ -305,6 +307,26 @@ function checkRoleArgument {
   displayErrorAndExit "The defined role ('$ROLE') is invalid.\nPlease choose of the following: ${VALID_ROLE_LIST[@]}"
 }
 
+function pullSnapShot {
+  echo -e "\nPulling snapshot..."
+
+  if [[ $ROLE != explorer ]] ; then
+    echo -e "clearing out old folder"
+    if [[ -d "$DATABASE_DIR/FuseNetwork/db" ]] ; then
+      rm -r "$DATABASE_DIR/FuseNetwork/db"
+    fi
+    mkdir -p "$DATABASE_DIR/FuseNetwork"
+    echo -e "\nDownloading snapshot"
+    wget -O db.tar.gz "$SNAPSHOT_NODE"
+    echo -e "\nExtracting"
+    tar -xzvf db.tar.gz -C "$DATABASE_DIR/FuseNetwork"
+    echo -e "\nDeleting temp file"
+    rm db.tar.gz
+  else
+    WARNINGS+=("snapshots are not currently present for archive nodes")
+  fi
+}
+
 function setup {
   echo -e "\nSetup..."
 
@@ -498,7 +520,12 @@ function run {
       $PERMISSION_PREFIX docker-compose down
     fi
   fi
-
+  
+  if ! [ -z "$USE_SNAPSHOT" ] ; then
+    if [[ $USE_SNAPSHOT == true ]] ; then
+      pullSnapShot
+    fi
+  fi
 
   # Create and start a new container.
   echo -e "\nStarting as ${ROLE}..."
