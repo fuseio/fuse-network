@@ -5,15 +5,15 @@
 			"params": {
 				"stepDuration": "5",
 				"blockReward": "0x0",
-				"blockRewardContractAddress": "0x3b8C048DdEC04709125aF939360BDD619Ec6e9E3",
-				"blockRewardContractTransition": 100,
+				"blockRewardContractAddress": "0x52B9b9585e1b50DA5600f7dbD94E9fE68943162c",
+				"blockRewardContractTransition": 1000,
 				"validators": {
 					"multi": {
 						"0": {
-							"list": [ "0xbb79a903f699f2e54c970ac7ab30403a56f67804" ]
+							"list": [ "0xba7829b381f07cca0d186bdf619fdc6c7f756d0a" ]
 						},
             "100": {
-              "safeContract": "0xF5C4782d61611e12CD9651355841716ea1801d5c"
+              "safeContract": "0xC8c3a332f9e4CE6bfFFcf967026cB006Db2311c7"
             }
 					}
 				}
@@ -93,6 +93,6 @@
 				"pricing": { "alt_bn128_pairing": { "base": 100000, "pair": 80000 } }
 			}
 		},
-		"0xbb79a903f699f2e54c970ac7ab30403a56f67804": { "balance": "300000000000000000000000000" }
+		"0xba7829b381f07cca0d186bdf619fdc6c7f756d0a": { "balance": "300000000000000000000000000" }
 	}
 }
