@@ -331,6 +331,16 @@ contract('Voting', async (accounts) => {
       true.should.be.equal(await voting.isActiveBallot(secondBallotId))
       false.should.be.equal(await voting.isActiveBallot(thirdBallotId))
 
+      let val0stake = await consensus.stakeAmount(validators[0])
+      let val1stake = await consensus.stakeAmount(validators[1])
+      let val2stake = await consensus.stakeAmount(validators[2])
+      let val3stake = await consensus.stakeAmount(validators[3])
+      let val4stake = await consensus.stakeAmount(validators[4])
+      let val5stake = await consensus.stakeAmount(validators[5])
+      let val6stake = await consensus.stakeAmount(validators[6])
+      let val7stake = await consensus.stakeAmount(validators[7])
+      let val8stake = await consensus.stakeAmount(validators[8])
+
       // check votes
       let expected = {
         first: {
@@ -346,6 +356,22 @@ contract('Voting', async (accounts) => {
           rejected: toBN(0)
         }
       }
+
+      let totals = {
+        first: {
+          accepted: toBN(0),
+          rejected: toBN(0)
+        },
+        second: {
+          accepted: toBN(0),
+          rejected: toBN(0)
+        },
+        third: {
+          accepted: toBN(0),
+          rejected: toBN(0)
+        }
+      }
+
       expected.first.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
       expected.first.rejected.should.be.bignumber.equal(await voting.getRejected(firstBallotId))
       expected.second.accepted.should.be.bignumber.equal(await voting.getAccepted(secondBallotId))
@@ -359,11 +385,17 @@ contract('Voting', async (accounts) => {
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: nonValidatorKey}).should.be.fulfilled
 
+      totals.first.accepted = totals.first.accepted + val0stake + val2stake + val3stake
+      totals.first.rejected = totals.first.rejected + val1stake
+
       // vote on 2nd ballot
       await voting.vote(secondBallotId, ACTION_CHOICES.REJECT, {from: validators[0]}).should.be.fulfilled
       await voting.vote(secondBallotId, ACTION_CHOICES.ACCEPT, {from: validators[1]}).should.be.fulfilled
       await voting.vote(secondBallotId, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(secondBallotId, ACTION_CHOICES.ACCEPT, {from: nonValidatorKey}).should.be.fulfilled
+
+      totals.second.accepted = totals.second.accepted + val1stake
+      totals.second.rejected = totals.second.rejected + val0stake + val2stake
 
       // check votes
       expected = {
@@ -395,12 +427,12 @@ contract('Voting', async (accounts) => {
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
-          accepted: toBN(2).mul(decimals).div(toBN(8)),
-          rejected: toBN(1).mul(decimals).div(toBN(8))
+          accepted: toBN(0),
+          rejected: toBN(0)
         },
         second: {
-          accepted: toBN(1).mul(decimals).div(toBN(8)),
-          rejected: toBN(2).mul(decimals).div(toBN(8))
+          accepted: toBN(0),
+          rejected: toBN(0)
         },
         third: {
           accepted: toBN(0),
@@ -428,9 +460,15 @@ contract('Voting', async (accounts) => {
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[5]}).should.be.fulfilled
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[6]}).should.be.fulfilled
 
+      totals.first.accepted = totals.first.accepted + val3stake + val5stake + val6stake
+      totals.first.rejected = totals.first.rejected + val4stake
+
       // vote on 2nd ballot
       await voting.vote(secondBallotId, ACTION_CHOICES.REJECT, {from: validators[3]}).should.be.fulfilled
       await voting.vote(secondBallotId, ACTION_CHOICES.ACCEPT, {from: validators[4]}).should.be.fulfilled
+
+      totals.second.accepted = totals.second.accepted + val4stake
+      totals.second.rejected = totals.second.rejected + val3stake
 
       // vote on 3rd ballot
       await voting.vote(thirdBallotId, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
@@ -438,15 +476,17 @@ contract('Voting', async (accounts) => {
       await voting.vote(thirdBallotId, ACTION_CHOICES.ACCEPT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(thirdBallotId, ACTION_CHOICES.REJECT, {from: nonValidatorKey}).should.be.fulfilled
 
+      totals.third.accepted = totals.third.accepted + val0stake + val1stake + val2stake
+
       // check votes
       expected = {
         first: {
-          accepted: toBN(2).mul(decimals).div(toBN(8)),
-          rejected: toBN(1).mul(decimals).div(toBN(8))
+          accepted: toBN(0),
+          rejected: toBN(0)
         },
         second: {
-          accepted: toBN(1).mul(decimals).div(toBN(8)),
-          rejected: toBN(2).mul(decimals).div(toBN(8))
+          accepted: toBN(0),
+          rejected: toBN(0)
         },
         third: {
           accepted: toBN(0),
@@ -487,16 +527,16 @@ contract('Voting', async (accounts) => {
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
-          accepted: toBN(2).mul(decimals).div(toBN(8)).add(toBN(6).mul(decimals).div(toBN(9))),
-          rejected: toBN(1).mul(decimals).div(toBN(8)).add(toBN(2).mul(decimals).div(toBN(9)))
+          accepted: totals.first.accepted,
+          rejected: totals.first.rejected
         },
         second: {
-          accepted: toBN(1).mul(decimals).div(toBN(8)).add(toBN(3).mul(decimals).div(toBN(9))),
-          rejected: toBN(2).mul(decimals).div(toBN(8)).add(toBN(3).mul(decimals).div(toBN(9)))
+          accepted: totals.second.accepted,
+          rejected: totals.second.rejected
         },
         third: {
-          accepted: toBN(3).mul(decimals).div(toBN(9)),
-          rejected: toBN(1).mul(decimals).div(toBN(9))
+          accepted: 0,
+          rejected: 0
         }
       }
       expected.first.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
@@ -518,6 +558,9 @@ contract('Voting', async (accounts) => {
       await voting.vote(thirdBallotId, ACTION_CHOICES.ACCEPT, {from: validators[3]}).should.be.fulfilled
       await voting.vote(thirdBallotId, ACTION_CHOICES.REJECT, {from: validators[4]}).should.be.fulfilled
 
+      totals.third.accepted = totals.third.accepted + val3stake
+      totals.third.rejected = totals.third.rejected + val4stake
+
       // advance until 3rd ballot is closed
       currentBlock = toBN(await web3.eth.getBlockNumber())
       voteEndBlock = await voting.getEndBlock(thirdBallotId)
@@ -532,16 +575,16 @@ contract('Voting', async (accounts) => {
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
-          accepted: toBN(2).mul(decimals).div(toBN(8)).add(toBN(6).mul(decimals).div(toBN(9))),
-          rejected: toBN(1).mul(decimals).div(toBN(8)).add(toBN(2).mul(decimals).div(toBN(9)))
+          accepted: totals.first.accepted,
+          rejected: totals.first.rejected
         },
         second: {
-          accepted: toBN(1).mul(decimals).div(toBN(8)).add(toBN(3).mul(decimals).div(toBN(9))),
-          rejected: toBN(2).mul(decimals).div(toBN(8)).add(toBN(3).mul(decimals).div(toBN(9)))
+          accepted: totals.second.accepted,
+          rejected: totals.second.rejected
         },
         third: {
-          accepted: toBN(3).mul(decimals).div(toBN(9)).add(toBN(4).mul(decimals).div(toBN(9))),
-          rejected: toBN(1).mul(decimals).div(toBN(9)).add(toBN(2).mul(decimals).div(toBN(9)))
+          accepted: totals.third.accepted,
+          rejected: totals.third.rejected
         }
       }
       expected.first.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))

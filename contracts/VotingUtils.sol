@@ -118,7 +118,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     if (getStartBlock(_id) > block.number) return false;
     if (getIsFinalized(_id)) return false;
 
-    return block.number > getEndBlock(_id);
+    return block.number >= getEndBlock(_id);
   }
 
   function getProposedValue(uint256 _id) public view returns(address) {
