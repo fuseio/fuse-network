@@ -352,6 +352,10 @@ contract VotingUtils is EternalStorage, VotingBase {
     return IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).currentValidatorsLength();
   }
 
+  function getStake(address _key) internal returns(uint256) {
+    return IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).stakeAmount(_key);
+  }
+
   function _setVoterChoice(uint256 _id, address _key, uint256 _choice) internal {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "voters", _key))] = _choice;
   }

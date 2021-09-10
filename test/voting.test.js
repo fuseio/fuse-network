@@ -54,6 +54,7 @@ contract('Voting', async (accounts) => {
     )
 
     await consensus.setNewValidatorSetMock(validators)
+    await consensus.setStakeAmountMockGroup(validators)
     await consensus.setFinalizedMock(false, {from: owner})
     await consensus.setSystemAddressMock(owner, {from: owner})
     await consensus.finalizeChange().should.be.fulfilled
@@ -321,6 +322,10 @@ contract('Voting', async (accounts) => {
       // create 3rd ballot
       let thirdBallotId = await voting.getNextBallotId()
       await voting.newBallot(voteStartAfterNumberOfCycles*2, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
+      await proxyStorage.setConsensusMock(nonValidatorKey)
+      await consensus.setNewValidatorSetMock(validators)
+      await consensus.setSystemAddressMock(owner, {from: owner})
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
 
       // advance blocks until 1sr and 2nd ballots are open
       let currentBlock = toBN(await web3.eth.getBlockNumber())
@@ -331,15 +336,13 @@ contract('Voting', async (accounts) => {
       true.should.be.equal(await voting.isActiveBallot(secondBallotId))
       false.should.be.equal(await voting.isActiveBallot(thirdBallotId))
 
-      let val0stake = await consensus.stakeAmount(validators[0])
-      let val1stake = await consensus.stakeAmount(validators[1])
-      let val2stake = await consensus.stakeAmount(validators[2])
-      let val3stake = await consensus.stakeAmount(validators[3])
-      let val4stake = await consensus.stakeAmount(validators[4])
-      let val5stake = await consensus.stakeAmount(validators[5])
-      let val6stake = await consensus.stakeAmount(validators[6])
-      let val7stake = await consensus.stakeAmount(validators[7])
-      let val8stake = await consensus.stakeAmount(validators[8])
+      let val0stake = (await consensus.stakeAmount(validators[0]))
+      let val1stake = (await consensus.stakeAmount(validators[1]))
+      let val2stake = (await consensus.stakeAmount(validators[2]))
+      let val3stake = (await consensus.stakeAmount(validators[3]))
+      let val4stake = (await consensus.stakeAmount(validators[4]))
+      let val5stake = (await consensus.stakeAmount(validators[5]))
+      let val6stake = (await consensus.stakeAmount(validators[6]))
 
       // check votes
       let expected = {
@@ -385,8 +388,8 @@ contract('Voting', async (accounts) => {
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: nonValidatorKey}).should.be.fulfilled
 
-      totals.first.accepted = totals.first.accepted + val0stake + val2stake + val3stake
-      totals.first.rejected = totals.first.rejected + val1stake
+      totals.first.accepted = totals.first.accepted.add(val0stake.add(val2stake.add(val3stake)))
+      totals.first.rejected = totals.first.rejected.add(val1stake)
 
       // vote on 2nd ballot
       await voting.vote(secondBallotId, ACTION_CHOICES.REJECT, {from: validators[0]}).should.be.fulfilled
@@ -394,8 +397,8 @@ contract('Voting', async (accounts) => {
       await voting.vote(secondBallotId, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(secondBallotId, ACTION_CHOICES.ACCEPT, {from: nonValidatorKey}).should.be.fulfilled
 
-      totals.second.accepted = totals.second.accepted + val1stake
-      totals.second.rejected = totals.second.rejected + val0stake + val2stake
+      totals.second.accepted = totals.second.accepted.add(val1stake)
+      totals.second.rejected = totals.second.rejected.add(val0stake.add(val2stake))
 
       // check votes
       expected = {
@@ -460,15 +463,15 @@ contract('Voting', async (accounts) => {
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[5]}).should.be.fulfilled
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[6]}).should.be.fulfilled
 
-      totals.first.accepted = totals.first.accepted + val3stake + val5stake + val6stake
-      totals.first.rejected = totals.first.rejected + val4stake
+      totals.first.accepted = totals.first.accepted.add(val3stake.add(val5stake.add(val6stake)))
+      totals.first.rejected = totals.first.rejected.add(val4stake)
 
       // vote on 2nd ballot
       await voting.vote(secondBallotId, ACTION_CHOICES.REJECT, {from: validators[3]}).should.be.fulfilled
       await voting.vote(secondBallotId, ACTION_CHOICES.ACCEPT, {from: validators[4]}).should.be.fulfilled
 
-      totals.second.accepted = totals.second.accepted + val4stake
-      totals.second.rejected = totals.second.rejected + val3stake
+      totals.second.accepted = totals.second.accepted.add(val4stake)
+      totals.second.rejected = totals.second.rejected.add(val3stake)
 
       // vote on 3rd ballot
       await voting.vote(thirdBallotId, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
@@ -476,7 +479,7 @@ contract('Voting', async (accounts) => {
       await voting.vote(thirdBallotId, ACTION_CHOICES.ACCEPT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(thirdBallotId, ACTION_CHOICES.REJECT, {from: nonValidatorKey}).should.be.fulfilled
 
-      totals.third.accepted = totals.third.accepted + val0stake + val1stake + val2stake
+      totals.third.accepted = totals.third.accepted.add(val0stake.add(val1stake.add(val2stake)))
 
       // check votes
       expected = {
@@ -515,6 +518,7 @@ contract('Voting', async (accounts) => {
       currentBlock = toBN(await web3.eth.getBlockNumber())
       voteEndBlock = await voting.getEndBlock(firstBallotId)
       await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
+      
       false.should.be.equal(await voting.isActiveBallot(firstBallotId))
       false.should.be.equal(await voting.isActiveBallot(secondBallotId))
       true.should.be.equal(await voting.isActiveBallot(thirdBallotId))
@@ -523,16 +527,17 @@ contract('Voting', async (accounts) => {
       currentBlock = toBN(await web3.eth.getBlockNumber())
       currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
+
       await proxyStorage.setConsensusMock(owner)
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
-          accepted: totals.first.accepted,
-          rejected: totals.first.rejected
+          accepted: toBN(totals.first.accepted),
+          rejected: toBN(totals.first.rejected)
         },
         second: {
-          accepted: totals.second.accepted,
-          rejected: totals.second.rejected
+          accepted: toBN(totals.second.accepted),
+          rejected: toBN(totals.second.rejected)
         },
         third: {
           accepted: 0,
@@ -558,8 +563,8 @@ contract('Voting', async (accounts) => {
       await voting.vote(thirdBallotId, ACTION_CHOICES.ACCEPT, {from: validators[3]}).should.be.fulfilled
       await voting.vote(thirdBallotId, ACTION_CHOICES.REJECT, {from: validators[4]}).should.be.fulfilled
 
-      totals.third.accepted = totals.third.accepted + val3stake
-      totals.third.rejected = totals.third.rejected + val4stake
+      totals.third.accepted = totals.third.accepted.add(val3stake)
+      totals.third.rejected = totals.third.rejected.add(val4stake)
 
       // advance until 3rd ballot is closed
       currentBlock = toBN(await web3.eth.getBlockNumber())

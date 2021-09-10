@@ -84,13 +84,12 @@ contract Voting is VotingUtils {
         if (canBeFinalized(ballotId)) {
           uint256 accepts = 0;
           uint256 rejects = 0;
-          IConsensus consensus = IConsensus(ProxyStorage(getProxyStorage()).getConsensus());
           for (uint256 j = 0; j < numOfValidators; j++) {
             uint256 choice = getVoterChoice(ballotId, validators[j]);
             if (choice == uint(ActionChoices.Accept)) {
-              accepts = accepts + consensus.stakeAmount(validators[j]);
+              accepts = accepts.add(getStake(validators[j]));
             } else if (choice == uint256(ActionChoices.Reject)) {
-              rejects = rejects + consensus.stakeAmount(validators[j]);
+              rejects = rejects.add(getStake(validators[j]));
             }
           }
 
