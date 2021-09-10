@@ -17,6 +17,7 @@ contract VotingUtils is EternalStorage, VotingBase {
   uint256 public constant MAX_LIMIT_OF_BALLOTS = 100;
   uint256 public constant MIN_BALLOT_DURATION_CYCLES = 2;
   uint256 public constant MAX_BALLOT_DURATION_CYCLES = 14;
+  uint256 public constant MINIMUM_TURNOUT_BP = 3333; //33.3%
 
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
@@ -168,19 +169,25 @@ contract VotingUtils is EternalStorage, VotingBase {
       _setFinalizeCalled(_id);
     }
 
-    if (getAccepted(_id) > getRejected(_id)) {
-      if (_finalizeBallot(_id)) {
-        _setQuorumState(_id, uint256(QuorumStates.Accepted));
+    // check the turnout
+    if (_checkTurnout(_id)) {
+      if (getAccepted(_id) > getRejected(_id)) {
+        if (_finalizeBallot(_id)) {
+          _setQuorumState(_id, uint256(QuorumStates.Accepted));
+        } else {
+          return;
+        }
       } else {
-        return;
+        _setQuorumState(_id, uint256(QuorumStates.Rejected));
       }
+
+      _deactivateBallot(_id);
+      _setIsFinalized(_id, true);
+      emit BallotFinalized(_id);
     } else {
+      // didn't meet the turn out
       _setQuorumState(_id, uint256(QuorumStates.Rejected));
     }
-
-    _deactivateBallot(_id);
-    _setIsFinalized(_id, true);
-    emit BallotFinalized(_id);
   }
 
   function _deactivateBallot(uint256 _id) internal {
@@ -382,5 +389,14 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   function _setRejected(uint256 _id, uint256 _value) internal {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "rejected"))] = _value;
+  }
+
+  function _checkTurnout(uint256 _id) internal view returns(bool) {
+    uint256 stake = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).totalStakeAmount();
+    uint256 minTurnout = stake * MINIMUM_TURNOUT_BP / 10000;
+
+    uint256 totalVoted = getAccepted(_id).add(getRejected(_id));
+
+    return totalVoted > minTurnout;
   }
 }
