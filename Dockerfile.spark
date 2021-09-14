@@ -26,9 +26,9 @@ COPY --from=openethereum/openethereum:v3.2.6 /home/openethereum/openethereum $PA
 EXPOSE 30300 8545 8546
 
 ### Default chain and node configuration files.
-COPY config/spec.json $PARITY_CONFIG_FILE_CHAIN
-COPY config/bootnodes.txt $PARITY_CONFIG_FILE_BOOTNODES
-COPY config/config.toml $PARITY_CONFIG_FILE_TEMPLATE
+COPY config/spark/spec.json $PARITY_CONFIG_FILE_CHAIN
+COPY config/spark/bootnodes.txt $PARITY_CONFIG_FILE_BOOTNODES
+COPY config/spark/config.toml $PARITY_CONFIG_FILE_TEMPLATE
 
 ### Wrapper script for Parity.
 COPY scripts/parity_wrapper.sh $PARITY_WRAPPER_SCRIPT
