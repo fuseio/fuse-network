@@ -3,6 +3,8 @@
 set -e
 DOCKER_IMAGE_APP="fusenet/validator-app"
 DOCKER_IMAGE_PARITY="fusenet/node"
+DOCKER_IMAGE_APP_SPARK="fusenet/spark-validator-app"
+DOCKER_IMAGE_PARITY_SPARK="fusenet/spark-node"
 
 PLATFORM=""
 PLATFORM_VARIENT=""
@@ -64,6 +66,26 @@ function buildFuseParity {
   docker build -t "$DOCKER_IMAGE_PARITY" ../
   docker tag "$DOCKER_IMAGE_PARITY" "$DOCKER_IMAGE_PARITY:$newVersion"
   docker push "$DOCKER_IMAGE_PARITY:$newVersion"
+  
+  sed -i "s/^DOCKER_IMAGE_FUSE_PARITY_VERSION.*/DOCKER_IMAGE_FUSE_PARITY_VERSION="\""${newVersion}"\""/" "../Version"
+}
+
+function buildFuseAppSpark {
+  read -p "Please input your new Version number for FuseApp (currentVersion=$DOCKER_IMAGE_FUSE_APP_VERSION): " newVersion
+  
+  docker build -t "$DOCKER_IMAGE_APP_SPARK" -f "../app/Dockerfile.spark" ../app
+  docker tag "$DOCKER_IMAGE_APP_SPARK" "$DOCKER_IMAGE_APP_SPARK:$newVersion"
+  docker push "$DOCKER_IMAGE_APP_SPARK:$newVersion"
+  
+  sed -i "s/^DOCKER_IMAGE_FUSE_APP_VERSION.*/DOCKER_IMAGE_FUSE_APP_VERSION="\""${newVersion}"\""/" "../Version"
+}
+
+function buildFuseParitySpark {
+  read -p "Please input your new Version number for FuseParity (currentVersion=$DOCKER_IMAGE_FUSE_PARITY_VERSION): " newVersion
+  
+  docker build -t "$DOCKER_IMAGE_PARITY_SPARK" -f "../Dockerfile.spark" ../
+  docker tag "$DOCKER_IMAGE_PARITY_SPARK" "$DOCKER_IMAGE_PARITY_SPARK:$newVersion"
+  docker push "$DOCKER_IMAGE_PARITY_SPARK:$newVersion"
   
   sed -i "s/^DOCKER_IMAGE_FUSE_PARITY_VERSION.*/DOCKER_IMAGE_FUSE_PARITY_VERSION="\""${newVersion}"\""/" "../Version"
 }
@@ -149,13 +171,13 @@ setPlatform
 readVersion
 while true; do
   PS3='Please enter your choice: '
-  options=("Build Fuse APP container" "Build Fuse Parity container" "Build both" "First time configure" "Exit")
+  options=("Build Fuse APP container" "Build Fuse Parity container" "Build both" "Build Fuse APP container(SPARK)" "Build Fuse Parity container(SPARK)" "Build both(SPARK)" "First time configure" "Exit")
   select opt in "${options[@]}";
   do
     case $opt in
       "${options[0]}")
         #Build Fuse APP container
-        echo "building fuse APP"
+        echo "building fuse APP (FUSENET)"
         buildFuseApp
         read -p "Do you want to push the new version file[Y/N]: " yn
         case $yn in
@@ -166,7 +188,7 @@ while true; do
       ;;
       "${options[1]}")
         #Build Fuse Parity container
-        echo "building Fuse Parity"
+        echo "building Fuse Parity (FUSENET)"
         buildFuseParity
         read -p "Do you want to push the new version file[Y/N]: " yn
         case $yn in
@@ -176,8 +198,8 @@ while true; do
         break
       ;;
       "${options[2]}")
-        #Build both
-        echo "building fuse APP"
+        #Build both 
+        echo "building fuse APP (FUSENET)"
         buildFuseApp
         echo "building Fuse Parity"
         buildFuseParity
@@ -189,12 +211,47 @@ while true; do
         break
       ;;
       "${options[3]}")
+        #Build Fuse APP container spaark
+        echo "building fuse APP (Spark)"
+        buildFuseAppSpark
+        read -p "Do you want to push the new version file[Y/N]: " yn
+        case $yn in
+          [Y/y]* ) 
+          pushChanges "FuseApp"; break;;
+        esac
+        break
+      ;;
+      "${options[4]}")
+        #Build Fuse Parity container spark
+        echo "building Fuse Parity (Spark)"
+        buildFuseParitySpark
+        read -p "Do you want to push the new version file[Y/N]: " yn
+        case $yn in
+          [Y/y]* ) 
+          pushChanges "FuseParity"; break;;
+        esac
+        break
+      ;;
+      "${options[5]}")
+        #Build both 
+        echo "building fuse APP (Spark)"
+        buildFuseAppSpark
+        echo "building Fuse Parity (Spark)"
+        buildFuseParitySpark
+        read -p "Do you want to push the new version file[Y/N]: " yn
+        case $yn in
+          [Y/y]* ) 
+          pushChanges "FuseAPP_And_FuseParity"; break;;
+        esac
+        break
+      ;;
+      "${options[6]}")
         #Configure
         echo "Configure env"
         installDeps
         break
       ;;
-      "${options[4]}")
+      "${options[7]}")
         #Exit
         exit 0
       ;;
