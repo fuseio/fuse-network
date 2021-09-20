@@ -42,6 +42,7 @@ DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
 SNAPSHOT_NODE="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
 
+
 WARNINGS=()
 INFOS=()
 
@@ -165,13 +166,13 @@ function getAndUpdateBlockNumbers {
   ETHBLOCK=$((`curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL | { grep -o "\w*0x\w*" || true; }`))
 
   if [[ "$ETHBLOCK" == 0 ]]; then
-	  echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL$ADDPORT)
-	  displayErrorAndExit "Could not pull mainnet block please check your foreign RPC config"
+          echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $FOREIGN_RPC_URL$ADDPORT)
+          displayErrorAndExit "Could not pull mainnet block please check your foreign RPC config"
   fi
 
   if [[ "$FUSEBLOCK" == 0 ]]; then
-	  echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL)
-	  displayErrorAndExit "Could not pull fuse block please check your fuse RPC config"
+          echo $(curl -s --data '{"method":"eth_blockNumber","params":[],"id":1,"jsonrpc":"2.0"}' -H "Content-Type: application/json" -X POST $HOME_RPC_URL)
+          displayErrorAndExit "Could not pull fuse block please check your fuse RPC config"
   fi
 
   echo "ETH BLOCK = $ETHBLOCK"
@@ -244,7 +245,7 @@ function sanityChecks {
     echo "docker is not available!"
     if [ $PLATFORM == "LINUX" ]; then
       install_docker
-    else	    
+    else            
       exit 1
     fi
   fi
@@ -290,6 +291,18 @@ function parseArguments {
   if [[ $ROLE == bootnode ]] ; then
     if ! [[ "$BOOTNODES" ]] ; then
       echo "Warning! trying to run a bootnode without BOOTNODES argument!"
+    fi
+  fi
+  
+  if ! [ -z "$TESTNET" ] ; then
+    if [[ $TESTNET == true ]] ; then
+      if [[ $ROLE == bridge-validator ]] ; then
+        displayErrorAndExit "bridge-validators not supported on Spark"
+      fi
+      VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
+      DOCKER_IMAGE_PARITY="fusenet/spark-node"
+      DOCKER_IMAGE_NETSTAT="fusenet/spark-netstat"
+      DOCKER_IMAGE_APP="fusenet/spark-validator-app"
     fi
   fi
 
@@ -414,7 +427,7 @@ function setup {
   if [[ $ROLE == validator ]] || [[ $ROLE == bridge-validator ]] ; then
     # Get password and store it.
     if [[ ! -f "$PASSWORD_FILE" ]] ; then
-	IFS=$'\n'
+        IFS=$'\n'
       while [ -z "$PASSWORD" ] ; do
         echo -en "\nPlease insert a password.\nThe password will be used to encrypt your private key. The password will additionally be stored in plaintext in $PASSWORD_FILE, so that you do not have to enter it again.\n"
         while true; do
@@ -566,14 +579,14 @@ function run {
       NUM_RPC_THREADS=$cpuCores
       NUM_HTTP_THREADS=$(( 4*cpuCores ))
       if [ -z "$NUMBER_OF_RPC_THREADS" ] ; then
-      	echo "using default RPC thread values"
+        echo "using default RPC thread values"
       else
-      	NUM_RPC_THREADS=$NUMBER_OF_RPC_THREADS
+        NUM_RPC_THREADS=$NUMBER_OF_RPC_THREADS
         echo "reading RPC threads from env file $NUM_RPC_THREADS"
       fi
 
       if [ -z "$NUMBER_OF_HTTP_CONNECTIONS_THREADS" ] ; then
-      	echo "using default http thread values"
+        echo "using default http thread values"
       else
         NUM_HTTP_THREADS=$NUMBER_OF_HTTP_CONNECTIONS_THREADS
         echo "reading HTTP connection threads from env file $NUM_HTTP_THREADS"
