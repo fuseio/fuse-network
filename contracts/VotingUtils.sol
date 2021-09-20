@@ -17,7 +17,7 @@ contract VotingUtils is EternalStorage, VotingBase {
   uint256 public constant MAX_LIMIT_OF_BALLOTS = 100;
   uint256 public constant MIN_BALLOT_DURATION_CYCLES = 2;
   uint256 public constant MAX_BALLOT_DURATION_CYCLES = 14;
-  uint256 public constant MINIMUM_TURNOUT_BP = 3333; //33.3%
+  uint256 public constant MINIMUM_TURNOUT_BP = 2000; //20%
 
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
@@ -395,8 +395,8 @@ contract VotingUtils is EternalStorage, VotingBase {
     uint256 stake = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).totalStakeAmount();
     uint256 minTurnout = stake * MINIMUM_TURNOUT_BP / 10000;
 
-    uint256 totalVoted = getAccepted(_id).add(getRejected(_id));
+    uint256 totalVotedFor = getAccepted(_id);
 
-    return totalVoted > minTurnout;
+    return totalVotedFor > minTurnout;
   }
 }
