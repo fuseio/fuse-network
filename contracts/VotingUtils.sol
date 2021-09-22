@@ -180,14 +180,14 @@ contract VotingUtils is EternalStorage, VotingBase {
       } else {
         _setQuorumState(_id, uint256(QuorumStates.Rejected));
       }
-
-      _deactivateBallot(_id);
-      _setIsFinalized(_id, true);
-      emit BallotFinalized(_id);
     } else {
       // didn't meet the turn out
       _setQuorumState(_id, uint256(QuorumStates.Rejected));
     }
+    
+    _deactivateBallot(_id);
+    _setIsFinalized(_id, true);
+    emit BallotFinalized(_id);
   }
 
   function _deactivateBallot(uint256 _id) internal {
