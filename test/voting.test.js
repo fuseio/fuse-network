@@ -331,7 +331,7 @@ contract('Voting', async (accounts) => {
           rejected: toBN(0)
       }
 
-      await voting.vote(firstBallotId, ACTION_CHOICES.REJECT, {from: validators[0]}).should.be.fulfilled
+      await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
 
       expected.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
       expected.rejected.should.be.bignumber.equal(await voting.getRejected(firstBallotId))
