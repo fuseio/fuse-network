@@ -305,6 +305,52 @@ contract('Voting', async (accounts) => {
       toBN(0).should.be.bignumber.equal(await voting.getAccepted(id))
       toBN(0).should.be.bignumber.equal(await voting.getRejected(id))
     })
+    
+    it.only('should reject voting that got majority but does not pass the turnout', async () => {
+      let currentValidators = await consensus.getValidators()
+      let nonValidatorKey = owner
+      // create 1st ballot
+      let firstBallotId = await voting.getNextBallotId()
+      let proposedValue = RANDOM_ADDRESS
+      let contractType = CONTRACT_TYPES.BLOCK_REWARD
+      await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
+
+      // await proxyStorage.setConsensusMock(nonValidatorKey)
+      await voting.setConsensusMock(owner)
+      await consensus.setNewValidatorSetMock(validators)
+      await consensus.setSystemAddressMock(owner, {from: owner})
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
+
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
+      let voteStartBlock = await voting.getStartBlock(firstBallotId)
+      let blocksToAdvance = voteStartBlock.sub(currentBlock)
+      await advanceBlocks(blocksToAdvance.toNumber() + 1)
+
+      let expected = {
+          accepted: toBN(0),
+          rejected: toBN(0)
+      }
+
+      await voting.vote(firstBallotId, ACTION_CHOICES.REJECT, {from: validators[0]}).should.be.fulfilled
+
+      expected.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
+      expected.rejected.should.be.bignumber.equal(await voting.getRejected(firstBallotId))
+
+      currentBlock = toBN(await web3.eth.getBlockNumber())
+      voteEndBlock = await voting.getEndBlock(firstBallotId)
+      await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
+
+      // await voting.setConsensusMock(owner)
+      // await proxyStorage.setConsensusMock(owner)
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
+
+      // true.should.be.equal(await voting.getIsFinalized(firstBallotId))
+
+      // expected.accepted = val0stake
+      // expected.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
+
+    })
+
     it('golden flow should work', async () => {
       let currentValidators = await consensus.getValidators()
       let nonValidatorKey = owner
