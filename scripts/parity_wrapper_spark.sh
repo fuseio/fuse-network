@@ -84,7 +84,7 @@ cors = ["all"]
 port = 8545
 interface = "all"
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "traces", "secretstore"]
 
 [websockets]
 disable = false
@@ -92,7 +92,7 @@ port = 8546
 interface = "all"
 origins = ["all"]
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "secretstore"]
 
 [network]
 port = 30300
@@ -104,7 +104,7 @@ cors = ["all"]
 port = 8545
 interface = "all"
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "traces", "secretstore"]
 
 [websockets]
 disable = false
@@ -112,7 +112,7 @@ port = 8546
 interface = "all"
 origins = ["all"]
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "secretstore"]
 
 [network]
 port = 30300
@@ -125,7 +125,7 @@ cors = ["all"]
 port = 8545
 interface = "all"
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "traces", "secretstore"]
 
 [websockets]
 disable = true
@@ -151,7 +151,7 @@ cors = ["all"]
 port = 8545
 interface = "all"
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "traces", "secretstore"]
 
 [websockets]
 disable = false
@@ -159,7 +159,7 @@ port = 8546
 interface = "all"
 origins = ["all"]
 hosts = ["all"]
-apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "rpc", "secretstore"]
+apis = ["web3", "eth", "net", "parity", "pubsub", "traces", "secretstore"]
 
 [footprint]
 tracing = "on"

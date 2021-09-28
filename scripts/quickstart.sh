@@ -606,7 +606,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS
+        --parity-args --no-warp --node-key $NODE_KEY
       ;;
 
     "validator")
