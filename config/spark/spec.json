@@ -45,7 +45,7 @@
     "eip1884Transition": "0xe1d48",
     "eip2028Transition": "0xe1d48",
     "eip2929Transition": "0xe1d48",
-    "eip2930Transition": "0xe1d48"
+    "eip2930Transition": "0xe1d48",
     "maxCodeSize": 24576,
     "maxCodeSizeTransition": "0x0"
 	},
