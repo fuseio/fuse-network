@@ -571,6 +571,27 @@ function run {
     "node")
       INSTANCE_NAME=$NODE_KEY
 
+       ## parse parity config
+      cpuCores=1
+      if [ $PLATFORM == "LINUX" ]; then
+        cpuCores=$(nproc --all)
+      fi
+      NUM_RPC_THREADS=$cpuCores
+      NUM_HTTP_THREADS=$(( 4*cpuCores ))
+      if [ -z "$NUMBER_OF_RPC_THREADS" ] ; then
+        echo "using default RPC thread values"
+      else
+        NUM_RPC_THREADS=$NUMBER_OF_RPC_THREADS
+        echo "reading RPC threads from env file $NUM_RPC_THREADS"
+      fi
+
+      if [ -z "$NUMBER_OF_HTTP_CONNECTIONS_THREADS" ] ; then
+        echo "using default http thread values"
+      else
+        NUM_HTTP_THREADS=$NUMBER_OF_HTTP_CONNECTIONS_THREADS
+        echo "reading HTTP connection threads from env file $NUM_HTTP_THREADS"
+      fi
+
       ## Start parity container with all necessary arguments.
       $PERMISSION_PREFIX docker run \
         $DOCKER_LOG_OPTS \
@@ -585,7 +606,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $NODE_KEY
+        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS
       ;;
 
     "validator")
