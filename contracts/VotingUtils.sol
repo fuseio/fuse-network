@@ -157,6 +157,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     _setCreator(ballotId, creator);
     _setDescription(ballotId, _description);
     _setIndex(ballotId, activeBallotsLength());
+    _setBelowTurnOut(ballotId, false);
     _activeBallotsAdd(ballotId);
     _increaseValidatorLimit(creator);
     emit BallotCreated(ballotId, creator);
@@ -180,8 +181,10 @@ contract VotingUtils is EternalStorage, VotingBase {
       } else {
         _setQuorumState(_id, uint256(QuorumStates.Rejected));
       }
+      _setBelowTurnOut(_id, false);
     } else {
       // didn't meet the turn out
+      _setBelowTurnOut(_id, true);
       _setQuorumState(_id, uint256(QuorumStates.Rejected));
     }
     
@@ -271,6 +274,14 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   function _setIsFinalized(uint256 _id, bool _value) internal {
     boolStorage[keccak256(abi.encodePacked("votingState", _id, "isFinalized"))] = _value;
+  }
+
+  function getBelowTurnOut(uint256 _id) public view returns(bool) {
+    return boolStorage[keccak256(abi.encodePacked("votingState", _id, "belowTurnOut"))];
+  }
+
+  function _setBelowTurnOut(uint256 _id, bool _value) internal {
+    boolStorage[keccak256(abi.encodePacked("votingState", _id, "belowTurnOut"))] = _value;
   }
 
   function getDescription(uint256 _id) public view returns(string) {

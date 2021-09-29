@@ -38,7 +38,7 @@ contract Voting is VotingUtils {
   * @param _id ballot id to get info of
   * @param _key voter key to get if voted already
   */
-  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted) {
+  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted, bool belowTurnOut) {
     startBlock = getStartBlock(_id);
     endBlock = getEndBlock(_id);
     isFinalized = getIsFinalized(_id);
@@ -48,8 +48,9 @@ contract Voting is VotingUtils {
     description = getDescription(_id);
     canBeFinalizedNow = canBeFinalized(_id);
     alreadyVoted = hasAlreadyVoted(_id, _key);
+    belowTurnOut = getBelowTurnOut(_id);
 
-    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted);
+    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted, belowTurnOut);
   }
 
   /**

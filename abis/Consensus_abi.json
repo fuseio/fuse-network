@@ -67,6 +67,20 @@
   },
   {
     "constant": true,
+    "inputs": [],
+    "name": "getMinValidatorFee",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [
       {
         "name": "_address",

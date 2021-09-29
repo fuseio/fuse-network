@@ -167,6 +167,20 @@
   {
     "constant": true,
     "inputs": [],
+    "name": "MINIMUM_TURNOUT_BP",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
     "name": "isInitialized",
     "outputs": [
       {
@@ -219,6 +233,25 @@
       {
         "name": "",
         "type": "string"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "uint256"
+      }
+    ],
+    "name": "getBelowTurnOut",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
       }
     ],
     "payable": false,
@@ -698,6 +731,10 @@
       },
       {
         "name": "alreadyVoted",
+        "type": "bool"
+      },
+      {
+        "name": "belowTurnOut",
         "type": "bool"
       }
     ],
