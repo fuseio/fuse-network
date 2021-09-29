@@ -306,7 +306,7 @@ contract('Voting', async (accounts) => {
       toBN(0).should.be.bignumber.equal(await voting.getRejected(id))
     })
     
-    it.only('should reject voting that got majority but does not pass the turnout', async () => {
+    it('should reject voting that got majority but does not pass the turnout', async () => {
       let currentValidators = await consensus.getValidators()
       let nonValidatorKey = owner
       // create 1st ballot
@@ -315,7 +315,7 @@ contract('Voting', async (accounts) => {
       let contractType = CONTRACT_TYPES.BLOCK_REWARD
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
 
-      // await proxyStorage.setConsensusMock(nonValidatorKey)
+      let val0stake = (await consensus.stakeAmount(validators[0]))
       await voting.setConsensusMock(owner)
       await consensus.setNewValidatorSetMock(validators)
       await consensus.setSystemAddressMock(owner, {from: owner})
@@ -340,15 +340,27 @@ contract('Voting', async (accounts) => {
       voteEndBlock = await voting.getEndBlock(firstBallotId)
       await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
 
-      // await voting.setConsensusMock(owner)
-      // await proxyStorage.setConsensusMock(owner)
+      await voting.setConsensusMock(owner)
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
 
-      // true.should.be.equal(await voting.getIsFinalized(firstBallotId))
+      expected = {
+        accepted: toBN(val0stake),
+        rejected: toBN(0)
+      }
 
-      // expected.accepted = val0stake
-      // expected.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
+      let accepted = await voting.getAccepted(firstBallotId)
+      let rejected = await voting.getRejected(firstBallotId)
 
+      expected.accepted.should.be.bignumber.equal(accepted)
+      expected.rejected.should.be.bignumber.equal(rejected)
+      accepted.should.be.bignumber.greaterThan(rejected)
+      
+      let ballotInfo = await voting.getBallotInfo(firstBallotId, validators[0])
+      ballotInfo.isFinalized.should.be.equal(true)
+      ballotInfo.canBeFinalizedNow.should.be.equal(false)
+      ballotInfo.alreadyVoted.should.be.equal(true)
+      ballotInfo.belowTurnOut.should.be.equal(true)
+      toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(firstBallotId))
     })
 
     it('golden flow should work', async () => {
@@ -434,7 +446,7 @@ contract('Voting', async (accounts) => {
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: validators[2]}).should.be.fulfilled
       await voting.vote(firstBallotId, ACTION_CHOICES.ACCEPT, {from: nonValidatorKey}).should.be.fulfilled
 
-      totals.first.accepted = totals.first.accepted.add(val0stake.add(val2stake.add(val3stake)))
+      totals.first.accepted = totals.first.accepted.add(val0stake.add(val2stake))
       totals.first.rejected = totals.first.rejected.add(val1stake)
 
       // vote on 2nd ballot
@@ -472,7 +484,7 @@ contract('Voting', async (accounts) => {
       currentBlock = toBN(await web3.eth.getBlockNumber())
       let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
-      await proxyStorage.setConsensusMock(owner)
+      await voting.setConsensusMock(owner)
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
@@ -573,8 +585,8 @@ contract('Voting', async (accounts) => {
       currentBlock = toBN(await web3.eth.getBlockNumber())
       currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
-
-      await proxyStorage.setConsensusMock(owner)
+      //await proxyStorage.setConsensusMock(owner)
+      await voting.setConsensusMock(owner)
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
@@ -586,8 +598,8 @@ contract('Voting', async (accounts) => {
           rejected: toBN(totals.second.rejected)
         },
         third: {
-          accepted: 0,
-          rejected: 0
+          accepted: toBN(0),
+          rejected: toBN(0)
         }
       }
       expected.first.accepted.should.be.bignumber.equal(await voting.getAccepted(firstBallotId))
@@ -622,7 +634,7 @@ contract('Voting', async (accounts) => {
       currentBlock = toBN(await web3.eth.getBlockNumber())
       currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
       await advanceBlocks(currentCycleEndBlock.sub(currentBlock).toNumber())
-      await proxyStorage.setConsensusMock(owner)
+      await voting.setConsensusMock(owner)
       await voting.onCycleEnd(currentValidators).should.be.fulfilled
       expected = {
         first: {
