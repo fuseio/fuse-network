@@ -208,6 +208,25 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "uint256"
+      }
+    ],
+    "name": "getTotalStake",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "MAX_BALLOT_DURATION_CYCLES",
     "outputs": [
@@ -736,6 +755,18 @@
       {
         "name": "belowTurnOut",
         "type": "bool"
+      },
+      {
+        "name": "accepted",
+        "type": "uint256"
+      },
+      {
+        "name": "rejected",
+        "type": "uint256"
+      },
+      {
+        "name": "totalStake",
+        "type": "uint256"
       }
     ],
     "payable": false,

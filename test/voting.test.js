@@ -261,7 +261,6 @@ contract('Voting', async (accounts) => {
       let blocksToAdvance = voteStartBlock.sub(currentBlock)
       await advanceBlocks(blocksToAdvance.toNumber())
       await voting.vote(id.toNumber() + 1, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
-      await voting.vote(id.toNumber() - 1, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
