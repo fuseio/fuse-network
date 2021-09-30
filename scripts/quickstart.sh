@@ -571,7 +571,7 @@ function run {
     "node")
       INSTANCE_NAME=$NODE_KEY
 
-       ## parse parity config
+      ## parse parity config
       cpuCores=1
       if [ $PLATFORM == "LINUX" ]; then
         cpuCores=$(nproc --all)
