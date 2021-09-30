@@ -402,8 +402,16 @@ contract VotingUtils is EternalStorage, VotingBase {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "rejected"))] = _value;
   }
 
+  function getTotalStake(uint256 _id) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalStake"))];
+  }
+
+  function _setTotalStake(uint256 _id) internal {
+    uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalStake"))] = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).totalStakeAmount();
+  }
+
   function _checkTurnout(uint256 _id) internal view returns(bool) {
-    uint256 stake = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).totalStakeAmount();
+    uint256 stake = getTotalStake(_id);
     uint256 minTurnout = stake * MINIMUM_TURNOUT_BP / 10000;
 
     uint256 totalVotedFor = getAccepted(_id);

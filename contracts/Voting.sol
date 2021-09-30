@@ -38,7 +38,7 @@ contract Voting is VotingUtils {
   * @param _id ballot id to get info of
   * @param _key voter key to get if voted already
   */
-  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted, bool belowTurnOut) {
+  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted, bool belowTurnOut, uint256 accepted, uint256 rejected, uint256 totalStake) {
     startBlock = getStartBlock(_id);
     endBlock = getEndBlock(_id);
     isFinalized = getIsFinalized(_id);
@@ -49,8 +49,11 @@ contract Voting is VotingUtils {
     canBeFinalizedNow = canBeFinalized(_id);
     alreadyVoted = hasAlreadyVoted(_id, _key);
     belowTurnOut = getBelowTurnOut(_id);
+    accepted = getAccepted(_id);
+    rejected = getRejected(_id);
+    totalStake = getTotalStake(_id);
 
-    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted, belowTurnOut);
+    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted, belowTurnOut, accepted, rejected, totalStake);
   }
 
   /**
@@ -96,7 +99,7 @@ contract Voting is VotingUtils {
 
           _setAccepted(ballotId, accepts);
           _setRejected(ballotId, rejects);
-
+          _setTotalStake(ballotId);
           _finalize(ballotId);
         }
       }
