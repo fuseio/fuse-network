@@ -31,7 +31,7 @@ COPY config/spark/bootnodes.txt $PARITY_CONFIG_FILE_BOOTNODES
 COPY config/spark/config.toml $PARITY_CONFIG_FILE_TEMPLATE
 
 ### Wrapper script for Parity.
-COPY scripts/parity_wrapper.sh $PARITY_WRAPPER_SCRIPT
+COPY scripts/parity_wrapper_spark.sh $PARITY_WRAPPER_SCRIPT
 RUN chmod +x $PARITY_WRAPPER_SCRIPT
 
 ### Shorthand links

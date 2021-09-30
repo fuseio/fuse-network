@@ -39,6 +39,13 @@
     "eip145Transition": "0x6bf64",
     "eip1014Transition": "0x6bf64",
     "eip1052Transition": "0x6bf64",
+    "eip1283Transition": "0xcf850",
+    "eip1344Transition": "0xcf850",
+    "eip1706Transition": "0xcf850",
+    "eip1884Transition": "0xcf850",
+    "eip2028Transition": "0xcf850",
+    "eip2929Transition": "0xcf850",
+    "eip2930Transition": "0xcf850",
     "maxCodeSize": 24576,
     "maxCodeSizeTransition": "0x0"
 	},
