@@ -20,7 +20,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
-  uint256 public constant UNBOUNDING_PERIOD = 86400; // 120 hours [120*60*60/5]
+  uint256 public constant UNBOUNDING_PERIOD = CYCLE_DURATION_BLOCKS;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -95,9 +95,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
     _delegatedAmountAdd(_staker, _validator, _amount);
     _stakeAmountAdd(_validator, _amount);
-    if (_staker != _validator) {
-      _setUnboundingPeriod(_staker);
-    }
 
     // stake amount of the validator isn't greater than the max stake
     require(stakeAmount(_validator) <= getMaxStake());
@@ -114,37 +111,49 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     }
   }
 
+  function _unBoundStake(address _staker) internal {
+    require(block.number > unboundingBlock(_staker));
+    _staker.transfer(unBoundingAmount(_staker));
+    _setUnBoundingAmount(_staker, 0);
+  }
+
   function _withdraw(address _staker, uint256 _amount, address _validator) internal {
     require(_validator != address(0));
     require(_amount > 0);
-    require(_amount <= stakeAmount(_validator));
-    require(_amount <= delegatedAmount(_staker, _validator));
+    if (unBoundingAmount(_staker) != 0)
+    {
+      //If we have requested a withdraw then try and pull it
+      _unBoundStake(_staker);
+    } else {
+      require(_amount <= stakeAmount(_validator));
+      require(_amount <= delegatedAmount(_staker, _validator));
+      _setUnboundingPeriod(_staker);
+      _setUnBoundingAmount(_staker, _amount);
 
-    bool _isValidator = isValidator(_validator);
-    require(block.number > unboundingBlock(_staker));
+      bool _isValidator = isValidator(_validator);
 
-    // if new stake amount is lesser than minStake and the validator is one of the current validators
-    if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
-      // do not withdaw the amount until the validator is in current set
-      _pendingValidatorsRemove(_validator);
-      return;
+      // if new stake amount is lesser than minStake and the validator is one of the current validators
+      if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
+        // do not withdaw the amount until the validator is in current set
+        _pendingValidatorsRemove(_validator);
+        return;
+      }
+
+
+      _delegatedAmountSub(_staker, _validator, _amount);
+      _stakeAmountSub(_validator, _amount);
+
+      // if _validator is one of the current validators
+      if (_isValidator) {
+        // the total stake needs to be adjusted for the block reward formula
+        _totalStakeAmountSub(_amount);
+      }
+
+      // if validator is needed to be removed from pending, but not current
+      if (stakeAmount(_validator) < getMinStake()) {
+        _pendingValidatorsRemove(_validator);
+      }
     }
-
-
-    _delegatedAmountSub(_staker, _validator, _amount);
-    _stakeAmountSub(_validator, _amount);
-
-    // if _validator is one of the current validators
-    if (_isValidator) {
-      // the total stake needs to be adjusted for the block reward formula
-      _totalStakeAmountSub(_amount);
-    }
-
-    // if validator is needed to be removed from pending, but not current
-    if (stakeAmount(_validator) < getMinStake()) {
-      _pendingValidatorsRemove(_validator);
-    }
-    _staker.transfer(_amount);
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -389,6 +398,14 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function delegatedAmount(address _address, address _validator) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))];
+  }
+
+  function unBoundingAmount(address _address) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("unBoundingAmount", _address))];
+  }
+
+  function _setUnBoundingAmount(address _address, uint256 _amount) internal {
+    uintStorage[keccak256(abi.encodePacked("unBoundingAmount", _address))] = _amount;
   }
 
   function _delegatedAmountAdd(address _address, address _validator, uint256 _amount) internal {
