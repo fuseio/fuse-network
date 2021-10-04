@@ -313,7 +313,8 @@ contract('Voting', async (accounts) => {
       let proposedValue = RANDOM_ADDRESS
       let contractType = CONTRACT_TYPES.BLOCK_REWARD
       await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
-
+      
+      let totalStake = (await consensus.totalStakeAmount())
       let val0stake = (await consensus.stakeAmount(validators[0]))
       await voting.setConsensusMock(owner)
       await consensus.setNewValidatorSetMock(validators)
@@ -359,11 +360,16 @@ contract('Voting', async (accounts) => {
       ballotInfo.canBeFinalizedNow.should.be.equal(false)
       ballotInfo.alreadyVoted.should.be.equal(true)
       ballotInfo.belowTurnOut.should.be.equal(true)
+      ballotInfo.accepted.should.be.bignumber.equal(expected.accepted)
+      ballotInfo.rejected.should.be.bignumber.equal(expected.rejected)
+      ballotInfo.totalStake.should.be.bignumber.equal(totalStake)
+
       toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
     })
     
     it('should accept voting that got majority and pass the turnout #2', async () => {
       let currentValidators = await consensus.getValidators()
+      let totalStake = (await consensus.totalStakeAmount())
       let val0stake = (await consensus.stakeAmount(validators[0]))
       let val1stake = (await consensus.stakeAmount(validators[1]))
       let val2stake = (await consensus.stakeAmount(validators[2]))
@@ -415,12 +421,16 @@ contract('Voting', async (accounts) => {
       ballotInfo.canBeFinalizedNow.should.be.equal(false)
       ballotInfo.alreadyVoted.should.be.equal(true)
       ballotInfo.belowTurnOut.should.be.equal(false)
+      ballotInfo.accepted.should.be.bignumber.equal(expected.accepted)
+      ballotInfo.rejected.should.be.bignumber.equal(expected.rejected)
+      ballotInfo.totalStake.should.be.bignumber.equal(totalStake)
       
       toBN(QUORUM_STATES.ACCEPTED).should.be.bignumber.equal(await voting.getQuorumState(id))
     })
 
     it('should reject a voting that do not got majority and pass the turnout', async () => {
       let currentValidators = await consensus.getValidators()
+      let totalStake = (await consensus.totalStakeAmount())
       let val0stake = (await consensus.stakeAmount(validators[0]))
       let val1stake = (await consensus.stakeAmount(validators[1]))
       let val2stake = (await consensus.stakeAmount(validators[2]))
@@ -476,6 +486,9 @@ contract('Voting', async (accounts) => {
       ballotInfo.canBeFinalizedNow.should.be.equal(false)
       ballotInfo.alreadyVoted.should.be.equal(true)
       ballotInfo.belowTurnOut.should.be.equal(false)
+      ballotInfo.accepted.should.be.bignumber.equal(expected.accepted)
+      ballotInfo.rejected.should.be.bignumber.equal(expected.rejected)
+      ballotInfo.totalStake.should.be.bignumber.equal(totalStake)
       
       toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
     })
@@ -485,6 +498,7 @@ contract('Voting', async (accounts) => {
       
       await consensus.addStakeAmountMock(validators[0],toBN(5000000000000000000))
       await consensus.addStakeAmountMock(validators[1],toBN(5000000000000000000))
+      let totalStake = (await consensus.totalStakeAmount())
       let val0stake = (await consensus.stakeAmount(validators[0]))
       let val1stake = (await consensus.stakeAmount(validators[1]))
       let val2stake = (await consensus.stakeAmount(validators[2]))
@@ -540,6 +554,9 @@ contract('Voting', async (accounts) => {
       ballotInfo.canBeFinalizedNow.should.be.equal(false)
       ballotInfo.alreadyVoted.should.be.equal(true)
       ballotInfo.belowTurnOut.should.be.equal(false)
+      ballotInfo.accepted.should.be.bignumber.equal(expected.accepted)
+      ballotInfo.rejected.should.be.bignumber.equal(expected.rejected)
+      ballotInfo.totalStake.should.be.bignumber.equal(totalStake)
       
       toBN(QUORUM_STATES.ACCEPTED).should.be.bignumber.equal(await voting.getQuorumState(id))
     })
@@ -548,6 +565,7 @@ contract('Voting', async (accounts) => {
       
       await consensus.addStakeAmountMock(validators[0],toBN(5000000000000000000))
       await consensus.addStakeAmountMock(validators[1],toBN(5000000000000000000))
+      let totalStake = (await consensus.totalStakeAmount())
       let val0stake = (await consensus.stakeAmount(validators[0]))
       let val1stake = (await consensus.stakeAmount(validators[1]))
       let val2stake = (await consensus.stakeAmount(validators[2]))
@@ -603,6 +621,9 @@ contract('Voting', async (accounts) => {
       ballotInfo.canBeFinalizedNow.should.be.equal(false)
       ballotInfo.alreadyVoted.should.be.equal(true)
       ballotInfo.belowTurnOut.should.be.equal(false)
+      ballotInfo.accepted.should.be.bignumber.equal(expected.accepted)
+      ballotInfo.rejected.should.be.bignumber.equal(expected.rejected)
+      ballotInfo.totalStake.should.be.bignumber.equal(totalStake)
       
       toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
     })
