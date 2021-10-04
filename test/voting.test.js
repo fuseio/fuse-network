@@ -480,6 +480,132 @@ contract('Voting', async (accounts) => {
       toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
     })
 
+    it('should approve if number of votes for is less than against but has a higher voting power', async () => {
+      let currentValidators = await consensus.getValidators()
+      
+      await consensus.addStakeAmountMock(validators[0],toBN(5000000000000000000))
+      await consensus.addStakeAmountMock(validators[1],toBN(5000000000000000000))
+      let val0stake = (await consensus.stakeAmount(validators[0]))
+      let val1stake = (await consensus.stakeAmount(validators[1]))
+      let val2stake = (await consensus.stakeAmount(validators[2]))
+      let val3stake = (await consensus.stakeAmount(validators[3]))
+      let val4stake = (await consensus.stakeAmount(validators[4]))
+
+      // create ballot
+      let id = await voting.getNextBallotId()
+      let proposedValue = RANDOM_ADDRESS
+      let contractType = CONTRACT_TYPES.BLOCK_REWARD
+      await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
+
+      await voting.setConsensusMock(owner)
+      await consensus.setNewValidatorSetMock(validators)
+      await consensus.setSystemAddressMock(owner, {from: owner})
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
+
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
+      let voteStartBlock = await voting.getStartBlock(id)
+      let blocksToAdvance = voteStartBlock.sub(currentBlock)
+      await advanceBlocks(blocksToAdvance.toNumber() + 1)
+
+      let expected = {
+          accepted: toBN(0),
+          rejected: toBN(0)
+      }
+
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[0]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[1]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[2]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[3]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[4]}).should.be.fulfilled
+
+      expected.accepted.should.be.bignumber.equal(await voting.getAccepted(id))
+      expected.rejected.should.be.bignumber.equal(await voting.getRejected(id))
+      true.should.be.equal(await voting.isActiveBallot(id))
+
+      currentBlock = toBN(await web3.eth.getBlockNumber())
+      voteEndBlock = await voting.getEndBlock(id)
+      await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
+
+      expected.accepted =  val0stake.add(val1stake)
+      expected.rejected =  val2stake.add(val3stake).add(val4stake)
+
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
+      true.should.be.equal(await voting.getIsFinalized(id))
+      expected.accepted.should.be.bignumber.equal(await voting.getAccepted(id))
+      expected.rejected.should.be.bignumber.equal(await voting.getRejected(id))
+      false.should.be.equal(await voting.isActiveBallot(id))
+      
+      let ballotInfo = await voting.getBallotInfo(id, validators[0])
+      ballotInfo.isFinalized.should.be.equal(true)
+      ballotInfo.canBeFinalizedNow.should.be.equal(false)
+      ballotInfo.alreadyVoted.should.be.equal(true)
+      ballotInfo.belowTurnOut.should.be.equal(false)
+      
+      toBN(QUORUM_STATES.ACCEPTED).should.be.bignumber.equal(await voting.getQuorumState(id))
+    })
+    it('should reject if number of votes against is less than for but has a higher voting power', async () => {
+      let currentValidators = await consensus.getValidators()
+      
+      await consensus.addStakeAmountMock(validators[0],toBN(5000000000000000000))
+      await consensus.addStakeAmountMock(validators[1],toBN(5000000000000000000))
+      let val0stake = (await consensus.stakeAmount(validators[0]))
+      let val1stake = (await consensus.stakeAmount(validators[1]))
+      let val2stake = (await consensus.stakeAmount(validators[2]))
+      let val3stake = (await consensus.stakeAmount(validators[3]))
+      let val4stake = (await consensus.stakeAmount(validators[4]))
+
+      // create ballot
+      let id = await voting.getNextBallotId()
+      let proposedValue = RANDOM_ADDRESS
+      let contractType = CONTRACT_TYPES.BLOCK_REWARD
+      await voting.newBallot(voteStartAfterNumberOfCycles, voteCyclesDuration, contractType, proposedValue, 'description', {from: validators[0]}).should.be.fulfilled
+
+      await voting.setConsensusMock(owner)
+      await consensus.setNewValidatorSetMock(validators)
+      await consensus.setSystemAddressMock(owner, {from: owner})
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
+
+      let currentBlock = toBN(await web3.eth.getBlockNumber())
+      let voteStartBlock = await voting.getStartBlock(id)
+      let blocksToAdvance = voteStartBlock.sub(currentBlock)
+      await advanceBlocks(blocksToAdvance.toNumber() + 1)
+
+      let expected = {
+          accepted: toBN(0),
+          rejected: toBN(0)
+      }
+
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[0]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.REJECT, {from: validators[1]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[2]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[3]}).should.be.fulfilled
+      await voting.vote(id, ACTION_CHOICES.ACCEPT, {from: validators[4]}).should.be.fulfilled
+
+      expected.accepted.should.be.bignumber.equal(await voting.getAccepted(id))
+      expected.rejected.should.be.bignumber.equal(await voting.getRejected(id))
+      true.should.be.equal(await voting.isActiveBallot(id))
+
+      currentBlock = toBN(await web3.eth.getBlockNumber())
+      voteEndBlock = await voting.getEndBlock(id)
+      await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber())
+
+      expected.rejected =  val0stake.add(val1stake)
+      expected.accepted =  val2stake.add(val3stake).add(val4stake)
+
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled
+      true.should.be.equal(await voting.getIsFinalized(id))
+      expected.accepted.should.be.bignumber.equal(await voting.getAccepted(id))
+      expected.rejected.should.be.bignumber.equal(await voting.getRejected(id))
+      false.should.be.equal(await voting.isActiveBallot(id))
+      
+      let ballotInfo = await voting.getBallotInfo(id, validators[0])
+      ballotInfo.isFinalized.should.be.equal(true)
+      ballotInfo.canBeFinalizedNow.should.be.equal(false)
+      ballotInfo.alreadyVoted.should.be.equal(true)
+      ballotInfo.belowTurnOut.should.be.equal(false)
+      
+      toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(await voting.getQuorumState(id))
+    })
     it('golden flow should work', async () => {
       let currentValidators = await consensus.getValidators()
       let nonValidatorKey = owner

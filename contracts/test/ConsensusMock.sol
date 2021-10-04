@@ -39,6 +39,10 @@ contract ConsensusMock is Consensus {
     }
   }
 
+  function addStakeAmountMock(address addr, uint256 amount) public {
+    _stakeAmountAdd(addr, amount);
+  }
+
   function setFinalizedMock(bool _status) public {
     boolStorage[IS_FINALIZED] = _status;
   }
