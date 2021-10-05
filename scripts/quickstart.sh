@@ -40,7 +40,10 @@ REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
-SNAPSHOT_NODE="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
+PARITY_SNAPSHOT="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
+OE_SNAPSHOT="https://node-snapshot-oe.s3.eu-central-1.amazonaws.com/db.tar.gz"
+
+SNAPSHOT_NODE="$OE_SNAPSHOT"
 
 
 WARNINGS=()
@@ -324,6 +327,14 @@ function pullSnapShot {
   echo -e "\nPulling snapshot..."
 
   if [[ $ROLE != explorer ]] ; then
+    if [ -z "$CLIENT" ] ; then
+      SNAPSHOT_NODE="$OE_SNAPSHOT"
+    elif [ $CLIENT == "OE" ]; then
+      SNAPSHOT_NODE="$OE_SNAPSHOT"
+    else
+      SNAPSHOT_NODE="$PARITY_SNAPSHOT"
+    fi
+
     echo -e "clearing out old folder"
     if [[ -d "$DATABASE_DIR/FuseNetwork/db" ]] ; then
       rm -r "$DATABASE_DIR/FuseNetwork/db"
@@ -382,6 +393,9 @@ function setup {
 
   if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
     echo -e "\nGrab docker Versions"
+    if [ $CLIENT == "PARITY" ]; then
+      VERSION_FILE="$VERSION_FILE_legacy"
+    fi
     wget -O versionFile $VERSION_FILE
     export $(grep -v '^#' versionFile | xargs)
   else
@@ -534,9 +548,20 @@ function run {
     fi
   fi
   
-  if ! [ -z "$USE_SNAPSHOT" ] ; then
-    if [[ $USE_SNAPSHOT == true ]] ; then
+  if [[ $TESTNET != true ]] ; then
+    if [ -z "$CLIENT" ] ; then
+      if [[ $ROLE == explorer ]] ; then
+        displayErrorAndExit "Explorer snapshot not present, Script is assuming a migration from parity to OE, if this is not the case please add CLIENT=OE/ CLIENT=PARITY to your .env file. To upgrade your DB please run the upgrade tool https://github.com/openethereum/3.1-db-upgrade-tool"
+      fi
+      echo -e "\n\n NO CLIENT SET ASSUME running parity, need to update DB\n\n"
       pullSnapShot
+      echo "CLIENT=OE" >> $ENV_FILE
+    else
+      if ! [ -z "$USE_SNAPSHOT" ] ; then
+        if [[ $USE_SNAPSHOT == true ]] ; then
+          pullSnapShot
+        fi
+      fi
     fi
   fi
 
