@@ -33,6 +33,16 @@ contract ConsensusMock is Consensus {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
   }
 
+  function setStakeAmountMockGroup(address[] _newSet) public {
+    for (uint256 i; i < _newSet.length; i++) {
+       _stakeAmountAdd(_newSet[i],1000000000000000000);
+    }
+  }
+
+  function addStakeAmountMock(address addr, uint256 amount) public {
+    _stakeAmountAdd(addr, amount);
+  }
+
   function setFinalizedMock(bool _status) public {
     boolStorage[IS_FINALIZED] = _status;
   }

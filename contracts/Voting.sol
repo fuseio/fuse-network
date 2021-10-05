@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./VotingUtils.sol";
+import "./interfaces/IConsensus.sol";
 
 /**
 * @title Contract handling vote to change implementations network contracts
@@ -37,7 +38,7 @@ contract Voting is VotingUtils {
   * @param _id ballot id to get info of
   * @param _key voter key to get if voted already
   */
-  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted) {
+  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted, bool belowTurnOut, uint256 accepted, uint256 rejected, uint256 totalStake) {
     startBlock = getStartBlock(_id);
     endBlock = getEndBlock(_id);
     isFinalized = getIsFinalized(_id);
@@ -47,8 +48,12 @@ contract Voting is VotingUtils {
     description = getDescription(_id);
     canBeFinalizedNow = canBeFinalized(_id);
     alreadyVoted = hasAlreadyVoted(_id, _key);
+    belowTurnOut = getBelowTurnOut(_id);
+    accepted = getAccepted(_id);
+    rejected = getRejected(_id);
+    totalStake = getTotalStake(_id);
 
-    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted);
+    return (startBlock, endBlock, isFinalized, proposedValue, contractType, creator, description, canBeFinalizedNow, alreadyVoted, belowTurnOut, accepted, rejected, totalStake);
   }
 
   /**
@@ -79,22 +84,22 @@ contract Voting is VotingUtils {
     for (uint256 i = 0; i < ballots.length; i++) {
       uint256 ballotId = ballots[i];
       if (getStartBlock(ballotId) < block.number && !getFinalizeCalled(ballotId)) {
-        uint256 accepts = 0;
-        uint256 rejects = 0;
-        for (uint256 j = 0; j < numOfValidators; j++) {
-          uint256 choice = getVoterChoice(ballotId, validators[j]);
-          if (choice == uint(ActionChoices.Accept)) {
-            accepts = accepts.add(1);
-          } else if (choice == uint256(ActionChoices.Reject)) {
-            rejects = rejects.add(1);
-          }
-        }
-        accepts = accepts.mul(DECIMALS).div(numOfValidators);
-        rejects = rejects.mul(DECIMALS).div(numOfValidators);
-        _setAccepted(ballotId, getAccepted(ballotId).add(accepts));
-        _setRejected(ballotId, getRejected(ballotId).add(rejects));
-
+        
         if (canBeFinalized(ballotId)) {
+          uint256 accepts = 0;
+          uint256 rejects = 0;
+          for (uint256 j = 0; j < numOfValidators; j++) {
+            uint256 choice = getVoterChoice(ballotId, validators[j]);
+            if (choice == uint(ActionChoices.Accept)) {
+              accepts = accepts.add(getStake(validators[j]));
+            } else if (choice == uint256(ActionChoices.Reject)) {
+              rejects = rejects.add(getStake(validators[j]));
+            }
+          }
+
+          _setAccepted(ballotId, accepts);
+          _setRejected(ballotId, rejects);
+          _setTotalStake(ballotId);
           _finalize(ballotId);
         }
       }

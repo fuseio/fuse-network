@@ -17,6 +17,7 @@ contract VotingUtils is EternalStorage, VotingBase {
   uint256 public constant MAX_LIMIT_OF_BALLOTS = 100;
   uint256 public constant MIN_BALLOT_DURATION_CYCLES = 2;
   uint256 public constant MAX_BALLOT_DURATION_CYCLES = 14;
+  uint256 public constant MINIMUM_TURNOUT_BP = 2000; //20%
 
   /**
   * @dev This modifier verifies that msg.sender is the owner of the contract
@@ -118,7 +119,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     if (getStartBlock(_id) > block.number) return false;
     if (getIsFinalized(_id)) return false;
 
-    return block.number > getEndBlock(_id);
+    return block.number >= getEndBlock(_id);
   }
 
   function getProposedValue(uint256 _id) public view returns(address) {
@@ -156,6 +157,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     _setCreator(ballotId, creator);
     _setDescription(ballotId, _description);
     _setIndex(ballotId, activeBallotsLength());
+    _setBelowTurnOut(ballotId, false);
     _activeBallotsAdd(ballotId);
     _increaseValidatorLimit(creator);
     emit BallotCreated(ballotId, creator);
@@ -168,16 +170,24 @@ contract VotingUtils is EternalStorage, VotingBase {
       _setFinalizeCalled(_id);
     }
 
-    if (getAccepted(_id) > getRejected(_id)) {
-      if (_finalizeBallot(_id)) {
-        _setQuorumState(_id, uint256(QuorumStates.Accepted));
+    // check the turnout
+    if (_checkTurnout(_id)) {
+      if (getAccepted(_id) > getRejected(_id)) {
+        if (_finalizeBallot(_id)) {
+          _setQuorumState(_id, uint256(QuorumStates.Accepted));
+        } else {
+          return;
+        }
       } else {
-        return;
+        _setQuorumState(_id, uint256(QuorumStates.Rejected));
       }
+      _setBelowTurnOut(_id, false);
     } else {
+      // didn't meet the turn out
+      _setBelowTurnOut(_id, true);
       _setQuorumState(_id, uint256(QuorumStates.Rejected));
     }
-
+    
     _deactivateBallot(_id);
     _setIsFinalized(_id, true);
     emit BallotFinalized(_id);
@@ -266,6 +276,14 @@ contract VotingUtils is EternalStorage, VotingBase {
     boolStorage[keccak256(abi.encodePacked("votingState", _id, "isFinalized"))] = _value;
   }
 
+  function getBelowTurnOut(uint256 _id) public view returns(bool) {
+    return boolStorage[keccak256(abi.encodePacked("votingState", _id, "belowTurnOut"))];
+  }
+
+  function _setBelowTurnOut(uint256 _id, bool _value) internal {
+    boolStorage[keccak256(abi.encodePacked("votingState", _id, "belowTurnOut"))] = _value;
+  }
+
   function getDescription(uint256 _id) public view returns(string) {
     return stringStorage[keccak256(abi.encodePacked("votingState", _id, "description"))];
   }
@@ -352,6 +370,10 @@ contract VotingUtils is EternalStorage, VotingBase {
     return IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).currentValidatorsLength();
   }
 
+  function getStake(address _key) internal view returns(uint256) {
+    return IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).stakeAmount(_key);
+  }
+
   function _setVoterChoice(uint256 _id, address _key, uint256 _choice) internal {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "voters", _key))] = _choice;
   }
@@ -378,5 +400,22 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   function _setRejected(uint256 _id, uint256 _value) internal {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "rejected"))] = _value;
+  }
+
+  function getTotalStake(uint256 _id) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalStake"))];
+  }
+
+  function _setTotalStake(uint256 _id) internal {
+    uintStorage[keccak256(abi.encodePacked("votingState", _id, "totalStake"))] = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).totalStakeAmount();
+  }
+
+  function _checkTurnout(uint256 _id) internal view returns(bool) {
+    uint256 stake = getTotalStake(_id);
+    uint256 minTurnout = stake * MINIMUM_TURNOUT_BP / 10000;
+
+    uint256 totalVotedFor = getAccepted(_id);
+
+    return totalVotedFor > minTurnout;
   }
 }
