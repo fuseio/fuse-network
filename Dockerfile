@@ -1,5 +1,5 @@
-FROM ubuntu:18.04
-
+FROM alpine:3.13.2 AS builder
+  
 ENV HOME=/home/parity
 ENV PARITY_HOME_DIR=$HOME/.local/share/io.parity.ethereum
 ENV PARITY_CONFIG_FILE_CHAIN=$PARITY_HOME_DIR/spec.json
@@ -11,7 +11,16 @@ ENV PARITY_WRAPPER_SCRIPT=$HOME/parity_wrapper.sh
 
 RUN mkdir -p $PARITY_HOME_DIR && ls -la $PARITY_HOME_DIR
 
-COPY --from=parity/parity:v2.5.13-stable /bin/parity $PARITY_BIN
+# add depends
+RUN apk add --no-cache \
+  libstdc++ \
+  eudev-libs \
+  libgcc \
+  curl \
+  jq \
+  bash
+
+COPY --from=openethereum/openethereum:v3.2.6 /home/openethereum/openethereum $PARITY_BIN
 
 ### Network RPC WebSocket
 EXPOSE 30300 8545 8546
