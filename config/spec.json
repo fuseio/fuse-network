@@ -68,7 +68,7 @@
       "0x0000000000000000000000000000000000000006": { "builtin": { "name": "alt_bn128_add", "pricing": { "0": { "price": { "alt_bn128_const_operations": { "price": 500 } } }, "0xd59f80": { "info": "Istanbul HF", "price": { "alt_bn128_const_operations": { "price": 500 } } } } } },
       "0x0000000000000000000000000000000000000007": { "builtin": { "name": "alt_bn128_mul", "pricing": { "0": { "price": { "alt_bn128_const_operations": { "price": 4000 } } }, "0xd59f80": { "info": "Istanbul HF", "price": { "alt_bn128_const_operations": { "price": 6000 } } } } } },
       "0x0000000000000000000000000000000000000008": { "builtin": { "name": "alt_bn128_pairing", "pricing": { "0": { "price": { "alt_bn128_pairing": { "base": 100000, "pair": 80000 } } }, "0xd59f80": { "info": "Istanbul HF", "price": { "alt_bn128_pairing": { "base": 45000, "pair": 34000 } } } } } },
-      "0x0000000000000000000000000000000000000008": { "builtin": { "name": "blake2_f", "pricing": { "0xd59f80": { "info": "Istanbul HF", "price": { "blake2_f": { "gas_per_round": 1 } } } } } },
+      "0x0000000000000000000000000000000000000009": { "builtin": { "name": "blake2_f", "pricing": { "0xd59f80": { "info": "Istanbul HF", "price": { "blake2_f": { "gas_per_round": 1 } } } } } },
       "0xd9176e84898a0054680aec3f7c056b200c3d96c3": { "balance": "300000000000000000000000000" }
   }
 }
