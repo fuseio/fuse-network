@@ -20,7 +20,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
-  uint256 public constant VALIDATOR_PRODUCTIVITY = 7; //must be a whole number (1-10) 1 = 10%, 2 = 20%..... 10=100%
+  uint256 public constant VALIDATOR_PRODUCTIVITY_BP = 9000; // 90%
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -219,7 +219,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _checkJail(address[] _validatorSet) internal {
-    uint256 expectedNumberOfBlocks = ((CYCLE_DURATION_BLOCKS / _validatorSet.length) * VALIDATOR_PRODUCTIVITY)/10;
+    uint256 expectedNumberOfBlocks = CYCLE_DURATION_BLOCKS.mul(VALIDATOR_PRODUCTIVITY_BP).div(_validatorSet.length).div(10000);
     for (uint i = 0; i < _validatorSet.length; i++) {
       if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
         _jailVal(_validatorSet[i]);
