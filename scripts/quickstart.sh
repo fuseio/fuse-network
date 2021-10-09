@@ -550,12 +550,23 @@ function run {
   
   if [[ $TESTNET != true ]] ; then
     if [ -z "$CLIENT" ] ; then
-      if [[ $ROLE == explorer ]] ; then
+      read -p "Do you want to upgrade your Client? [Y/N] (this will cause ~30mins downtime and requires 20GB free diskspace, UPGRADE IS REQUIRED BEFORE BLOCK 14MILLION)" -n 1 -r
+      echo    # (optional) move to a new line
+      if [[ $REPLY =~ ^[Yy]$ ]] ; then
+        if [[ $ROLE == explorer ]] ; then
         displayErrorAndExit "Explorer snapshot not present, Script is assuming a migration from parity to OE, if this is not the case please add CLIENT=OE/ CLIENT=PARITY to your .env file. To upgrade your DB please run the upgrade tool https://github.com/openethereum/3.1-db-upgrade-tool"
+        fi
+        echo -e "\n\n NO CLIENT SET ASSUME running parity, need to update DB\n\n"
+        pullSnapShot
+        echo "CLIENT=OE" >> $ENV_FILE
+      else
+        CLIENT="PARITY"
+        #re run setup to pull Parity version
+        setup
+        if [[ $USE_SNAPSHOT == true ]] ; then
+          pullSnapShot
+        fi
       fi
-      echo -e "\n\n NO CLIENT SET ASSUME running parity, need to update DB\n\n"
-      pullSnapShot
-      echo "CLIENT=OE" >> $ENV_FILE
     else
       if ! [ -z "$USE_SNAPSHOT" ] ; then
         if [[ $USE_SNAPSHOT == true ]] ; then
