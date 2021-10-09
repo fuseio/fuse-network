@@ -9,20 +9,21 @@ QUICKSTART_VERSION="1.0.0"
 #set this to true to allow for hardcoded versioning for debugging
 OVERRIDE_VERSION_FILE=false
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
+VERSION_FILE_LEGACY="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_legacy"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
 DOCKER_IMAGE_FUSE_PARITY_VERSION="1.0.0"
 DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
 
 ENV_FILE=".env"
-DOCKER_IMAGE_PARITY="fusenet/node"
+DOCKER_IMAGE_PARITY_REPO="fusenet/node"
 DOCKER_CONTAINER_PARITY="fusenet"
-DOCKER_IMAGE_APP="fusenet/validator-app"
+DOCKER_IMAGE_APP_REPO="fusenet/validator-app"
 DOCKER_CONTAINER_APP="fuseapp"
-DOCKER_IMAGE_NETSTAT="fusenet/netstat"
+DOCKER_IMAGE_NETSTAT_REPO="fusenet/netstat"
 DOCKER_CONTAINER_NETSTAT="fusenetstat"
 DOCKER_COMPOSE_ORACLE="https://raw.githubusercontent.com/fuseio/fuse-bridge/master/native-to-erc20/oracle/docker-compose.keystore.yml"
-DOCKER_IMAGE_ORACLE="fusenet/native-to-erc20-oracle"
+DOCKER_IMAGE_ORACLE_REPO="fusenet/native-to-erc20-oracle"
 DOCKER_CONTAINER_ORACLE="fuseoracle"
 DOCKER_LOG_OPTS="--log-opt max-size=10m --log-opt max-file=25 --log-opt compress=true"
 BASE_DIR=$(pwd)/fusenet
@@ -40,7 +41,10 @@ REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
-SNAPSHOT_NODE="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
+PARITY_SNAPSHOT="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
+OE_SNAPSHOT="https://node-snapshot-oe.s3.eu-central-1.amazonaws.com/db.tar.gz"
+
+SNAPSHOT_NODE="$OE_SNAPSHOT"
 
 
 WARNINGS=()
@@ -324,6 +328,14 @@ function pullSnapShot {
   echo -e "\nPulling snapshot..."
 
   if [[ $ROLE != explorer ]] ; then
+    if [ -z "$CLIENT" ] ; then
+      SNAPSHOT_NODE="$OE_SNAPSHOT"
+    elif [ $CLIENT == "OE" ]; then
+      SNAPSHOT_NODE="$OE_SNAPSHOT"
+    else
+      SNAPSHOT_NODE="$PARITY_SNAPSHOT"
+    fi
+
     echo -e "clearing out old folder"
     if [[ -d "$DATABASE_DIR/FuseNetwork/db" ]] ; then
       rm -r "$DATABASE_DIR/FuseNetwork/db"
@@ -382,6 +394,9 @@ function setup {
 
   if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
     echo -e "\nGrab docker Versions"
+    if [ $CLIENT == "PARITY" ]; then
+      VERSION_FILE="$VERSION_FILE_LEGACY"
+    fi
     wget -O versionFile $VERSION_FILE
     export $(grep -v '^#' versionFile | xargs)
   else
@@ -396,10 +411,10 @@ function setup {
 
   # Pull the docker images.
   echo -e "\nPull the docker images..."
-  DOCKER_IMAGE_PARITY="$DOCKER_IMAGE_PARITY:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
-  DOCKER_IMAGE_NETSTAT="$DOCKER_IMAGE_NETSTAT:$DOCKER_IMAGE_NET_STATS_VERSION"
-  DOCKER_IMAGE_APP="$DOCKER_IMAGE_APP:$DOCKER_IMAGE_FUSE_APP_VERSION"
-  DOCKER_IMAGE_ORACLE="$DOCKER_IMAGE_ORACLE:$DOCKER_IMAGE_ORACLE_VERSION"
+  DOCKER_IMAGE_PARITY="$DOCKER_IMAGE_PARITY_REPO:$DOCKER_IMAGE_FUSE_PARITY_VERSION"
+  DOCKER_IMAGE_NETSTAT="$DOCKER_IMAGE_NETSTAT_REPO:$DOCKER_IMAGE_NET_STATS_VERSION"
+  DOCKER_IMAGE_APP="$DOCKER_IMAGE_APP_REPO:$DOCKER_IMAGE_FUSE_APP_VERSION"
+  DOCKER_IMAGE_ORACLE="$DOCKER_IMAGE_ORACLE_REPO:$DOCKER_IMAGE_ORACLE_VERSION"
   
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_PARITY
   $PERMISSION_PREFIX docker pull $DOCKER_IMAGE_NETSTAT
@@ -534,9 +549,31 @@ function run {
     fi
   fi
   
-  if ! [ -z "$USE_SNAPSHOT" ] ; then
-    if [[ $USE_SNAPSHOT == true ]] ; then
-      pullSnapShot
+  if [[ $TESTNET != true ]] ; then
+    if [ -z "$CLIENT" ] ; then
+      read -p "Do you want to upgrade your Client? [Y/N] (this will cause ~30mins downtime and requires 20GB free diskspace, UPGRADE IS REQUIRED BEFORE BLOCK 14MILLION)" -n 1 -r
+      echo    # (optional) move to a new line
+      if [[ $REPLY =~ ^[Yy]$ ]] ; then
+        if [[ $ROLE == explorer ]] ; then
+        displayErrorAndExit "Explorer snapshot not present, Script is assuming a migration from parity to OE, if this is not the case please add CLIENT=OE/ CLIENT=PARITY to your .env file. To upgrade your DB please run the upgrade tool https://github.com/openethereum/3.1-db-upgrade-tool"
+        fi
+        echo -e "\n\n NO CLIENT SET ASSUME running parity, need to update DB\n\n"
+        pullSnapShot
+        echo "CLIENT=OE" >> $ENV_FILE
+      else
+        CLIENT="PARITY"
+        #re run setup to pull Parity version
+        setup
+        if [[ $USE_SNAPSHOT == true ]] ; then
+          pullSnapShot
+        fi
+      fi
+    else
+      if ! [ -z "$USE_SNAPSHOT" ] ; then
+        if [[ $USE_SNAPSHOT == true ]] ; then
+          pullSnapShot
+        fi
+      fi
     fi
   fi
 
