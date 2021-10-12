@@ -20,7 +20,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
-  uint256 public constant VALIDATOR_PRODUCTIVITY_BP = 9000; // 90%
+  uint256 public constant VALIDATOR_PRODUCTIVITY_BP = 3000; // 30%
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -111,6 +111,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     // the validator must stake himselft the minimum stake
     if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
       _pendingValidatorsAdd(_validator);
+      _setValidatorFee(_validator, DEFAULT_VALIDATOR_FEE);
     }
 
     // if _validator is one of the current validators
@@ -404,7 +405,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _pendingValidatorsAdd(address _address) internal {
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
-    _setValidatorFee(_address, DEFAULT_VALIDATOR_FEE);
   }
 
   function _addJailedVal(address _address) internal {
