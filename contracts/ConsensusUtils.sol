@@ -21,6 +21,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
   uint256 public constant VALIDATOR_PRODUCTIVITY_BP = 3000; // 30%
+  uint256 public constant MAX_STRIKE_COUNT = 5;
+  uint256 public constant STRIKE_RESET = 50; // reset strikes after 50 clean cycles
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -224,6 +226,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     for (uint i = 0; i < _validatorSet.length; i++) {
       if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
         _jailVal(_validatorSet[i]);
+      } else if (getStrikes(_validatorSet[i]) != 0) {
+        _incStrikeReset(_validatorSet[i]);
       }
       //reset the block counter
       _resetBlockCounter(_validatorSet[i]);
@@ -388,6 +392,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     _pendingValidatorsRemove(_address);
     _addJailedVal(_address);
     _setJailRelease(_address);
+    _resetStrikeReset(_address);
   }
 
   function _maintenance(address _address) internal {
@@ -472,7 +477,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   function _setJailRelease(address _address) internal {
     uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))];
     uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))].add(getCurrentCycleEndBlock() + (CYCLE_DURATION_BLOCKS * strike) - 1);
-    uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
+    if (strike <= MAX_STRIKE_COUNT) {
+      uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
+    }
+  }
+
+  function _resetStrikes(address _address) internal {
+    uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = 0;
   }
 
   function delegatedAmount(address _address, address _validator) public view returns(uint256) {
@@ -617,5 +628,22 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _resetBlockCounter(address _validator) internal {
     uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] = 0;
+  }
+
+  function _incStrikeReset(address _validator) internal {
+    uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] = uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] + 1;
+    if (uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] > STRIKE_RESET)
+    {
+      _resetStrikeReset(_validator);
+      _resetStrikes(_validator);
+    }
+  }
+
+  function _resetStrikeReset(address _validator) internal {
+    uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] = 0;
+  }
+
+  function getStrikes(address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("strikeCount", _validator))];
   }
 }
