@@ -222,7 +222,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _checkJail(address[] _validatorSet) internal {
-    uint256 expectedNumberOfBlocks = CYCLE_DURATION_BLOCKS.mul(VALIDATOR_PRODUCTIVITY_BP).div(_validatorSet.length).div(10000);
+    uint256 expectedNumberOfBlocks = getCycleDurationBlocks().mul(VALIDATOR_PRODUCTIVITY_BP).div(_validatorSet.length).div(10000);
     for (uint i = 0; i < _validatorSet.length; i++) {
       if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
         _jailVal(_validatorSet[i]);
@@ -476,7 +476,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _setJailRelease(address _address) internal {
     uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))];
-    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))].add(getCurrentCycleEndBlock() + (CYCLE_DURATION_BLOCKS * strike) - 1);
+    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = (getCurrentCycleEndBlock() + (getCycleDurationBlocks() * strike) - 1);
     if (strike <= MAX_STRIKE_COUNT) {
       uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
     }

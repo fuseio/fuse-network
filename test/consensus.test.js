@@ -23,6 +23,7 @@ const MORE_THAN_MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT + 1), 'ether')
 const MORE_THAN_MAX_STAKE = toWei(toBN(MAX_STAKE_AMOUNT + 1), 'ether')
 const CYCLE_DURATION_BLOCKS = 120
 const SNAPSHOTS_PER_CYCLE = 10
+const JAIL_CUTOFF = 0.3
 
 contract('Consensus', async (accounts) => {
   let consensusImpl, proxy, proxyStorageImpl, proxyStorage, consensus, blockReward, blockRewardAmount, decimals, pendingValidators
@@ -1720,6 +1721,105 @@ contract('Consensus', async (accounts) => {
         delegators[i].should.be.equal(accounts[i + 2])
         rewards[i].should.be.bignumber.equal(expectedReward)
       }
+    })
+  })
+
+  describe('Jailing', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('Check no jailing if validate all blocks', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      await mockEoC()
+
+      await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
+      
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+
+      false.should.be.equal(await consensus.isJailed(firstCandidate))
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+    })
+    it('Check jailing threshold', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      // add 2nd validator
+      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(2)
+      await mockEoC()
+
+      let currentValidators = await consensus.getValidators()
+      currentValidators.length.should.be.equal(2)
+      let expected = ((CYCLE_DURATION_BLOCKS*JAIL_CUTOFF)/currentValidators.length) + 1
+      await consensus.setBlockCounterMock(firstCandidate,expected);
+      await consensus.setBlockCounterMock(secondCandidate,expected);
+
+      toBN(expected).should.be.bignumber.equal(await consensus.blockCounter(firstCandidate))
+      toBN(expected).should.be.bignumber.equal(await consensus.blockCounter(secondCandidate))
+      
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.jailedValidatorsLength())
+
+      ZERO.should.be.bignumber.equal(await consensus.blockCounter(firstCandidate))
+      ZERO.should.be.bignumber.equal(await consensus.blockCounter(secondCandidate))
+
+      await consensus.setBlockCounterMock(firstCandidate,expected-2);
+      await consensus.setBlockCounterMock(secondCandidate,expected-2);
+
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      TWO.should.be.bignumber.equal(await consensus.jailedValidatorsLength())
+      true.should.be.equal(await consensus.isJailed(firstCandidate))
+      true.should.be.equal(await consensus.isJailed(secondCandidate))
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+      false.should.be.equal(await consensus.isPendingValidator(secondCandidate))
+    })
+    it('Check unjailing', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+
+      await mockEoC()
+
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+
+      true.should.be.equal(await consensus.isJailed(firstCandidate))
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+
+      await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+
+      false.should.be.equal(await consensus.isJailed(firstCandidate))
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+      ONE.should.be.bignumber.equal(await consensus.getStrikes(firstCandidate))
     })
   })
 
