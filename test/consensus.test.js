@@ -1729,6 +1729,48 @@ contract('Consensus', async (accounts) => {
       await consensus.initialize(initialValidator)
       await consensus.setProxyStorage(proxyStorage.address)
     })
+    it('Unjailing should only work for jailed validators', async () => {
+      //test with non val
+      await consensus.unJail({from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
+
+      //test with val
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      await mockEoC()
+      await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      await consensus.unJail({from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
+
+      //jail val and test
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+    })
+    it('multiple calls to unjail should be rejected', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      await mockEoC()
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+      await consensus.unJail({from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
+    })
     it('Check no jailing if validate all blocks', async () => {
       await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
       ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
@@ -1820,6 +1862,166 @@ contract('Consensus', async (accounts) => {
       false.should.be.equal(await consensus.isJailed(firstCandidate))
       true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
       ONE.should.be.bignumber.equal(await consensus.getStrikes(firstCandidate))
+    })
+    it('Check strikes', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+
+      await consensus.sendTransaction({from: secondCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(2)
+      await mockEoC()
+
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+      await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+      await mockEoC()
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      
+
+      true.should.be.equal(await consensus.isJailed(firstCandidate))
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+
+      await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+
+      false.should.be.equal(await consensus.isJailed(firstCandidate))
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+      ONE.should.be.bignumber.equal(await consensus.getStrikes(firstCandidate))
+      
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+      await mockEoC()
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      
+
+      for (i = 3; i <= 5; i++) {
+        currentBlockNumber = await web3.eth.getBlockNumber()
+        currentCycleEndBlock = await consensus.getReleaseBlock(firstCandidate)
+        blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber + 1
+
+        if(blocksToAdvance > 0) {
+          await advanceBlocks(blocksToAdvance)
+        }
+        await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+        await mockEoC()
+        await blockReward.cycleMock({from: owner}).should.be.fulfilled
+        
+
+        true.should.be.equal(await consensus.isJailed(firstCandidate))
+        false.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+        await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+        false.should.be.equal(await consensus.isJailed(firstCandidate))
+        true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+
+        currentBlockNumber = await web3.eth.getBlockNumber()
+        currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+        blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+        await advanceBlocks(blocksToAdvance)
+        await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+        await mockEoC()
+        await blockReward.cycleMock({from: owner}).should.be.fulfilled
+        if(i < 5)
+        {
+          toBN(i).should.be.bignumber.equal(await consensus.getStrikes(firstCandidate))
+        }
+        else
+        {
+          toBN(5).should.be.bignumber.equal(await consensus.getStrikes(firstCandidate))
+        }
+      }
+
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getReleaseBlock(firstCandidate)
+
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber + 1
+      if(blocksToAdvance > 0) {
+        await advanceBlocks(blocksToAdvance)
+      }
+      await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+      await mockEoC()
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      
+
+      true.should.be.equal(await consensus.isJailed(firstCandidate))
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+
+      currentBlockNumber = await web3.eth.getBlockNumber()
+      currentCycleEndBlock = await consensus.getReleaseBlock(firstCandidate)
+
+      await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+      await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
+      await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+      await mockEoC()
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+
+      //check strikes get reset after 50 clean cycles
+      for (i = 0; i <= 50; i++)
+      {
+        await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
+        await consensus.setBlockCounterMock(secondCandidate,CYCLE_DURATION_BLOCKS);
+        let currentBlockNumber = await web3.eth.getBlockNumber()
+        let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+        let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+        await advanceBlocks(blocksToAdvance)
+        true.should.be.equal(await consensus.hasCycleEnded())
+        await blockReward.cycleMock({from: owner}).should.be.fulfilled
+        false.should.be.equal(await consensus.isJailed(firstCandidate))
+        true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
+      }
+      ZERO.should.be.bignumber.equal(await consensus.getStrikes(firstCandidate))
+    })
+  })
+
+  describe('Maintenance', async () => {
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator)
+      await consensus.setProxyStorage(proxyStorage.address)
+    })
+    it('Only validators can flag maintenance', async () => {
+      //test with non val
+      await consensus.maintenance({from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
+
+      //test with val
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
+      await mockEoC()
+      await consensus.maintenance({from: firstCandidate}).should.be.fulfilled
+    })
+    it('Should be able to flag being back online instantly', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
+      await mockEoC()
+      await consensus.maintenance({from: firstCandidate}).should.be.fulfilled
+      await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+    })
+    it('Should reject if jailed', async () => {
+      await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount())
+      let pendingValidators = await consensus.pendingValidators()
+      pendingValidators.length.should.be.equal(1)
+      await mockEoC()
+      let currentBlockNumber = await web3.eth.getBlockNumber()
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock()
+      let blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber
+      await advanceBlocks(blocksToAdvance)
+      true.should.be.equal(await consensus.hasCycleEnded())
+      await blockReward.cycleMock({from: owner}).should.be.fulfilled
+      await consensus.maintenance({from: firstCandidate}).should.be.rejectedWith(ERROR_MSG)
     })
   })
 

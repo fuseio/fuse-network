@@ -643,6 +643,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] = 0;
   }
 
+  function getStrikeReset(address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))];
+  }
+
   function getStrikes(address _validator) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("strikeCount", _validator))];
   }
