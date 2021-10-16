@@ -409,6 +409,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _pendingValidatorsAdd(address _address) internal {
+    require(isJailed(_address) == false);
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
   }
 
