@@ -2007,7 +2007,11 @@ contract('Consensus', async (accounts) => {
       await consensus.setBlockCounterMock(firstCandidate,CYCLE_DURATION_BLOCKS);
       await mockEoC()
       await consensus.maintenance({from: firstCandidate}).should.be.fulfilled
+      true.should.be.equal(await consensus.isJailed(firstCandidate))
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate))
       await consensus.unJail({from: firstCandidate}).should.be.fulfilled
+      false.should.be.equal(await consensus.isJailed(firstCandidate))
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate))
     })
     it('Should reject if jailed', async () => {
       await consensus.sendTransaction({from: firstCandidate, value: MIN_STAKE}).should.be.fulfilled
