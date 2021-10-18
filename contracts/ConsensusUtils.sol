@@ -225,7 +225,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uint256 expectedNumberOfBlocks = getCycleDurationBlocks().mul(VALIDATOR_PRODUCTIVITY_BP).div(_validatorSet.length).div(10000);
     for (uint i = 0; i < _validatorSet.length; i++) {
       if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
-        _jailVal(_validatorSet[i]);
+        _jailValidator(_validatorSet[i]);
       } else if (getStrikes(_validatorSet[i]) != 0) {
         _incStrikeReset(_validatorSet[i]);
       }
@@ -388,16 +388,16 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return false;
   }
 
-  function _jailVal(address _address) internal {
+  function _jailValidator(address _address) internal {
     _pendingValidatorsRemove(_address);
-    _addJailedVal(_address);
+    _addJailedValidator(_address);
     _setJailRelease(_address);
     _resetStrikeReset(_address);
   }
 
   function _maintenance(address _address) internal {
     _pendingValidatorsRemove(_address);
-    _addJailedVal(_address);
+    _addJailedValidator(_address);
   }
 
   function _setPendingValidatorsAtPosition(uint256 _p, address _address) internal {
@@ -413,7 +413,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     addressArrayStorage[PENDING_VALIDATORS].push(_address);
   }
 
-  function _addJailedVal(address _address) internal {
+  function _addJailedValidator(address _address) internal {
     addressArrayStorage[JAILED_VALIDATORS].push(_address);
   }
 
