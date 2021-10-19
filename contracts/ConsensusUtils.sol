@@ -424,6 +424,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
       if (_address == jailedValidatorsAtPosition(i)) {
         removeIndex = i;
         found = true;
+        break;
       }
     }
     if (found) {
@@ -445,6 +446,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
       if (_address == pendingValidatorsAtPosition(i)) {
         removeIndex = i;
         found = true;
+        break;
       }
     }
     if (found) {
@@ -545,6 +547,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
       if (_address == delegatorsAtPosition(_validator, i)) {
         removeIndex = i;
         found = true;
+        break;
       }
     }
     if (found) {
