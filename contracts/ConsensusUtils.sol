@@ -20,6 +20,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
+  uint256 public constant UNBOUNDING_PERIOD = CYCLE_DURATION_BLOCKS;
+  uint256 public constant MAX_WITHDRAW_QUEUE_LENGTH = 500;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -110,11 +112,56 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     }
   }
 
+  function _addToUboundingList(address _staker, uint256 amount) internal {
+    require(unboundingQueueLength(_staker) < MAX_WITHDRAW_QUEUE_LENGTH);
+    uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))].push(block.number + UNBOUNDING_PERIOD);
+    uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))].push(amount);
+  }
+
+  function unbound(address _staker) internal {
+    uint256 toReturn = 0;
+    uint256 currentBlock = block.number;
+    uint256 index = 0;
+    uint256 oldArrayLength = unboundingQueueLength(_staker);
+
+    //loop through queue and check if we have anything to withdraw
+    for (uint256 i = 0; i < oldArrayLength; i ++)
+    {
+      if (uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i] > currentBlock)
+      {
+        break;
+      }
+      toReturn = toReturn.add(uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i]);
+    }
+
+    //check if we have anything
+    require(toReturn != 0);
+    index = i - 1;
+
+    //shift queue and pop back
+    for (i = 0; i < oldArrayLength - index; i++) {
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i] = uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i + index];
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i] = uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i + index];
+    }
+    for(i = oldArrayLength - 1; i >= oldArrayLength - index; i--)
+    {
+      delete uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i];
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))].length--;
+      delete uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i];
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))].length--;
+    }
+    
+    //transfer
+    _staker.transfer(toReturn);
+  }
+
   function _withdraw(address _staker, uint256 _amount, address _validator) internal {
     require(_validator != address(0));
     require(_amount > 0);
+    
     require(_amount <= stakeAmount(_validator));
     require(_amount <= delegatedAmount(_staker, _validator));
+    _addToUboundingList(_staker, _amount);
 
     bool _isValidator = isValidator(_validator);
 
@@ -139,7 +186,6 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     if (stakeAmount(_validator) < getMinStake()) {
       _pendingValidatorsRemove(_validator);
     }
-    _staker.transfer(_amount);
   }
 
   function _setSystemAddress(address _newAddress) internal {
@@ -366,6 +412,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     return uintStorage[TOTAL_STAKE_AMOUNT];
   }
 
+  function unboundingBlock(address _address) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("unboundingBlock", _address))];
+  }
+
   function _stakeAmountAdd(address _address, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].add(_amount);
   }
@@ -374,8 +424,20 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))] = uintStorage[keccak256(abi.encodePacked("stakeAmount", _address))].sub(_amount);
   }
 
+  function _setUnboundingPeriod(address _address) internal {
+    uintStorage[keccak256(abi.encodePacked("unboundingBlock", _address))] = block.number + UNBOUNDING_PERIOD;
+  }
+
   function delegatedAmount(address _address, address _validator) public view returns(uint256) {
     return uintStorage[keccak256(abi.encodePacked("delegatedAmount", _address, _validator))];
+  }
+
+  function unBoundingAmount(address _address) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("unBoundingAmount", _address))];
+  }
+
+  function _setUnBoundingAmount(address _address, uint256 _amount) internal {
+    uintStorage[keccak256(abi.encodePacked("unBoundingAmount", _address))] = _amount;
   }
 
   function _delegatedAmountAdd(address _address, address _validator, uint256 _amount) internal {
@@ -460,6 +522,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function newValidatorSetLength() public view returns(uint256) {
     return addressArrayStorage[NEW_VALIDATOR_SET].length;
+  }
+
+  function unboundingQueueLength(address _staker) public view returns(uint256) {
+    return uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))].length;
   }
 
   function _setNewValidatorSet(address[] _newSet) internal {

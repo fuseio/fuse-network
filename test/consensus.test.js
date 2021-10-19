@@ -12,6 +12,7 @@ const { toBN, toWei, toChecksumAddress } = web3.utils
 const MAX_VALIDATORS = 100
 const MIN_STAKE_AMOUNT = 10000
 const MAX_STAKE_AMOUNT = 50000
+const UNBOUNDING_PERIOD = 86400
 const MULTIPLY_AMOUNT = 3
 const MIN_STAKE = toWei(toBN(MIN_STAKE_AMOUNT), 'ether')
 const MAX_STAKE = toWei(toBN(MAX_STAKE_AMOUNT), 'ether')
@@ -804,6 +805,11 @@ contract('Consensus', async (accounts) => {
       it('should not allow more the maximum stake', async () => {
         await consensus.stake({from: firstCandidate, value: MORE_THAN_MAX_STAKE}).should.be.rejectedWith(ERROR_MSG)
       })
+
+      it('unbounding period should remain 0', async () => {
+        await consensus.stake({from: firstCandidate, value: LESS_THAN_MIN_STAKE}).should.be.fulfilled
+        ZERO.should.be.bignumber.equal(await consensus.unboundingBlock(firstCandidate))
+      })
     })
     describe('advanced', async () => {
       it('minimum stake amount, in more than one transaction', async () => {
@@ -1176,6 +1182,7 @@ contract('Consensus', async (accounts) => {
 
           // await mockEoC()
           // withdraw
+
           await consensus.methods['withdraw(uint256)'](MIN_STAKE, {from: firstCandidate})
           MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
           ZERO_AMOUNT.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
@@ -1324,12 +1331,31 @@ contract('Consensus', async (accounts) => {
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, MORE_THAN_MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
       })
+      it('Check unbounding period', async () => {
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MAX_STAKE})
+        let currentBlockNumber = await web3.eth.getBlockNumber()
+        //check unbounding has updated
+        toBN((UNBOUNDING_PERIOD + currentBlockNumber)).should.be.bignumber.equal(await consensus.unboundingBlock(firstDelegator))
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
+        await advanceBlocks(UNBOUNDING_PERIOD)
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.fulfilled
+        //check a second withdraw
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.fulfilled
+        let oldunBound = await consensus.unboundingBlock(firstDelegator)
+        //check for updated
+        await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE}).should.be.fulfilled
+        oldunBound.should.be.bignumber.below(await consensus.unboundingBlock(firstDelegator))
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.rejectedWith(ERROR_MSG)
+        await advanceBlocks(UNBOUNDING_PERIOD)
+        await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator}).should.be.fulfilled
+      })
       it('can withdraw all staked amount', async () => {
         // stake
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
         // stake
         await consensus.delegate(secondCandidate, {from: firstDelegator, value: MIN_STAKE})
-        // withdraw
+        //advance block and withdraw
+        await advanceBlocks(UNBOUNDING_PERIOD)
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, MIN_STAKE, {from: firstDelegator})
         MIN_STAKE.should.be.bignumber.equal(await web3.eth.getBalance(consensus.address))
         ZERO_AMOUNT.should.be.bignumber.equal(await consensus.stakeAmount(firstCandidate))
@@ -1353,9 +1379,11 @@ contract('Consensus', async (accounts) => {
         firstDelegator.should.be.equal(await consensus.delegatorsAtPosition(secondCandidate, 0))
       })
       it('can withdraw less than staked amount', async () => {
+        
         // stake
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
-        // withdraw
+        //advance block and withdraw
+        await advanceBlocks(UNBOUNDING_PERIOD)
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
         let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
         let expectedValidators = []
@@ -1374,6 +1402,7 @@ contract('Consensus', async (accounts) => {
       it('can withdraw multiple times', async () => {
         // stake
         await consensus.delegate(firstCandidate, {from: firstDelegator, value: MIN_STAKE})
+        await advanceBlocks(UNBOUNDING_PERIOD)
         // withdraw 1st time
         await consensus.methods['withdraw(address,uint256)'](firstCandidate, ONE_ETHER, {from: firstDelegator})
         let expectedAmount = toWei(toBN(MIN_STAKE_AMOUNT - 1), 'ether')
