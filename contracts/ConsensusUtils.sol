@@ -21,6 +21,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
   uint256 public constant UNBOUNDING_PERIOD = CYCLE_DURATION_BLOCKS;
+  uint256 public constant MAX_WITHDRAW_QUEUE_LENGTH = 500;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -111,48 +112,79 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     }
   }
 
-  function _unBoundStake(address _staker) internal {
-    require(block.number > unboundingBlock(_staker));
-    _staker.transfer(unBoundingAmount(_staker));
-    _setUnBoundingAmount(_staker, 0);
+  function _addToUboundingList(address _staker, uint256 amount) internal {
+    require(unboundingQueueLength(_staker) < MAX_WITHDRAW_QUEUE_LENGTH);
+    uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))].push(block.number + UNBOUNDING_PERIOD);
+    uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))].push(amount);
+  }
+
+  function unbound(address _staker) internal {
+    uint256 toReturn = 0;
+    uint256 currentBlock = block.number;
+    uint256 index = 0;
+    uint256 oldArrayLength = unboundingQueueLength(_staker);
+
+    //loop through queue and check if we have anything to withdraw
+    for (uint256 i = 0; i < oldArrayLength; i ++)
+    {
+      if (uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i] > currentBlock)
+      {
+        break;
+      }
+      toReturn = toReturn.add(uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i]);
+    }
+
+    //check if we have anything
+    require(toReturn != 0);
+    index = i - 1;
+
+    //shift queue and pop back
+    for (i = 0; i < oldArrayLength - index; i++) {
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i] = uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i + index];
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i] = uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i + index];
+    }
+    for(i = oldArrayLength - 1; i >= oldArrayLength - index; i--)
+    {
+      delete uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i];
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))].length--;
+      delete uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))][i];
+      uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", _staker))].length--;
+    }
+    
+    //transfer
+    _staker.transfer(toReturn);
   }
 
   function _withdraw(address _staker, uint256 _amount, address _validator) internal {
     require(_validator != address(0));
     require(_amount > 0);
-    if (unBoundingAmount(_staker) != 0)
-    {
-      //If we have requested a withdraw then try and pull it
-      _unBoundStake(_staker);
-    } else {
-      require(_amount <= stakeAmount(_validator));
-      require(_amount <= delegatedAmount(_staker, _validator));
-      _setUnboundingPeriod(_staker);
-      _setUnBoundingAmount(_staker, _amount);
+    
+    require(_amount <= stakeAmount(_validator));
+    require(_amount <= delegatedAmount(_staker, _validator));
+    _addToUboundingList(_staker, _amount);
 
-      bool _isValidator = isValidator(_validator);
+    bool _isValidator = isValidator(_validator);
 
-      // if new stake amount is lesser than minStake and the validator is one of the current validators
-      if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
-        // do not withdaw the amount until the validator is in current set
-        _pendingValidatorsRemove(_validator);
-        return;
-      }
+    // if new stake amount is lesser than minStake and the validator is one of the current validators
+    if (stakeAmount(_validator).sub(_amount) < getMinStake() && _isValidator) {
+      // do not withdaw the amount until the validator is in current set
+      _pendingValidatorsRemove(_validator);
+      return;
+    }
 
 
-      _delegatedAmountSub(_staker, _validator, _amount);
-      _stakeAmountSub(_validator, _amount);
+    _delegatedAmountSub(_staker, _validator, _amount);
+    _stakeAmountSub(_validator, _amount);
 
-      // if _validator is one of the current validators
-      if (_isValidator) {
-        // the total stake needs to be adjusted for the block reward formula
-        _totalStakeAmountSub(_amount);
-      }
+    // if _validator is one of the current validators
+    if (_isValidator) {
+      // the total stake needs to be adjusted for the block reward formula
+      _totalStakeAmountSub(_amount);
+    }
 
-      // if validator is needed to be removed from pending, but not current
-      if (stakeAmount(_validator) < getMinStake()) {
-        _pendingValidatorsRemove(_validator);
-      }
+    // if validator is needed to be removed from pending, but not current
+    if (stakeAmount(_validator) < getMinStake()) {
+      _pendingValidatorsRemove(_validator);
     }
   }
 
@@ -490,6 +522,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function newValidatorSetLength() public view returns(uint256) {
     return addressArrayStorage[NEW_VALIDATOR_SET].length;
+  }
+
+  function unboundingQueueLength(address _staker) public view returns(uint256) {
+    return uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))].length;
   }
 
   function _setNewValidatorSet(address[] _newSet) internal {
