@@ -479,7 +479,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _setJailRelease(address _address) internal {
     uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))];
-    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = (getCurrentCycleEndBlock() + (getCycleDurationBlocks() * strike) - 1);
+    uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = (getCurrentCycleEndBlock().add(getCycleDurationBlocks().mul(strike)).sub(1));
     if (strike <= MAX_STRIKE_COUNT) {
       uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
     }
