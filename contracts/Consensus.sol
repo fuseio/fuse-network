@@ -86,10 +86,12 @@ contract Consensus is ConsensusUtils {
   /**
   * @dev Function to be called by the block reward contract each block to handle cycles and snapshots logic
   */
-  function cycle() external onlyBlockReward {
+  function cycle(address _validator) external onlyBlockReward {
+    _incBlockCounter(_validator);
     if (_hasCycleEnded()) {
       IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
       _setCurrentCycle();
+      _checkJail(currentValidators());
       address[] memory newSet = pendingValidators();
       if (newSet.length > 0) {
         _setNewValidatorSet(newSet);
@@ -122,5 +124,22 @@ contract Consensus is ConsensusUtils {
     require (_amount <= 1 * DECIMALS);
     require(_amount >= getMinValidatorFee());
     _setValidatorFee(msg.sender, _amount);
+  }
+
+  /**
+  * @dev Function to be called by jailed validator, in order to be released from jail
+  */
+  function unJail() external onlyJailedValidator {
+    require(getReleaseBlock(msg.sender) <= getCurrentCycleEndBlock());
+
+    _removeFromJail(msg.sender);
+  }
+
+  /**
+  * @dev Function to be called by current validators to be dropped from the next cycle in order to perform maintenance 
+  */
+  function maintenance() external onlyValidator {
+    require(isJailed(msg.sender) == false);
+    _maintenance(msg.sender);
   }
 }

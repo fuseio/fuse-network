@@ -86,4 +86,8 @@ contract ConsensusMock is Consensus {
   function setTotalStakeAmountMock(uint256 _totalStake) public {
     _setTotalStakeAmount(_totalStake);
   }
+
+  function setBlockCounterMock(address _val, uint256 counter) public {
+    uintStorage[keccak256(abi.encodePacked("blockCounter", _val))] = counter;
+  }
 }
