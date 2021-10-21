@@ -225,8 +225,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uint256 expectedNumberOfBlocks = getCycleDurationBlocks().mul(VALIDATOR_PRODUCTIVITY_BP).div(_validatorSet.length).div(10000);
     for (uint i = 0; i < _validatorSet.length; i++) {
       if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
+        // Validator hasn't met the desired uptime jail them and remove them from the next cycle
         _jailValidator(_validatorSet[i]);
       } else if (getStrikes(_validatorSet[i]) != 0) {
+        // Validator has met desired uptime and has strikes, inc the strike reset
         _incStrikeReset(_validatorSet[i]);
       }
       //reset the block counter
@@ -479,6 +481,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _setJailRelease(address _address) internal {
     uint256 strike = uintStorage[keccak256(abi.encodePacked("strikeCount", _address))];
+    // release block scales based on strikes, strikes get reset after undergoing STRIKE_RESET jail free cycles
+    // subract one so they can flag to be released on start of the next cycle
     uintStorage[keccak256(abi.encodePacked("releaseBlock", _address))] = (getCurrentCycleEndBlock().add(getCycleDurationBlocks().mul(strike)).sub(1));
     if (strike <= MAX_STRIKE_COUNT) {
       uintStorage[keccak256(abi.encodePacked("strikeCount", _address))] = strike + 1;
@@ -626,23 +630,38 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uintStorage[keccak256(abi.encodePacked("validatorFee", _validator))] = _amount;
   }
 
+  /**
+  * Internal function to be called from cycle() to increment the block counter for this validator. 
+  * block counter is used to assess the validators uptime in a given cycle. It is zeroed at the start of each cycle.
+  */
   function _incBlockCounter(address _validator) internal {
     uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] = uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] + 1;
   }
 
+  /**
+  * Internal function to be called on cycle end to reset the block counter for a validator so we are ready for the new cycle
+  */
   function _resetBlockCounter(address _validator) internal {
     uintStorage[keccak256(abi.encodePacked("blockCounter", _validator))] = 0;
   }
 
+  /**
+  * Internal function to be called each time a validator has had a clean cycle. the strike reset counter is used to reset a validator strike count
+  * if it exceeds the reset threshold
+  */
   function _incStrikeReset(address _validator) internal {
     uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] = uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] + 1;
     if (uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] > STRIKE_RESET)
     {
+      // Strike count exceeds the reset criteria, reset the strike and reset counters back to zero.
       _resetStrikeReset(_validator);
       _resetStrikes(_validator);
     }
   }
 
+  /**
+  * Internal function to be called after a validator has had STRIKE_RESET clean cycles.
+  */
   function _resetStrikeReset(address _validator) internal {
     uintStorage[keccak256(abi.encodePacked("strikeReset", _validator))] = 0;
   }
