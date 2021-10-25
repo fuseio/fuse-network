@@ -394,9 +394,11 @@ function setup {
 
   if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
     echo -e "\nGrab docker Versions"
-    if [ $CLIENT == "PARITY" ]; then
-      VERSION_FILE="$VERSION_FILE_LEGACY"
-    fi
+	if [ ! -z "$CLIENT" ] ; then
+		if [ $CLIENT == "PARITY" ]; then
+			VERSION_FILE="$VERSION_FILE_LEGACY"
+		fi
+	fi
     wget -O versionFile $VERSION_FILE
     export $(grep -v '^#' versionFile | xargs)
   else
