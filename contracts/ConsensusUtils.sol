@@ -21,7 +21,8 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
   uint256 public constant UNBOUNDING_PERIOD = CYCLE_DURATION_BLOCKS;
-  uint256 public constant MAX_WITHDRAW_QUEUE_LENGTH = 500;
+  uint256 public constant MAX_WITHDRAW_QUEUE_LENGTH = 20000;
+  uint256 public constant MAX_WITHDRAW_CHUNK_SIZE = 100;
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -127,6 +128,10 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     //loop through queue and check if we have anything to withdraw
     for (uint256 i = 0; i < oldArrayLength; i ++)
     {
+      if (i > MAX_WITHDRAW_CHUNK_SIZE)
+      {
+        break;
+      }
       if (uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", _staker))][i] > currentBlock)
       {
         break;
@@ -570,5 +575,23 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
 
   function _setValidatorFee(address _validator, uint256 _amount) internal {
     uintStorage[keccak256(abi.encodePacked("validatorFee", _validator))] = _amount;
+  }
+
+  function unboundingAmount() public view returns(uint256) {
+    uint256 toReturn = 0;
+    uint256 currentBlock = block.number;
+    uint256 oldArrayLength = unboundingQueueLength(msg.sender);
+
+    //loop through queue and check if we have anything to withdraw
+    for (uint256 i = 0; i < oldArrayLength; i ++)
+    {
+      if (uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueBlock", msg.sender))][i] > currentBlock)
+      {
+        break;
+      }
+      toReturn = toReturn.add(uintArrayStorage[keccak256(abi.encodePacked("unboundingQueueAmount", msg.sender))][i]);
+    }
+
+    return toReturn;
   }
 }
