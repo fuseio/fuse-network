@@ -142,7 +142,7 @@ reseal_on_txs = "none"
 force_sealing = true
 engine_signer = "%s"
 min_gas_price = 1000000000
-gas_floor_target = "15000000"
+gas_floor_target = "20000000"
 '
 
 CONFIG_SNIPPET_EXPLORER_NODE='
