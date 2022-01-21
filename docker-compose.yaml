@@ -1,0 +1,13 @@
+services:
+  fusenet:
+    volumes:
+      - $PWD/fusenet/database:/data
+      - $PWD/fusenet/config:/config/custom
+    restart: always
+    image: fusenet/node:2.0.1
+    ports:
+    - "30303:30300"
+    - "30303:30300/udp"
+    - "127.0.0.1:8545:8545"
+    - "8546:8546"
+    command: --role node --parity-args --no-warp --node-key 9xhcUYWnc9
