@@ -304,9 +304,9 @@ function parseArguments {
         displayErrorAndExit "bridge-validators not supported on Spark"
       fi
       VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
-      DOCKER_IMAGE_PARITY="fusenet/spark-node"
-      DOCKER_IMAGE_NETSTAT="fusenet/spark-netstat"
-      DOCKER_IMAGE_APP="fusenet/spark-validator-app"
+      DOCKER_IMAGE_PARITY_REPO="fusenet/spark-node"
+      DOCKER_IMAGE_NETSTAT_REPO="fusenet/spark-netstat"
+      DOCKER_IMAGE_APP_REPO="fusenet/spark-validator-app"
     fi
   fi
 
