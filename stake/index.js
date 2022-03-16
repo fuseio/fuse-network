@@ -7,14 +7,14 @@ const logger = require("pino")({
 const fs = require("fs");
 const { ethers } = require("ethers");
 const provider = new ethers.providers.JsonRpcProvider(process.env.RPC);
-const addressReceiver = process.env.RECEIVER_ADDRESS;
+const addressReceiver = process.env.CONSENSUS_ADDRESS;
 
 const configDir = path.join(cwd, process.env.CONFIG_DIR || "config/");
 
 let web3;
-let consensus, blockReward;
+let balance;
 
-function initWalletProvider() {
+async function initWalletProvider() {
   logger.info(`initWalletProvider`);
   let keystoreDir = path.join(configDir, "keys/FuseNetwork");
   let keystore;
@@ -32,7 +32,12 @@ function initWalletProvider() {
   if (!web3) {
     throw new Error(`Could not connect wallet for unknown reason`);
   }
-  const balance = await provider.getBalance(web3.address);
+  balance = await provider.getBalance(web3.address);
+  logger.info(`balance: ${ethers.utils.formatEther(balance)}`);
+}
+
+async function sendStake() {
+  balance = await provider.getBalance(web3.address);
   logger.info(`balance: ${ethers.utils.formatEther(balance)}`);
   const txBuffer = ethers.utils.parseEther(".005");
   if (balance.sub(txBuffer) > 0) {
@@ -52,36 +57,13 @@ function initWalletProvider() {
   }
 }
 
-function initConsensusContract() {
-  logger.info(`initConsensusContract`, process.env.CONSENSUS_ADDRESS);
-  consensus = new web3.eth.Contract(
-    require(path.join(cwd, "abi/consensus")),
-    process.env.CONSENSUS_ADDRESS
-  );
-}
-
-function initBlockRewardContract() {
-  logger.info(`initBlockRewardContract`, process.env.BLOCK_REWARD_ADDRESS);
-  blockReward = new web3.eth.Contract(
-    require(path.join(cwd, "abi/blockReward")),
-    process.env.BLOCK_REWARD_ADDRESS
-  );
-}
-
 async function runMain() {
   try {
     logger.info(`runMain`);
-    if (!walletProvider) {
-      initWalletProvider();
+    if (!web3) {
+      await initWalletProvider();
     }
-    if (!consensus) {
-      initConsensusContract();
-    }
-    if (!blockReward) {
-      initBlockRewardContract();
-    }
-    await emitInitiateChange();
-    await emitRewardedOnCycle();
+    await sendStake();
   } catch (e) {
     logger.error(e);
     process.exit(1);
