@@ -43,16 +43,18 @@ async function sendStake() {
   logger.info(`balance: ${ethers.utils.formatEther(balance)}`);
   const txBuffer = ethers.utils.parseEther(".005");
   if (balance.sub(txBuffer) > 0) {
-    console.log("NEW ACCOUNT WITH ETH!");
+    console.log("NEW ARRIVAL OF FUSE!");
     const amount = balance.sub(txBuffer);
     try {
-      await web3.sendTransaction({
+      const tx = await web3.sendTransaction({
         to: addressReceiver,
         value: amount,
       });
       console.log(
-        `Success! transfered --> ${ethers.utils.formatEther(balance)}`
+        `Starting transfer of --> ${ethers.utils.formatEther(amount)}`
       );
+      await tx.wait();
+      console.log(`Success! tx hash  --> ${tx.transactionHash}`);
     } catch (e) {
       console.log(`error: ${e}`);
     }
