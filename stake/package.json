@@ -1,19 +1,17 @@
 {
-  "name": "fuse-network-app",
+  "name": "fuse-network-stake",
   "version": "0.1.0",
-  "description": "App for Fuse Network",
+  "description": "Stake for Fuse Network",
   "main": "",
   "scripts": {
     "start": "node index.js"
   },
-  "author": "LiorRabin",
+  "author": "Bertrand Juglas",
   "license": "MIT",
   "dependencies": {
     "dotenv": "^8.0.0",
-    "ethereumjs-wallet": "^0.6.3",
+    "ethers": "^5.6.1",
     "pino": "^5.12.6",
-    "pino-pretty": "^3.2.0",
-    "truffle-hdwallet-provider": "^1.0.12",
-    "web3": "1.0.0-beta.55"
+    "pino-pretty": "^3.2.0"
   }
 }
