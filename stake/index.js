@@ -1,3 +1,5 @@
+require("dotenv").config();
+console.log(process.env); // remove this after you've confirmed it working
 const path = require("path");
 const cwd = process.cwd();
 const logger = require("pino")({
