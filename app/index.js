@@ -5,15 +5,18 @@ const fs = require('fs')
 const HDWalletProvider = require('truffle-hdwallet-provider')
 const EthWallet = require('ethereumjs-wallet')
 const Web3 = require('web3')
+const ethers = require('ethers')
+const { sign, signFuse } = require('./utils')
 
 const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 
 let web3
 let walletProvider
 let account
-let consensus, blockReward
+let consensus, blockReward, blockRegistry
+let blockchains = {}
 
-function initWalletProvider() {
+function initWalletProvider(rpc) {
   logger.info(`initWalletProvider`)
   let keystoreDir = path.join(configDir, 'keys/FuseNetwork')
   let keystore
@@ -25,13 +28,32 @@ function initWalletProvider() {
   let password = fs.readFileSync(path.join(configDir, 'pass.pwd')).toString().trim()
   let wallet = EthWallet.fromV3(keystore, password)
   let pkey = wallet.getPrivateKeyString()
-  walletProvider = new HDWalletProvider(pkey, process.env.RPC)
+  walletProvider = new HDWalletProvider(pkey, rpc || process.env.RPC)
   if (!walletProvider) {
     throw new Error(`Could not set walletProvider for unknown reason`)
   } else {
     account = walletProvider.addresses[0]
     logger.info(`account: ${account}`)
     web3 = new Web3(walletProvider)
+  }
+}
+function initBlockchain(chainId, rpc) {
+  logger.info('initBlockchain')
+  let keystoreDir = path.join(configDir, 'keys/FuseNetwork')
+  let keystore
+  fs.readdirSync(keystoreDir).forEach(file => {
+    if (file.startsWith('UTC')) {
+      keystore = fs.readFileSync(path.join(keystoreDir, file)).toString()
+    }
+  })
+  let password = fs.readFileSync(path.join(configDir, 'pass.pwd')).toString().trim()
+  let wallet = EthWallet.fromV3(keystore, password)
+  let pkey = wallet.getPrivateKeyString()
+  blockchains[chainId] = {
+    account: walletProvider.addresses[0],
+    web3: new Web3(walletProvider),
+    rpc,
+    signer: new ethers.Wallet(pkey)
   }
 }
 
@@ -54,6 +76,10 @@ function initConsensusContract() {
 function initBlockRewardContract() {
   logger.info(`initBlockRewardContract`, process.env.BLOCK_REWARD_ADDRESS)
   blockReward = new web3.eth.Contract(require(path.join(cwd, 'abi/blockReward')), process.env.BLOCK_REWARD_ADDRESS)
+}
+function initBlockRegistryContract() {
+  logger.info(`initBlockRegistryContract`, process.env.BLOCK_REGISTRY_ADDRESS)
+  blockRegistry = new web3.eth.Contract(require(path.join(cwd, 'abi/blockRegistry')), process.env.BLOCK_REGISTRY_ADDRESS)
 }
 
 function emitInitiateChange() {
@@ -120,6 +146,24 @@ function emitRewardedOnCycle() {
   })
 }
 
+async function emitRegistry() {
+  logger.info('emitRegistry')
+  const chains = await blockRegistry.getPastEvents('Blockchain', {fromBlock:0,toBlock:'latest'})
+  await Promise.all(chains.filter(chain => blockchains[chain[0]].rpc != chain[1] || !blockchains[chain[0]]).map(async (chain) => initBlockchain(...chain)))
+  const blocks = await Promise.all(Object.entries(blockchains).map(async ([chainId, blockchain]) => {
+    const { web3: _web3, signer } = blockchain
+    const latestBlock = await _web3.eth.getBlock('latest')
+    if (chainId == 122) {
+      let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+      let numValidators = (await consensus.methods.currentValidatorsLength.call()).toNumber()
+      const validators = await Promise.all(new Array(numValidators).map(async (_, i) => await consensus.methods.currentValidatorsAtPosition.call()))
+      return await signFuse(latestBlock, chainId, provider, signer, cycleEnd, validators)
+    }
+    return await sign(latestBlock, chainId, provider, signer)
+  }))
+  await blockRegistry.addSignedBlocks.call(blocks)
+}
+
 async function runMain() {
   try {
     logger.info(`runMain`)
@@ -132,6 +176,9 @@ async function runMain() {
     if (!blockReward) {
       initBlockRewardContract()
     }
+    if (!blockRegistry) {
+      initBlockRegistryContract()
+    }
     const isValidator = await consensus.methods.isValidator(web3.utils.toChecksumAddress(account)).call()
     if (!isValidator) {
       logger.warn(`${account} is not a validator, skipping`)
@@ -139,6 +186,7 @@ async function runMain() {
     }
     await emitInitiateChange()
     await emitRewardedOnCycle()
+    await emitRegistry()
   } catch (e) {
     logger.error(e)
     process.exit(1)
