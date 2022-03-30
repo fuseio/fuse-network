@@ -1,5 +1,5 @@
 FROM alpine:3.13.2 AS builder
-  
+
 ENV HOME=/home/parity
 ENV PARITY_HOME_DIR=$HOME/.local/share/io.parity.ethereum
 ENV PARITY_CONFIG_FILE_CHAIN=$PARITY_HOME_DIR/spec.json
@@ -38,4 +38,4 @@ RUN chmod +x $PARITY_WRAPPER_SCRIPT
 RUN ln -s $PARITY_HOME_DIR /config && ln -s $PARITY_DATA_DIR /data
 
 # Start
-ENTRYPOINT ["/home/parity/parity_wrapper.sh"]
+ENTRYPOINT ["/home/parity/parity_wrapper.sh", "--role", "node", "--parity-args", "--no-warp"]
