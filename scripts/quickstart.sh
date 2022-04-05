@@ -43,6 +43,8 @@ DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
 PARITY_SNAPSHOT="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
 OE_SNAPSHOT="https://node-snapshot-oe.s3.eu-central-1.amazonaws.com/db.tar.gz"
+BOOTNODE_FILE_FUSE="https://raw.githubusercontent.com/fuseio/fuse-network/master/config/bootnodes.txt"
+BOOTNODE_FILE_SPARK="https://raw.githubusercontent.com/fuseio/fuse-network/master/config/spark/bootnodes.txt"
 
 SNAPSHOT_NODE="$OE_SNAPSHOT"
 
@@ -289,12 +291,6 @@ function parseArguments {
     
     if [[ "$NODE_KEY" == "<your_node_key>" ]]; then
       displayErrorAndExit "NODE_KEY is still set to default update it in the env file"
-    fi
-  fi
-
-  if [[ $ROLE == bootnode ]] ; then
-    if ! [[ "$BOOTNODES" ]] ; then
-      echo "Warning! trying to run a bootnode without BOOTNODES argument!"
     fi
   fi
   
@@ -581,6 +577,25 @@ function run {
 
   # Create and start a new container.
   echo -e "\nStarting as ${ROLE}..."
+  
+  # Pull bootnodes
+  if [[ $TESTNET != true ]] ; then
+    wget -O bootnodeFile $BOOTNODE_FILE_FUSE
+  else
+    wget -O bootnodeFile $BOOTNODE_FILE_SPARK
+  fi
+  
+  BOOTNODES=""
+  
+  while IFS= read -r line
+  do
+    BOOTNODES+="${line},"
+  done < "bootnodeFile"
+  
+  #remove the trailing comma
+  BOOTNODES=${BOOTNODES::-1}
+  
+  echo "Bootnodes = $BOOTNODES"
 
   case $ROLE in
     "bootnode")
@@ -645,7 +660,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS
+        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS --bootnodes=$BOOTNODES
       ;;
 
     "validator")
@@ -715,7 +730,7 @@ function run {
           $DOCKER_IMAGE_PARITY \
           --role validator \
           --address $address \
-          --parity-args --no-warp
+          --parity-args --no-warp --bootnodes=$BOOTNODES
 
         ## Start validator-app container with all necessary arguments.
         $PERMISSION_PREFIX docker run \
@@ -750,7 +765,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role explorer \
-        --parity-args --node-key $NODE_KEY
+        --parity-args --node-key $NODE_KEY --bootnodes=$BOOTNODES
       ;;
   esac
 
