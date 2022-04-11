@@ -587,10 +587,10 @@ function run {
   
   BOOTNODES=""
   
-  while IFS= read -r line
+  for line in $(<bootnodeFile);
   do
     BOOTNODES+="${line},"
-  done < "bootnodeFile"
+  done
   
   #remove the trailing comma
   BOOTNODES=${BOOTNODES::-1}
