@@ -596,6 +596,12 @@ function run {
   BOOTNODES=${BOOTNODES::-1}
   
   echo "Bootnodes = $BOOTNODES"
+  
+  #grab cache size
+  if [ -z "$CACHE_SIZE" ] ; then
+    INFOS+=("using the default cache size of 2048MB to update this set CACHE_SIZE in env file")
+    CACHE_SIZE=2048
+  else
 
   case $ROLE in
     "bootnode")
@@ -619,7 +625,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $key --max-pending-peers 128 --max-peers 128 --min-peers 80  --bootnodes=$BOOTNODES
+        --parity-args --no-warp --node-key $key --max-pending-peers 128 --max-peers 128 --min-peers 80 --cache-size $CACHE_SIZE --bootnodes=$BOOTNODES
       ;;
 
     "node")
@@ -660,7 +666,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role node \
-        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS --bootnodes=$BOOTNODES
+        --parity-args --no-warp --node-key $NODE_KEY --jsonrpc-threads $NUM_RPC_THREADS --jsonrpc-server-threads $NUM_HTTP_THREADS --cache-size $CACHE_SIZE --bootnodes=$BOOTNODES
       ;;
 
     "validator")
@@ -730,7 +736,7 @@ function run {
           $DOCKER_IMAGE_PARITY \
           --role validator \
           --address $address \
-          --parity-args --no-warp --bootnodes=$BOOTNODES
+          --parity-args --no-warp --cache-size $CACHE_SIZE --bootnodes=$BOOTNODES
 
         ## Start validator-app container with all necessary arguments.
         $PERMISSION_PREFIX docker run \
@@ -765,7 +771,7 @@ function run {
         --restart=always \
         $DOCKER_IMAGE_PARITY \
         --role explorer \
-        --parity-args --node-key $NODE_KEY --bootnodes=$BOOTNODES
+        --parity-args --node-key $NODE_KEY --cache-size $CACHE_SIZE --bootnodes=$BOOTNODES
       ;;
   esac
 
