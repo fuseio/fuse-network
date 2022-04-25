@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./structs.sol";
 import "./parseBlock.sol";
 import "./fuse/IConsensus.sol";
@@ -12,7 +13,7 @@ import "./fuse/IConsensus.sol";
 **/
 contract BlockHeaderRegistry {
     // To prevent double signatures
-    mapping(bytes32 => mapping(address => bool)) hasValidatorSigned;
+    mapping(bytes32 => mapping(address => bool)) public hasValidatorSigned;
 
     // Block hashes per block number for blockchain
     mapping(uint256 => mapping(uint256 => bytes32[])) public blockHashes;
@@ -80,7 +81,7 @@ contract BlockHeaderRegistry {
                 _block.signature.vs
             );
             require(msg.sender == signer, "msg.sender == signer");
-            require(!hasValidatorSigned[payload][msg.sender], "hasSigned");
+            require(!hasValidatorSigned[payload][msg.sender], Strings.toHexString(uint256(payload), 32));
             hasValidatorSigned[payload][signer] = true;
             if (_isNewBlock(payload)) {
                 BlockHeader memory blockHeader = parseBlock(_block.rlpHeader);

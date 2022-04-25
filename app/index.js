@@ -54,7 +54,19 @@ function initBlockchain(chainId, rpc) {
     web3: new Web3(walletProvider),
     rpc,
     signer: new ethers.Wallet(pkey)
+    blocks: {},
   }
+  blockchains[chainId].web3.eth.subscribe('newBlockHeaders', async (block) => {
+    if (chainId == 122) {
+      let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+      let numValidators = (await consensus.methods.currentValidatorsLength.call()).toNumber()
+      const validators = await Promise.all(new Array(numValidators).map(async (_, i) => await consensus.methods.currentValidatorsAtPosition.call()))
+      blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
+    }
+    else {
+      blockchains[chainId].blocks[block.hash] = await sign(block, chainId, blockchain.provider, blockchain.signer)
+    }
+  })
 }
 
 async function getNonce() {
@@ -150,18 +162,29 @@ async function emitRegistry() {
   logger.info('emitRegistry')
   const chains = await blockRegistry.getPastEvents('Blockchain', {fromBlock:0,toBlock:'latest'})
   await Promise.all(chains.filter(chain => blockchains[chain[0]].rpc != chain[1] || !blockchains[chain[0]]).map(async (chain) => initBlockchain(...chain)))
-  const blocks = await Promise.all(Object.entries(blockchains).map(async ([chainId, blockchain]) => {
-    const { web3: _web3, signer } = blockchain
-    const latestBlock = await _web3.eth.getBlock('latest')
-    if (chainId == 122) {
-      let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-      let numValidators = (await consensus.methods.currentValidatorsLength.call()).toNumber()
-      const validators = await Promise.all(new Array(numValidators).map(async (_, i) => await consensus.methods.currentValidatorsAtPosition.call()))
-      return await signFuse(latestBlock, chainId, provider, signer, cycleEnd, validators)
+  const blocks = {}
+  const chainIds = {}
+  Object.entries(blockchains).forEach((chainId, blockchain) => {
+    Object.entries(blockchain.blocks).forEach((hash, signed) => {
+      blocks[hash] = signed
+      chainIds[hash] = chainId
+      delete blockchain.blocks[hash]
+    })
+  })
+  try {
+    const receipt = await blockRegistry.methods.addSignedBlocks(Object.values(blocks)).send({ from: account })
+    logger.info(`transactionHash: ${receipt.transactionHash}`)
+    logger.debug(`receipt: ${JSON.stringify(receipt)}`)
+  } catch(e) {
+    if (!e.data) throw e
+    else {
+      logger.error(e)
+      const data = e.data;
+      const txHash = Object.keys(data)[0];
+      const reason = data[txHash].reason;
+      Object.entries(blocks).filter((hash, signed) => hash != reason).forEach((hash, signed) => blockchains[chainIds[hash]].blocks[hash] = signed)
     }
-    return await sign(latestBlock, chainId, provider, signer)
-  }))
-  await blockRegistry.addSignedBlocks.call(blocks)
+  }
 }
 
 async function runMain() {
