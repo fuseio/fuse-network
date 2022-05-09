@@ -11,12 +11,12 @@ const { sign, signFuse } = require('./utils')
 const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 
 let web3
-let walletProvider
+let walletProvider, ethersWallet
 let account
 let consensus, blockReward, blockRegistry
 let blockchains = {}
 
-function initWalletProvider(rpc) {
+function initWalletProvider() {
   logger.info(`initWalletProvider`)
   let keystoreDir = path.join(configDir, 'keys/FuseNetwork')
   let keystore
@@ -29,6 +29,7 @@ function initWalletProvider(rpc) {
   let wallet = EthWallet.fromV3(keystore, password)
   let pkey = wallet.getPrivateKeyString()
   walletProvider = new HDWalletProvider(pkey, rpc || process.env.RPC)
+  ethersWallet = new ethers.Wallet(pkey)
   if (!walletProvider) {
     throw new Error(`Could not set walletProvider for unknown reason`)
   } else {
@@ -39,16 +40,6 @@ function initWalletProvider(rpc) {
 }
 function initBlockchain(chainId, rpc) {
   logger.info('initBlockchain')
-  let keystoreDir = path.join(configDir, 'keys/FuseNetwork')
-  let keystore
-  fs.readdirSync(keystoreDir).forEach(file => {
-    if (file.startsWith('UTC')) {
-      keystore = fs.readFileSync(path.join(keystoreDir, file)).toString()
-    }
-  })
-  let password = fs.readFileSync(path.join(configDir, 'pass.pwd')).toString().trim()
-  let wallet = EthWallet.fromV3(keystore, password)
-  let pkey = wallet.getPrivateKeyString()
   blockchains[chainId] = {
     account: walletProvider.addresses[0],
     web3: new Web3(walletProvider),
@@ -59,8 +50,8 @@ function initBlockchain(chainId, rpc) {
   blockchains[chainId].web3.eth.subscribe('newBlockHeaders', async (block) => {
     if (chainId == 122) {
       let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-      let numValidators = (await consensus.methods.currentValidatorsLength.call()).toNumber()
-      const validators = await Promise.all(new Array(numValidators).map(async (_, i) => await consensus.methods.currentValidatorsAtPosition.call()))
+      let validators = await consensus.methods.currentValidators().call()
+      const numValidators = validators.length
       blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
     }
     else {
