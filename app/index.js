@@ -10,6 +10,8 @@ const { sign, signFuse } = require('./utils')
 
 const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 
+const {ETH_RPC, BSC_RPC, RPC: FUSE_RPC} = process.env
+
 let web3
 let walletProvider
 let account
@@ -90,6 +92,9 @@ function initBlockRewardContract() {
 function initBlockRegistryContract() {
   logger.info(`initBlockRegistryContract`, process.env.BLOCK_REGISTRY_ADDRESS)
   blockRegistry = new web3.eth.Contract(require(path.join(cwd, 'abi/blockRegistry')), process.env.BLOCK_REGISTRY_ADDRESS)
+  initBlockchain(1, process.env.ETH_RPC || throw "Missing ETH_RPC in environment")
+  initBlockchain(56, process.env.BSC_RPC || throw "Missing BSC_RPC in environment"))
+  initBlockchain(122, process.env.FUSE_RPC || 'https://rpc.fuse.io/')
 }
 
 function emitInitiateChange() {
