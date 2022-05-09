@@ -48,14 +48,18 @@ function initBlockchain(chainId, rpc) {
       blocks: {},
     }
     blockchains[chainId].web3.eth.subscribe('newBlockHeaders', async (block) => {
-      if (chainId == 122) {
-        let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-        let validators = await consensus.methods.currentValidators().call()
-        const numValidators = validators.length
-        blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
-      }
-      else {
-        blockchains[chainId].blocks[block.hash] = await sign(block, chainId, blockchain.provider, blockchain.signer)
+      try {
+        if (chainId == 122) {
+          let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+          let validators = await consensus.methods.currentValidators().call()
+          const numValidators = validators.length
+          blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
+        }
+        else {
+          blockchains[chainId].blocks[block.hash] = await sign(block, chainId, blockchain.provider, blockchain.signer)
+        }
+      } catch(e) {
+        logger.error(`newBlockHeaders: ${e.toString()}`)
       }
     })
   } catch(e) {
