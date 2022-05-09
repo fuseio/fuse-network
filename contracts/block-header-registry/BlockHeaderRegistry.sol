@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import "./ECDSA.sol";
 import "./structs.sol";
 import "./parseBlock.sol";
 import "./fuse/IConsensus.sol";
@@ -24,19 +23,29 @@ contract BlockHeaderRegistry {
     // Block header for blockHash
     mapping(bytes32 => BlockHeader) blockHeaders;
 
-    mapping(uint256 => string) public blockchains;
+    mapping(uint256 => uint256) public blockchains;
+    
+    struct Rpc {
+      uint256 chainId;
+      string rpc;
+    }
 
-    address immutable voting;
+    Rpc[] public rpcs;
+
     address immutable consensus;
 
-    constructor(address _voting, address _consensus) {
-        voting = _voting;
+    constructor(address _consensus) {
         consensus = _consensus;
     }
 
-    event Blockchain(uint256 blockchainId, string rpc);
+    function getRpcs() public view returns (Rpc[] memory _rpcs) {
+      _rpcs = rpcs;
+    }
 
     modifier onlyVoting() {
+        (bool success, bytes memory result) = consensus.staticcall(abi.encodeWithSignature("getVoting()"));
+        require(success, "Failed call to getVoting()");
+        address voting = abi.decode(result, (address));
         require(msg.sender == voting, "onlyVoting");
         _;
     }
@@ -45,8 +54,15 @@ contract BlockHeaderRegistry {
         external
         onlyVoting
     {
-        blockchains[blockchainId] = rpc;
-        emit Blockchain(blockchainId, rpc);
+        uint256 index = blockchains[blockchainId] - 1;
+        if (index == type(uint256).max) {
+          require(bytes(rpc).length != 0, "Empty rpc");
+          rpcs.push(Rpc(blockchainId, rpc));
+          blockchains[blockchainId] = rpcs.length;
+        }
+        else {
+          rpcs[index].rpc = rpc;
+        }
     }
 
     modifier onlyValidator() {

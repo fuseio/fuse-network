@@ -11,7 +11,7 @@ const { sign, signFuse } = require('./utils')
 const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 
 let web3
-let walletProvider, ethersWallet
+let walletProvider
 let account
 let consensus, blockReward, blockRegistry
 let blockchains = {}
@@ -28,8 +28,7 @@ function initWalletProvider() {
   let password = fs.readFileSync(path.join(configDir, 'pass.pwd')).toString().trim()
   let wallet = EthWallet.fromV3(keystore, password)
   let pkey = wallet.getPrivateKeyString()
-  walletProvider = new HDWalletProvider(pkey, rpc || process.env.RPC)
-  ethersWallet = new ethers.Wallet(pkey)
+  walletProvider = new HDWalletProvider(pkey, process.env.RPC)
   if (!walletProvider) {
     throw new Error(`Could not set walletProvider for unknown reason`)
   } else {
@@ -40,24 +39,28 @@ function initWalletProvider() {
 }
 function initBlockchain(chainId, rpc) {
   logger.info('initBlockchain')
-  blockchains[chainId] = {
-    account: walletProvider.addresses[0],
-    web3: new Web3(walletProvider),
-    rpc,
-    signer: new ethers.Wallet(pkey)
-    blocks: {},
+  try {
+    blockchains[chainId] = {
+      account: walletProvider.addresses[0],
+      web3: new Web3(walletProvider),
+      rpc,
+      signer: new ethers.Wallet(pkey),
+      blocks: {},
+    }
+    blockchains[chainId].web3.eth.subscribe('newBlockHeaders', async (block) => {
+      if (chainId == 122) {
+        let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
+        let validators = await consensus.methods.currentValidators().call()
+        const numValidators = validators.length
+        blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
+      }
+      else {
+        blockchains[chainId].blocks[block.hash] = await sign(block, chainId, blockchain.provider, blockchain.signer)
+      }
+    })
+  } catch(e) {
+    throw `initBlockchain(${chainId}, ${rpc}) failed: ${e.toString()}`
   }
-  blockchains[chainId].web3.eth.subscribe('newBlockHeaders', async (block) => {
-    if (chainId == 122) {
-      let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-      let validators = await consensus.methods.currentValidators().call()
-      const numValidators = validators.length
-      blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
-    }
-    else {
-      blockchains[chainId].blocks[block.hash] = await sign(block, chainId, blockchain.provider, blockchain.signer)
-    }
-  })
 }
 
 async function getNonce() {
@@ -150,18 +153,23 @@ function emitRewardedOnCycle() {
 }
 
 async function emitRegistry() {
-  logger.info('emitRegistry')
-  const chains = await blockRegistry.getPastEvents('Blockchain', {fromBlock:0,toBlock:'latest'})
-  await Promise.all(chains.filter(chain => blockchains[chain[0]].rpc != chain[1] || !blockchains[chain[0]]).map(async (chain) => initBlockchain(...chain)))
-  const blocks = {}
-  const chainIds = {}
-  Object.entries(blockchains).forEach((chainId, blockchain) => {
-    Object.entries(blockchain.blocks).forEach((hash, signed) => {
-      blocks[hash] = signed
-      chainIds[hash] = chainId
-      delete blockchain.blocks[hash]
+  try {
+    logger.info('emitRegistry')
+    const currentBlock = (await web3.eth.getBlockNumber()).toNumber()
+    const chains = await blockRegistry.methods.getRpcs.call()
+    await Promise.all(chains.filter(chain => !blockchains[chain[0]] || blockchains[chain[0]].rpc != chain[1]).map(async (chain) => initBlockchain(...chain)))
+    const blocks = {}
+    const chainIds = {}
+    Object.entries(blockchains).forEach((chainId, blockchain) => {
+      Object.entries(blockchain.blocks).forEach((hash, signed) => {
+        blocks[hash] = signed
+        chainIds[hash] = chainId
+        delete blockchain.blocks[hash]
+      })
     })
-  })
+  } catch(e) {
+    throw `emitRegistry failed trying to update rpcs`
+  }
   try {
     const receipt = await blockRegistry.methods.addSignedBlocks(Object.values(blocks)).send({ from: account })
     logger.info(`transactionHash: ${receipt.transactionHash}`)
