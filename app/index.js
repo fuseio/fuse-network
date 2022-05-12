@@ -5,18 +5,15 @@ const fs = require('fs')
 const HDWalletProvider = require('truffle-hdwallet-provider')
 const EthWallet = require('ethereumjs-wallet')
 const Web3 = require('web3')
-const ethers = require('ethers')
-const { sign, signFuse } = require('./utils')
-
+const { emitRegistry } = require('./block-header-registry')
 const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 
 const {ETH_RPC, BSC_RPC, RPC: FUSE_RPC} = process.env
 
 let web3
-let walletProvider
+let walletProvider, signer
 let account
 let consensus, blockReward, blockRegistry
-let blockchains = {}
 
 function initWalletProvider() {
   logger.info(`initWalletProvider`)
@@ -37,35 +34,7 @@ function initWalletProvider() {
     account = walletProvider.addresses[0]
     logger.info(`account: ${account}`)
     web3 = new Web3(walletProvider)
-  }
-}
-function initBlockchain(chainId, rpc) {
-  logger.info('initBlockchain')
-  try {
-    blockchains[chainId] = {
-      account: walletProvider.addresses[0],
-      web3: new Web3(walletProvider),
-      rpc,
-      signer: new ethers.Wallet(pkey),
-      blocks: {},
-    }
-    blockchains[chainId].web3.eth.subscribe('newBlockHeaders', async (block) => {
-      try {
-        if (chainId == 122) {
-          let cycleEnd = (await consensus.methods.getCurrentCycleEndBlock.call()).toNumber()
-          let validators = await consensus.methods.currentValidators().call()
-          const numValidators = validators.length
-          blockchains[chainId].blocks[block.hash] = await signFuse(block, chainId, blockchain.provider, blockchain.signer, cycleEnd, validators)
-        }
-        else {
-          blockchains[chainId].blocks[block.hash] = await sign(block, chainId, blockchain.provider, blockchain.signer)
-        }
-      } catch(e) {
-        logger.error(`newBlockHeaders: ${e.toString()}`)
-      }
-    })
-  } catch(e) {
-    throw `initBlockchain(${chainId}, ${rpc}) failed: ${e.toString()}`
+    signer = new ethers.Wallet(pkey)
   }
 }
 
@@ -89,12 +58,15 @@ function initBlockRewardContract() {
   logger.info(`initBlockRewardContract`, process.env.BLOCK_REWARD_ADDRESS)
   blockReward = new web3.eth.Contract(require(path.join(cwd, 'abi/blockReward')), process.env.BLOCK_REWARD_ADDRESS)
 }
+
 function initBlockRegistryContract() {
   logger.info(`initBlockRegistryContract`, process.env.BLOCK_REGISTRY_ADDRESS)
   blockRegistry = new web3.eth.Contract(require(path.join(cwd, 'abi/blockRegistry')), process.env.BLOCK_REGISTRY_ADDRESS)
-  initBlockchain(1, process.env.ETH_RPC || throw "Missing ETH_RPC in environment")
-  initBlockchain(56, process.env.BSC_RPC || throw "Missing BSC_RPC in environment"))
-  initBlockchain(122, process.env.FUSE_RPC || 'https://rpc.fuse.io/')
+  if (!ETH_RPC) throw "Missing ETH_RPC in environment"
+  if (!BSC_RPC) throw "Missing BSC_RPC in environment"
+  initBlockchain(1, ETH_RPC)
+  initBlockchain(56, BSC_RPC)
+  initBlockchain(122, FUSE_RPC || 'https://rpc.fuse.io/')
 }
 
 function emitInitiateChange() {
@@ -161,40 +133,6 @@ function emitRewardedOnCycle() {
   })
 }
 
-async function emitRegistry() {
-  try {
-    logger.info('emitRegistry')
-    const currentBlock = (await web3.eth.getBlockNumber()).toNumber()
-    const chains = await blockRegistry.methods.getRpcs.call()
-    await Promise.all(chains.filter(chain => !blockchains[chain[0]] || blockchains[chain[0]].rpc != chain[1]).map(async (chain) => initBlockchain(...chain)))
-    const blocks = {}
-    const chainIds = {}
-    Object.entries(blockchains).forEach((chainId, blockchain) => {
-      Object.entries(blockchain.blocks).forEach((hash, signed) => {
-        blocks[hash] = signed
-        chainIds[hash] = chainId
-        delete blockchain.blocks[hash]
-      })
-    })
-  } catch(e) {
-    throw `emitRegistry failed trying to update rpcs`
-  }
-  try {
-    const receipt = await blockRegistry.methods.addSignedBlocks(Object.values(blocks)).send({ from: account })
-    logger.info(`transactionHash: ${receipt.transactionHash}`)
-    logger.debug(`receipt: ${JSON.stringify(receipt)}`)
-  } catch(e) {
-    if (!e.data) throw e
-    else {
-      logger.error(e)
-      const data = e.data;
-      const txHash = Object.keys(data)[0];
-      const reason = data[txHash].reason;
-      Object.entries(blocks).filter((hash, signed) => hash != reason).forEach((hash, signed) => blockchains[chainIds[hash]].blocks[hash] = signed)
-    }
-  }
-}
-
 async function runMain() {
   try {
     logger.info(`runMain`)
@@ -217,7 +155,13 @@ async function runMain() {
     }
     await emitInitiateChange()
     await emitRewardedOnCycle()
-    await emitRegistry()
+    await emitRegistry({
+      web3,
+      consensus,
+      blockRegistry,
+      signer,
+      walletProvider
+    })
   } catch (e) {
     logger.error(e)
     process.exit(1)
