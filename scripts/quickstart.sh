@@ -601,7 +601,7 @@ function run {
   if [ -z "$CACHE_SIZE" ] ; then
     INFOS+=("using the default cache size of 2048MB to update this set CACHE_SIZE in env file")
     CACHE_SIZE=2048
-  else
+  fi
 
   case $ROLE in
     "bootnode")
