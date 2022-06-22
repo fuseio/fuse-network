@@ -1,4 +1,4 @@
-FROM alpine:3.13.2 AS builder
+FROM alpine:edge AS builder
   
 ENV HOME=/home/parity
 ENV PARITY_HOME_DIR=$HOME/.local/share/io.parity.ethereum
@@ -20,7 +20,7 @@ RUN apk add --no-cache \
   jq \
   bash
 
-COPY --from=openethereum/openethereum:v3.2.6 /home/openethereum/openethereum $PARITY_BIN
+COPY --from=openethereum/openethereum:v3.3.5 /home/openethereum/openethereum $PARITY_BIN
 
 ### Network RPC WebSocket
 EXPOSE 30300 8545 8546
