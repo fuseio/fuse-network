@@ -3,7 +3,7 @@ name: DockerHub Build
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   DOCKER_REPO: bertux/fuse-rpc
