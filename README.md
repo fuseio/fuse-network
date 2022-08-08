@@ -16,6 +16,8 @@
         - [Bootnode, Node or Explorer Node](#bootnode-node-or-explorer-node)
         - [Validator](#validator)
     - [Using Quickstart](#using-quickstart)
+      - [OE](#oe)
+      - [Nethermind](#nethermind)
     - [Using Docker](#using-docker)
       - [Usage](#usage)
       - [Examples](#examples)
@@ -120,6 +122,8 @@ Make sure that your user is added to the `docker` user-group on _Unix_ systems, 
 
 ### Using Quickstart
 
+#### OE
+
 To make starting a node for the FuseNetwork as quick as possible, the _quickstart_ script can be used.
 
 1. Download the script.
@@ -142,6 +146,23 @@ $ ./quickstart.sh
 ```
 
 Follow the instructions emitted by the script.
+
+#### Nethermind
+
+Since **08.2022** Fuse is moving from OE client to [Nethermind](https://nethermind.io). To bootstrap your own Fuse (Spark) node on Nethermind client you could use [quickstart.sh](./nethermind/quickstart.sh) script.
+
+```bash
+# Download
+wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/nethermind/quickstart.sh
+
+# Gain needed permissions
+chmod 755 quickstart.sh
+
+# Run
+./quickstart.sh -r [node_role] -n [network_name] -k [node_key]
+```
+
+Full example provided [here](./nethermind/README.md).
 
 ---
 
