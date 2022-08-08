@@ -127,10 +127,10 @@ function install_ntp() {
         exit 1
     fi
 
-    $PERMISSION_PREFIX systemctl stop chronyd
+    $PERMISSION_PREFIX systemctl stop chrony
     $PERMISSION_PREFIX chronyd -q 'server 0.europe.pool.ntp.org iburst'
-    $PERMISSION_PREFIX systemctl start chronyd
-    $PERMISSION_PREFIX systemctl enable chronyd
+    $PERMISSION_PREFIX systemctl start chrony
+    $PERMISSION_PREFIX systemctl enable chrony
 }
 
 # Function to check disk space
@@ -262,16 +262,22 @@ function setup() {
 
     # Specify image versions
     FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/nethermind-node"
+    FUSE_VALIDATOR_DOCKER_REPOSITORY="fusenet/validator-app"
+    SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
 
     NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
     SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
 
     FUSE_CLIENT_DOCKER_IMAGE_VERSION="1.13.3"
+    FUSE_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
+    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
 
     NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
 
     FUSE_CLIENT_DOCKER_IMAGE=$FUSE_CLIENT_DOCKER_REPOSITORY:$FUSE_CLIENT_DOCKER_IMAGE_VERSION
+    FUSE_VALIDATOR_DOCKER_IMAGE=$FUSE_VALIDATOR_DOCKER_REPOSITORY:$FUSE_VALIDATOR_DOCKER_IMAGE_VERSION
+    SPARK_VALIDATOR_DOCKER_IMAGE=$SPARK_VALIDATOR_DOCKER_REPOSITORY:$SPARK_VALIDATOR_DOCKER_IMAGE_VERSION
     NETSTATS_CLIENT_DOCKER_IMAGE=$NETSTATS_CLIENT_DOCKER_REPOSITORY:$NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE=$SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY:$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
 
@@ -286,6 +292,10 @@ function setup() {
         # Pull needed Docker images
         $PERMISSION_PREFIX docker pull $FUSE_CLIENT_DOCKER_IMAGE
         $PERMISSION_PREFIX docker pull $SPARK_NETSTATS_CLIENT_DOCKER_IMAGE
+
+        if [[ $ROLE == "validator" ]]; then
+            $PERMISSION_PREFIX docker pull $SPARK_VALIDATOR_DOCKER_IMAGE
+        fi
     else
         # Print versions
         echo -e "\nFuse - Client: $FUSE_CLIENT_DOCKER_IMAGE_VERSION"
@@ -296,6 +306,10 @@ function setup() {
         # Pull needed Docker images
         $PERMISSION_PREFIX docker pull $FUSE_CLIENT_DOCKER_IMAGE
         $PERMISSION_PREFIX docker pull $NETSTATS_CLIENT_DOCKER_IMAGE
+
+        if [[ $ROLE == "validator" ]]; then
+            $PERMISSION_PREFIX docker pull $FUSE_VALIDATOR_DOCKER_IMAGE
+        fi
     fi
 
     # Directories
@@ -309,6 +323,11 @@ function setup() {
     mkdir -p $DATABASE_DIR
     mkdir -p $LOGS_DIR
     mkdir -p $KEYSTORE_DIR
+
+    # Generate keystore file
+    if [[ $ROLE == "validator" ]]; then
+        generate_eth_private_key
+    fi
 }
 
 # Run - run needed Docker containers
@@ -321,11 +340,6 @@ function run() {
     echo -e "\nDone!"
 
     echo -e "\nRun Docker container for ${NETWORK^} network. Role - ${ROLE^}"
-
-    # Generate keystore file
-    if [[ $ROLE == "validator" ]]; then
-        generate_eth_private_key
-    fi
 
     # Specify needed variables for Spark (if you're running node on Spark)
 
@@ -352,9 +366,10 @@ function run() {
     # For validator
     if [[ $NETWORK == "spark" && $ROLE == "validator" ]]; then
         CONTAINER_NAME="spark"
-        DB_PREFIX="spark_validator"
+        DB_PREFIX="spark"
         CONFIG="spark_validator"
 
+        VALIDATOR_DOCKER_IMAGE=$SPARK_VALIDATOR_DOCKER_IMAGE
         NETSTATS_DOCKER_IMAGE=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE
         NETSTATS_VERSION=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
     fi
@@ -387,6 +402,7 @@ function run() {
         DB_PREFIX="fuse_validator"
         CONFIG="fuse_validator"
 
+        VALIDATOR_DOCKER_IMAGE=$FUSE_VALIDATOR_DOCKER_IMAGE
         NETSTATS_DOCKER_IMAGE=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE
         NETSTATS_VERSION=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
     fi
@@ -446,13 +462,23 @@ function run() {
             --restart always \
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
-            --KeyStore.PasswordFiles "pass.pwd" \
-            --KeyStore.EnodeAccount "key-$PUBLIC_ADDRESS" \
+            --JsonRpc.Host 0.0.0.0 \
+            --KeyStore.PasswordFiles "keystore/pass.pwd" \
+            --KeyStore.EnodeAccount "0x$PUBLIC_ADDRESS" \
             --KeyStore.UnlockAccounts "0x$PUBLIC_ADDRESS" \
             --KeyStore.BlockAuthorAccount "0x$PUBLIC_ADDRESS" \
             --Init.WebSocketsEnabled true \
             --HealthChecks.Enabled true \
             --HealthChecks.Slug /api/health
+
+        # Run Validator app
+        $PERMISSION_PREFIX docker run \
+            --detach \
+            --name validator \
+            --volume $KEYSTORE_DIR:/config/keys/FuseNetwork \
+            --volume $KEYSTORE_DIR/pass.pwd:/config/pass.pwd \
+            --restart always \
+            $VALIDATOR_DOCKER_IMAGE
 
         # Run Netstat
         $PERMISSION_PREFIX docker run \
@@ -465,9 +491,10 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
-            --instance-name $NODE_KEY \
+            --instance-name "${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
             --role ${ROLE^} \
-            --netstats-version $NETSTATS_VERSION
+            --netstats-version $NETSTATS_VERSION \
+            --fuseapp-version "1.0.0"
     fi
 
     # Get ENODE public address
@@ -511,20 +538,20 @@ function generate_eth_private_key() {
 
     # Generate private key (Geth)
     $PERMISSION_PREFIX docker pull ethereum/client-go:stable
-    $PERMISSION_PREFIX docker run --rm -v $KEYSTORE_DIR:/root/.ethereum/keystore ethereum/client-go:stable account new --password /root/.ethereum/keystore/pass.pwd
+    $PERMISSION_PREFIX docker run --rm -v $KEYSTORE_DIR:/root/.ethereum/keystore ethereum/client-go:stable account new --password /root/.ethereum/keystore/pass.pwd >/dev/null 2>&1
 
     # Get full keystore file path
     KEYSTORE_FILE_PATH=$($PERMISSION_PREFIX find $KEYSTORE_DIR -type f -name "UTC--*")
 
     PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
 
-    $PERMISSION_PREFIX mv $KEYSTORE_FILE_PATH $KEYSTORE_DIR/key-$PUBLIC_ADDRESS
+    echo -e "ETH public address: 0x$PUBLIC_ADDRESS." >$(pwd)/validator_info.txt
 
-    echo -e "\nETH public address: 0x$PUBLIC_ADDRESS."
+    echo -e "\nKeystore file: $KEYSTORE_FILE_PATH" >>$(pwd)/validator_info.txt
 
-    echo -e "\nKeystore file: $KEYSTORE_DIR/key-$PUBLIC_ADDRESS"
+    echo -e "\nKeystore passphrase file: ${KEYSTORE_DIR}/pass.pwd\n\nNote: PLEASE DO NOT SHARE THIS FILE!" >>$(pwd)/validator_info.txt
 
-    echo -e "\nKeystore passphrase file: ${KEYSTORE_DIR}/pass.pwd\n\nNote: PLEASE DO NOT SHARE THIS FILE!\n"
+    echo -e "\nAdd data stored in $(pwd)/validator_info.txt"
 }
 
 # Function to create version.`date`.txt file
@@ -554,7 +581,7 @@ Help() {
     echo "  ./quickstart.sh [-r|-n|-k||-v|-h]"
     echo
     echo "Options:"
-    echo "  -r  Specify needed node role. Available next roles: 'node', 'bootnode', 'explorer'"
+    echo "  -r  Specify needed node role. Available next roles: 'node', 'bootnode', 'explorer', 'validator'"
     echo "  -n  Network (mainnet or testnet). Available next values: 'fuse' and 'spark'"
     echo "  -k  Node key name for https://health.fuse.io. Example: 'my-own-fuse-node'"
     echo "  -v  Script version"
