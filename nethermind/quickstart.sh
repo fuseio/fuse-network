@@ -30,13 +30,24 @@ declare -a VALID_NETWORK_LIST=(
     "spark"
 )
 
+# Function to display an error and exit
+function display_error_and_exit {
+    local arg1=$1
+    if [[ $arg1 != "" ]]; then
+        echo "$(tput setaf 1)ERROR: $arg1$(tput sgr 0)"
+    else
+        echo "${FUNCNAME[0]} No Argument supplied"
+    fi
+
+    exit 1
+}
+
 # Function to check OS
 function check_os() {
     if [[ "$(uname)" == "Linux" ]]; then
         echo -e "\nYou're running script on Linux OS."
     else
-        echo -e "\nYou're running script on non - Linux OS. Exit."
-        exit 1
+        display_error_and_exit "\nYou're running script on non - Linux OS. Exit."
     fi
 }
 
@@ -50,8 +61,7 @@ function install_tools() {
     elif [[ $DISTRIBUTION_NAME == "Fedora" ]]; then
         $PERMISSION_PREFIX dnf install jq curl -y
     else
-        echo -e "\nWe'd support next distributions: Ubuntu, Debian, CentOS, RHEL, Fedora. Please check out your distribution and install jq, curl tools."
-        exit 1
+        display_error_and_exit "\nWe'd support next distributions: Ubuntu, Debian, CentOS, RHEL, Fedora. Please check out your distribution and install jq, curl tools."
     fi
 }
 
@@ -107,8 +117,7 @@ function install_docker() {
 
         echo -e "\nDocker and Docker Compose were installed for ${DISTRIBUTION_NAME}."
     else
-        echo -e "\nWe'd support next distributions: Ubuntu, Debian, CentOS, Red Hat Enterprise Linux, Fedora. Please check out your distribution and install Docker."
-        exit -1
+        display_error_and_exit "\nWe'd support next distributions: Ubuntu, Debian, CentOS, Red Hat Enterprise Linux, Fedora. Please check out your distribution and install Docker."
     fi
 }
 
@@ -123,8 +132,7 @@ function install_ntp() {
     elif [[ $DISTRIBUTION_NAME == "Fedora" ]]; then
         $PERMISSION_PREFIX dnf install chrony -y
     else
-        echo -e "\nWe'd support next distributions: Ubuntu, Debian, Red Hat Enterprise Linux, CentOS, Fedora. Please check out your distribution and install / configure NTP."
-        exit 1
+        display_error_and_exit "\nWe'd support next distributions: Ubuntu, Debian, Red Hat Enterprise Linux, CentOS, Fedora. Please check out your distribution and install / configure NTP."
     fi
 
     $PERMISSION_PREFIX systemctl stop chrony
@@ -137,7 +145,7 @@ function install_ntp() {
 function check_disk_space() {
 
     # Specify disk space treshold
-    REQUIRED_DISK_SPACE_GB=50
+    REQUIRED_DISK_SPACE_GB=100
 
     # We're using mount volume where is quickstart.sh file
     mounted_volume=$(df --output=target quickstart.sh | tail -n1)
@@ -146,8 +154,7 @@ function check_disk_space() {
 
     # Check with specified treshold
     if [ $total_volume_size_gb -lt $REQUIRED_DISK_SPACE_GB ]; then
-        echo -e "\nCheck disk space.... ERROR - Not enoguh total drive space! you have $total_volume_size_gb GB you require at least $REQUIRED_DISK_SPACE_GB GB!"
-        exit 1
+        display_error_and_exit "\nCheck disk space.... ERROR - Not enoguh total drive space! you have $total_volume_size_gb GB you require at least $REQUIRED_DISK_SPACE_GB GB!"
     else
         echo -e "\nCheck disk space.... OK!"
     fi
@@ -157,7 +164,7 @@ function check_disk_space() {
 function check_ram_memory_space() {
 
     # Specify RAM memory treshold
-    REQUIRED_RAM_GB=2
+    REQUIRED_RAM_GB=8
 
     # Identify RAM memory amount
     total_ram_memory_size_mb=$(free -m | grep Mem: | awk '{print $2}')
@@ -165,7 +172,7 @@ function check_ram_memory_space() {
 
     # Check with specified treshold
     if [ $total_ram_memory_size_gb -lt $REQUIRED_RAM_GB ]; then
-        echo -e "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_volume_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
+        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_volume_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
     else
         echo -e "\nCheck RAM memory space... OK!"
     fi
@@ -206,23 +213,19 @@ function check_node_arguments() {
     if [[ ${VALID_ROLE_LIST[*]} =~ "$ROLE" ]]; then
         echo -e "\nCheck is valid role or not... OK!"
     else
-        echo -e "\nCheck is valid role or not... ERROR - Invalid role - $ROLE! Please choose of the following: ${VALID_ROLE_LIST[*]}"
-        exit 1
+        display_error_and_exit "\nCheck is valid role or not... ERROR - Invalid role - $ROLE! Please choose of the following: ${VALID_ROLE_LIST[*]}"
     fi
 
     if [[ ${VALID_NETWORK_LIST[*]} =~ "$NETWORK" ]]; then
         echo -e "\nCheck is valid network or not... OK!"
     else
-        echo -e "\nCheck is valid network or not... ERROR - Invalid network - $NETWORK! Please choose of the following: ${VALID_NETWORK_LIST[*]}"
-        exit 1
+        display_error_and_exit "\nCheck is valid network or not... ERROR - Invalid network - $NETWORK! Please choose of the following: ${VALID_NETWORK_LIST[*]}"
     fi
 
     if [ -z $NODE_KEY ]; then
-        echo -e "\nCheck is valid node key or not... ERROR - Node key is empty. Please enter some string like 'fuse-[customer]-[role_name]'."
-        exit 1
+        display_error_and_exit "\nCheck is valid node key or not... ERROR - Node key is empty. Please enter some string like 'fuse-[customer]-[role_name]'."
     elif [ ${#NODE_KEY} -lt 8 ]; then
-        echo -e "\nCheck is valid node key or not... ERROR - Node key characters lower than 8 symbols. Please enter some string like 'fuse-[customer]-[role_name]'."
-        exit 1
+        display_error_and_exit "\nCheck is valid node key or not... ERROR - Node key characters lower than 8 symbols. Please enter some string like 'fuse-[customer]-[role_name]'."
     else
         echo -e "\nCheck is valid node key or not... OK!"
     fi
@@ -260,26 +263,34 @@ function setup() {
     # Install and configure NTP
     install_ntp
 
-    # Specify image versions
+    # Specify image versions (generic)
     FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/nethermind-node"
-    FUSE_VALIDATOR_DOCKER_REPOSITORY="fusenet/validator-app"
-    SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
-
-    NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
-    SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
-
     FUSE_CLIENT_DOCKER_IMAGE_VERSION="1.13.3"
-    FUSE_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
+
+    # Specify images / versions (Spark)
+    SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
     SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
 
-    NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
+    SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
 
+    # Specify images / versions (Fuse)
+    FUSE_VALIDATOR_DOCKER_REPOSITORY="fusenet/validator-app"
+    FUSE_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
+
+    NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
+    NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
+
+    # Specify entire image (generic)
     FUSE_CLIENT_DOCKER_IMAGE=$FUSE_CLIENT_DOCKER_REPOSITORY:$FUSE_CLIENT_DOCKER_IMAGE_VERSION
-    FUSE_VALIDATOR_DOCKER_IMAGE=$FUSE_VALIDATOR_DOCKER_REPOSITORY:$FUSE_VALIDATOR_DOCKER_IMAGE_VERSION
+
+    # Specify entire image (Spark)
     SPARK_VALIDATOR_DOCKER_IMAGE=$SPARK_VALIDATOR_DOCKER_REPOSITORY:$SPARK_VALIDATOR_DOCKER_IMAGE_VERSION
-    NETSTATS_CLIENT_DOCKER_IMAGE=$NETSTATS_CLIENT_DOCKER_REPOSITORY:$NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE=$SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY:$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
+
+    # Specify entire image (Fuse)
+    FUSE_VALIDATOR_DOCKER_IMAGE=$FUSE_VALIDATOR_DOCKER_REPOSITORY:$FUSE_VALIDATOR_DOCKER_IMAGE_VERSION
+    NETSTATS_CLIENT_DOCKER_IMAGE=$NETSTATS_CLIENT_DOCKER_REPOSITORY:$NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
 
     echo -e "\nFuse - Client: $FUSE_CLIENT_DOCKER_IMAGE_VERSION"
 
@@ -289,13 +300,14 @@ function setup() {
 
         echo -e "\nPull Docker images...\n"
 
+        if [[ $ROLE == "validator" ]]; then
+            echo -e "Fuse - Validator: $SPARK_VALIDATOR_DOCKER_IMAGE_VERSION"
+            $PERMISSION_PREFIX docker pull $SPARK_VALIDATOR_DOCKER_IMAGE
+        fi
+
         # Pull needed Docker images
         $PERMISSION_PREFIX docker pull $FUSE_CLIENT_DOCKER_IMAGE
         $PERMISSION_PREFIX docker pull $SPARK_NETSTATS_CLIENT_DOCKER_IMAGE
-
-        if [[ $ROLE == "validator" ]]; then
-            $PERMISSION_PREFIX docker pull $SPARK_VALIDATOR_DOCKER_IMAGE
-        fi
     else
         # Print versions
         echo -e "\nFuse - Client: $FUSE_CLIENT_DOCKER_IMAGE_VERSION"
@@ -303,13 +315,14 @@ function setup() {
 
         echo -e "\nPull Docker images...\n"
 
+        if [[ $ROLE == "validator" ]]; then
+            echo -e "Fuse - Validator: $FUSE_VALIDATOR_DOCKER_IMAGE_VERSION"
+            $PERMISSION_PREFIX docker pull $FUSE_VALIDATOR_DOCKER_IMAGE
+        fi
+
         # Pull needed Docker images
         $PERMISSION_PREFIX docker pull $FUSE_CLIENT_DOCKER_IMAGE
         $PERMISSION_PREFIX docker pull $NETSTATS_CLIENT_DOCKER_IMAGE
-
-        if [[ $ROLE == "validator" ]]; then
-            $PERMISSION_PREFIX docker pull $FUSE_VALIDATOR_DOCKER_IMAGE
-        fi
     fi
 
     # Directories
@@ -326,7 +339,16 @@ function setup() {
 
     # Generate keystore file
     if [[ $ROLE == "validator" ]]; then
-        generate_eth_private_key
+        if ls $KEYSTORE_DIR/UTC--**; then
+
+            PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
+
+            echo -e "\nPrivate key is present in directory. You public address - 0x$PUBLIC_ADDRESS"
+
+            echo -e "\nSkipping creating new private key..."
+        else
+            generate_eth_private_key
+        fi
     fi
 }
 
@@ -335,13 +357,13 @@ function run() {
     echo -e "\nDelete old containers if it's exist..."
 
     # Delete old containers if they're exists
-    $PERMISSION_PREFIX docker container rm -f fuse spark netstats >/dev/null 2>&1
+    $PERMISSION_PREFIX docker container rm -f fuse spark validator netstats >/dev/null 2>&1
 
     echo -e "\nDone!"
 
     echo -e "\nRun Docker container for ${NETWORK^} network. Role - ${ROLE^}"
 
-    # Specify needed variables for Spark (if you're running node on Spark)
+    # Specify needed variables (Spark)
 
     # For node / bootnode
     if [[ $NETWORK == "spark" ]] && [[ $ROLE == "node" || $ROLE == "bootnode" ]]; then
@@ -374,7 +396,7 @@ function run() {
         NETSTATS_VERSION=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
     fi
 
-    # Specify needed variables for Fuse (if you're running node on Fuse)
+    # Specify needed variables (Fuse)
 
     # For node / bootnode
     if [[ $NETWORK == "fuse" ]] && [[ $ROLE == "node" || $ROLE == "bootnode" ]]; then
@@ -403,8 +425,8 @@ function run() {
         CONFIG="fuse_validator"
 
         VALIDATOR_DOCKER_IMAGE=$FUSE_VALIDATOR_DOCKER_IMAGE
-        NETSTATS_DOCKER_IMAGE=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE
-        NETSTATS_VERSION=$SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
+        NETSTATS_DOCKER_IMAGE=$NETSTATS_CLIENT_DOCKER_IMAGE
+        NETSTATS_VERSION=$NETSTATS_CLIENT_DOCKER_IMAGE_VERSION
     fi
 
     # Run Docker container
@@ -462,19 +484,17 @@ function run() {
             --restart always \
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
-            --JsonRpc.Host 0.0.0.0 \
             --KeyStore.PasswordFiles "keystore/pass.pwd" \
             --KeyStore.EnodeAccount "0x$PUBLIC_ADDRESS" \
             --KeyStore.UnlockAccounts "0x$PUBLIC_ADDRESS" \
             --KeyStore.BlockAuthorAccount "0x$PUBLIC_ADDRESS" \
-            --Init.WebSocketsEnabled true \
             --HealthChecks.Enabled true \
             --HealthChecks.Slug /api/health
 
         # Run Validator app
         $PERMISSION_PREFIX docker run \
             --detach \
-            --name validator \
+            --name "validator" \
             --volume $KEYSTORE_DIR:/config/keys/FuseNetwork \
             --volume $KEYSTORE_DIR/pass.pwd:/config/pass.pwd \
             --restart always \
@@ -597,8 +617,7 @@ fi
 # Check is right argument specified
 check_args() {
     if [[ $OPTARG =~ ^-[r/n/k/v/h]$ ]]; then
-        echo "Unknow argument $OPTARG for option $opt!"
-        exit 1
+        display_error_and_exit "Unknow argument $OPTARG for option $opt!"
     fi
 }
 
