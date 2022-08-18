@@ -19,13 +19,15 @@
    quickstart.sh supports next Linux / Unix based distributions: Ubuntu, Debian, Fedora, CentOS, RHEL.
 
  Usage:
-   ./quickstart.sh [-r|-n|-k||-v|-h]
+   ./quickstart.sh [-r|-n|-k||-v|-h|-u|-m]
 
  Options:
    -r  Specify needed node role. Available next roles: 'node', 'bootnode', 'explorer'
    -n  Network (mainnet or testnet). Available next values: 'fuse' and 'spark'
    -k  Node key name for https://health.fuse.io. Example: 'my-own-fuse-node'
    -v  Script version
+   -u  Unjail a node (Validator only)
+   -m  Flag a node for maintenance (Validator only)
    -h  Help page
  ```
 
@@ -48,4 +50,10 @@
 
  # Run bootnode for Spark (Testnet)
  ./quickstart.sh -r bootnode -n spark -k fusenet-spark-bootnode
+ 
+ # Unjail a node
+ ./quickstart.sh -u
+ 
+ # Flag a node for maintenance
+ ./quickstart.sh -m
  ```
