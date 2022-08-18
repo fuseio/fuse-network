@@ -16,6 +16,14 @@ DISTRIBUTION_ID=$(awk -F '[="]*' '/^ID=/ { print $2 }' </etc/os-release)
 # Required SUDO permissions
 PERMISSION_PREFIX="sudo"
 
+OVERRIDE_VERSION_FILE=false
+VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
+VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
+DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
+DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
+DOCKER_IMAGE_NM_CLIENT="1.13.3"
+DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
+
 # Valid role list
 declare -a VALID_ROLE_LIST=(
     "node"
@@ -263,23 +271,34 @@ function setup() {
     # Install and configure NTP
     install_ntp
 
+    if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
+        echo -e "\nGrab docker Versions"
+        if [[ $NETWORK == "spark" ]]; then
+            VERSION_FILE="$SPARK_VERSION_FILE"
+        fi
+        wget -O versionFile $VERSION_FILE
+        export $(grep -v '^#' versionFile | xargs)
+    else
+        echo -e "\n Using hardcoded version Info"
+    fi
+
     # Specify image versions (generic)
     FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/nethermind-node"
-    FUSE_CLIENT_DOCKER_IMAGE_VERSION="1.13.3"
+    FUSE_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
 
     # Specify images / versions (Spark)
     SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
-    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
+    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
 
     SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
-    SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
+    SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NET_STATS_VERSION"
 
     # Specify images / versions (Fuse)
     FUSE_VALIDATOR_DOCKER_REPOSITORY="fusenet/validator-app"
-    FUSE_VALIDATOR_DOCKER_IMAGE_VERSION="1.0.0"
+    FUSE_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_FUSE_APP_VERSION"
 
     NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
-    NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="1.0.0"
+    NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NET_STATS_VERSION"
 
     # Specify entire image (generic)
     FUSE_CLIENT_DOCKER_IMAGE=$FUSE_CLIENT_DOCKER_REPOSITORY:$FUSE_CLIENT_DOCKER_IMAGE_VERSION
@@ -574,6 +593,68 @@ function generate_eth_private_key() {
     echo -e "\nAdd data stored in $(pwd)/validator_info.txt"
 }
 
+function unlock_account() {
+    if [ ! "$(ls $KEYSTORE_DIR/UTC--**)" ]; then
+        display_error_and_exit "No key store file found"
+    fi
+
+    pass=$(<"$KEYSTORE_DIR/pass.pwd")
+    PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
+    
+    RESULT=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X \
+    POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'"$PUBLIC_ADDRESS"'", "'"$pass"'"],"id":67}' | jq '.result')
+
+    if [[ "$RESULT" != "true" ]]; then
+        display_error_and_exit "Failed to unlock account"
+    fi
+}
+
+function lock_account() {
+    if [ ! "$(ls $KEYSTORE_DIR/UTC--**)" ]; then
+        display_error_and_exit "No key store file found"
+    fi
+
+    PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
+
+    RESULT=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X \
+    POST --data '{"jsonrpc":"2.0","method":"personal_lockAccount","params":["'"$PUBLIC_ADDRESS"'"],"id":67}' | jq '.result')
+
+    if [[ "$RESULT" != "true" ]]; then
+        display_error_and_exit "Failed to lock account"
+    fi
+}
+
+function send_tx_to_consensus() {
+    local DATA=$1
+    if [[ $DATA == "" ]]; then
+        display_error_and_exit "No data supplied cannot send message to consensus"
+    fi
+
+    if [ ! "$($PERMISSION_PREFIX docker ps -q -f name=fuse)" ]; then
+        display_error_and_exit "Fuse container not running cannot send tx to consensus"
+    fi
+
+    unlock_account
+
+    if [[ $NETWORK == "spark" ]]; then
+        CONSENSUS_ADDR="0xC8c3a332f9e4CE6bfFFcf967026cB006Db2311c7"
+    else
+        CONSENSUS_ADDR="0x3014ca10b91cb3D0AD85fEf7A3Cb95BCAc9c0f79"
+    fi
+
+    PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
+    NONCE=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X POST --data \
+    '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["'"$PUBLIC_ADDRESS"'"],"id":67}' | jq '.result')
+
+
+    TXHASH=$(curl --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"'"$PUBLIC_ADDRESS"'","to":"'"$CONSENSUS_ADDR"'","value":0, \
+    "Nonce":"'"$NONCE"'", "Gas":"1000000","GasPrice":"10000000000","ChainId":"122","Data":"'"$DATA"'"}],"id":67}' -H "Content-Type: application/json" -X POST localhost:8545 | jq '.result')
+
+    echo -e "\nRequest sent TX_ID = ${TXHASH}"
+
+    lock_account
+}
+
 # Function to create version.`date`.txt file
 function generate_version_file() {
     date=$(date '+%Y-%m-%d')
@@ -605,6 +686,8 @@ Help() {
     echo "  -n  Network (mainnet or testnet). Available next values: 'fuse' and 'spark'"
     echo "  -k  Node key name for https://health.fuse.io. Example: 'my-own-fuse-node'"
     echo "  -v  Script version"
+    echo "  -u  Unjail a node"
+    echo "  -m  Flag a node for maintenance"
     echo "  -h  Help page"
 }
 
@@ -616,13 +699,13 @@ fi
 
 # Check is right argument specified
 check_args() {
-    if [[ $OPTARG =~ ^-[r/n/k/v/h]$ ]]; then
+    if [[ $OPTARG =~ ^-[r/n/k/v/h/u/m]$ ]]; then
         display_error_and_exit "Unknow argument $OPTARG for option $opt!"
     fi
 }
 
 # Parse arguments
-while getopts ":r:n:k:vh" flag; do
+while getopts ":r:n:k:vhum" flag; do
     case "${flag}" in
     r)
         check_args
@@ -635,6 +718,16 @@ while getopts ":r:n:k:vh" flag; do
     k)
         check_args
         NODE_KEY=${OPTARG}
+        ;;
+    u)
+        check_args
+        send_tx_to_consensus "0x6eae5b11"
+        exit 1
+        ;;
+    m)
+        check_args
+        send_tx_to_consensus "0x6c376cc5"
+        exit 1
         ;;
     v)
         check_args
