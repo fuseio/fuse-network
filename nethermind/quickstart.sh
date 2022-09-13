@@ -21,7 +21,7 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
-DOCKER_IMAGE_NM_CLIENT="1.13.3"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.13.3-v3.0.0"
 DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
 
 # Valid role list
@@ -180,7 +180,7 @@ function check_ram_memory_space() {
 
     # Check with specified treshold
     if [ $total_ram_memory_size_gb -lt $REQUIRED_RAM_GB ]; then
-        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_volume_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
+        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_ram_memory_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
     else
         echo -e "\nCheck RAM memory space... OK!"
     fi
@@ -283,7 +283,7 @@ function setup() {
     fi
 
     # Specify image versions (generic)
-    FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/nethermind-node"
+    FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/node"
     FUSE_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
 
     # Specify images / versions (Spark)
