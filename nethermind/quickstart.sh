@@ -18,7 +18,7 @@ PERMISSION_PREFIX="sudo"
 
 OVERRIDE_VERSION_FILE=false
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
-VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
+SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
 DOCKER_IMAGE_NM_CLIENT="nethermind-1.13.3-v3.0.0"
