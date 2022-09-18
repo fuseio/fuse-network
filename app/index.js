@@ -5,13 +5,15 @@ const fs = require('fs')
 const HDWalletProvider = require('truffle-hdwallet-provider')
 const EthWallet = require('ethereumjs-wallet')
 const Web3 = require('web3')
-
+const { emitRegistry } = require('./block-header-registry')
 const configDir = path.join(cwd, process.env.CONFIG_DIR || 'config/')
 
+const {ETH_RPC, BSC_RPC, RPC: FUSE_RPC} = process.env
+
 let web3
-let walletProvider
+let walletProvider, signer
 let account
-let consensus, blockReward
+let consensus, blockReward, blockRegistry
 
 function initWalletProvider() {
   logger.info(`initWalletProvider`)
@@ -32,6 +34,7 @@ function initWalletProvider() {
     account = walletProvider.addresses[0]
     logger.info(`account: ${account}`)
     web3 = new Web3(walletProvider)
+    signer = new ethers.Wallet(pkey)
   }
 }
 
@@ -54,6 +57,16 @@ function initConsensusContract() {
 function initBlockRewardContract() {
   logger.info(`initBlockRewardContract`, process.env.BLOCK_REWARD_ADDRESS)
   blockReward = new web3.eth.Contract(require(path.join(cwd, 'abi/blockReward')), process.env.BLOCK_REWARD_ADDRESS)
+}
+
+function initBlockRegistryContract() {
+  logger.info(`initBlockRegistryContract`, process.env.BLOCK_REGISTRY_ADDRESS)
+  blockRegistry = new web3.eth.Contract(require(path.join(cwd, 'abi/blockRegistry')), process.env.BLOCK_REGISTRY_ADDRESS)
+  if (!ETH_RPC) throw "Missing ETH_RPC in environment"
+  if (!BSC_RPC) throw "Missing BSC_RPC in environment"
+  initBlockchain(1, ETH_RPC)
+  initBlockchain(56, BSC_RPC)
+  initBlockchain(122, FUSE_RPC || 'https://rpc.fuse.io/')
 }
 
 function emitInitiateChange() {
@@ -132,6 +145,9 @@ async function runMain() {
     if (!blockReward) {
       initBlockRewardContract()
     }
+    if (!blockRegistry) {
+      initBlockRegistryContract()
+    }
     const isValidator = await consensus.methods.isValidator(web3.utils.toChecksumAddress(account)).call()
     if (!isValidator) {
       logger.warn(`${account} is not a validator, skipping`)
@@ -139,6 +155,13 @@ async function runMain() {
     }
     await emitInitiateChange()
     await emitRewardedOnCycle()
+    await emitRegistry({
+      web3,
+      consensus,
+      blockRegistry,
+      signer,
+      walletProvider
+    })
   } catch (e) {
     logger.error(e)
     process.exit(1)
