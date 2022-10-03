@@ -54,7 +54,7 @@ async function getGasPrice() {
     logger.debug(`getGasPrice for ${account}`)
     const gasPrice = await web3.eth.getGasPrice()
     logger.debug(`current GasPrice is ${gasPrice}`)
-    return gasPrice
+    return Math.max(process.env.MIN_GAS_PRICE,gasPrice)
   } catch (e) {
     throw new Error(`Could not get gasPrice`)
   }
