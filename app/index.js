@@ -2,7 +2,7 @@ const path = require('path')
 const cwd = process.cwd()
 const logger = require('pino')({ level: process.env.LOG_LEVEL || 'info', prettyPrint: { translateTime: true } })
 const fs = require('fs')
-const HDWalletProvider = require('truffle-hdwallet-provider')
+const HDWalletProvider = require('@truffle/hdwallet-provider')
 const EthWallet = require('ethereumjs-wallet')
 const Web3 = require('web3')
 
@@ -25,7 +25,10 @@ function initWalletProvider() {
   let password = fs.readFileSync(path.join(configDir, 'pass.pwd')).toString().trim()
   let wallet = EthWallet.fromV3(keystore, password)
   let pkey = wallet.getPrivateKeyString()
-  walletProvider = new HDWalletProvider(pkey, process.env.RPC)
+  walletProvider = new HDWalletProvider({
+          privateKeys: [pkey], 
+          providerOrUrl: process.env.RPC,
+          pollingInterval: 0})
   if (!walletProvider) {
     throw new Error(`Could not set walletProvider for unknown reason`)
   } else {
@@ -43,6 +46,17 @@ async function getNonce() {
     return transactionCount
   } catch (e) {
     throw new Error(`Could not get nonce`)
+  }
+}
+
+async function getGasPrice() {
+  try {
+    logger.debug(`getGasPrice for ${account}`)
+    const gasPrice = await web3.eth.getGasPrice()
+    logger.debug(`current GasPrice is ${gasPrice}`)
+    return Math.max(process.env.MIN_GAS_PRICE,gasPrice)
+  } catch (e) {
+    throw new Error(`Could not get gasPrice`)
   }
 }
 
@@ -69,7 +83,8 @@ function emitInitiateChange() {
       }
       logger.info(`${account} sending emitInitiateChange transaction`)
       let nonce = await getNonce()
-      consensus.methods.emitInitiateChange().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || '0', nonce: nonce })
+      let gasPrice = await getGasPrice()
+      consensus.methods.emitInitiateChange().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || gasPrice, nonce: nonce })
         .on('transactionHash', hash => {
           logger.info(`transactionHash: ${hash}`)
         })
@@ -101,7 +116,8 @@ function emitRewardedOnCycle() {
       }
       logger.info(`${account} sending emitRewardedOnCycle transaction`)
       let nonce = await getNonce()
-      blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || '0', nonce: nonce })
+      let gasPrice = await getGasPrice()
+      blockReward.methods.emitRewardedOnCycle().send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || gasPrice, nonce: nonce })
         .on('transactionHash', hash => {
           logger.info(`transactionHash: ${hash}`)
         })
