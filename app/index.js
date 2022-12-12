@@ -32,7 +32,7 @@ function initWalletProvider() {
   if (!walletProvider) {
     throw new Error(`Could not set walletProvider for unknown reason`)
   } else {
-    account = walletProvider.addresses[0]
+    account = wallet.getAddressString()
     logger.info(`account: ${account}`)
     web3 = new Web3(walletProvider)
   }
