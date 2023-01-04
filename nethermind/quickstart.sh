@@ -20,9 +20,15 @@ OVERRIDE_VERSION_FILE=false
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
-DOCKER_IMAGE_FUSE_APP_VERSION="1.0.0"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.13.3-v3.0.0"
+DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.14.7-v3.0.2-beta"
 DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
+
+# Directories
+BASE_DIR="$(pwd)/fusenet"
+DATABASE_DIR=$BASE_DIR/database
+LOGS_DIR=$BASE_DIR/logs
+KEYSTORE_DIR=$BASE_DIR/keystore
 
 # Valid role list
 declare -a VALID_ROLE_LIST=(
@@ -180,7 +186,7 @@ function check_ram_memory_space() {
 
     # Check with specified treshold
     if [ $total_ram_memory_size_gb -lt $REQUIRED_RAM_GB ]; then
-        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_ram_memory_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
+        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_volume_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
     else
         echo -e "\nCheck RAM memory space... OK!"
     fi
@@ -288,7 +294,7 @@ function setup() {
 
     # Specify images / versions (Spark)
     SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
-    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_FUSE_APP_VERSION"
+    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
 
     SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NET_STATS_VERSION"
@@ -440,7 +446,7 @@ function run() {
     # For validator
     if [[ $NETWORK == "fuse" && $ROLE == "validator" ]]; then
         CONTAINER_NAME="fuse"
-        DB_PREFIX="fuse_validator"
+        DB_PREFIX="fuse"
         CONFIG="fuse_validator"
 
         VALIDATOR_DOCKER_IMAGE=$FUSE_VALIDATOR_DOCKER_IMAGE
@@ -500,6 +506,7 @@ function run() {
             -p 30303:30300/udp \
             -p 8545:8545 \
             -p 8546:8546 \
+            --network host \
             --restart always \
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
@@ -594,6 +601,7 @@ function generate_eth_private_key() {
 }
 
 function unlock_account() {
+    KEYSTORE_DIR=$BASE_DIR/keystore
     if [ ! "$(ls $KEYSTORE_DIR/UTC--**)" ]; then
         display_error_and_exit "No key store file found"
     fi
@@ -616,8 +624,7 @@ function lock_account() {
 
     PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
 
-    RESULT=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X \
-    POST --data '{"jsonrpc":"2.0","method":"personal_lockAccount","params":["'"$PUBLIC_ADDRESS"'"],"id":67}' | jq '.result')
+    RESULT=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X POST --data '{"jsonrpc":"2.0","method":"personal_lockAccount","params":["'"$PUBLIC_ADDRESS"'"],"id":67}' | jq '.result')
 
     if [[ "$RESULT" != "true" ]]; then
         display_error_and_exit "Failed to lock account"
@@ -643,13 +650,12 @@ function send_tx_to_consensus() {
     fi
 
     PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
-    NONCE=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X POST --data \
-    '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["'"$PUBLIC_ADDRESS"'"],"id":67}' | jq '.result')
+    echo "$PUBLIC_ADDRESS"
+    NONCE=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["'"$PUBLIC_ADDRESS"'"],"id":67}' | jq '.result')
+    NONCE=${NONCE:1:-1}
+    PUBLIC_ADDRESS="0x$PUBLIC_ADDRESS"
 
-
-    TXHASH=$(curl --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"'"$PUBLIC_ADDRESS"'","to":"'"$CONSENSUS_ADDR"'","value":0, \
-    "Nonce":"'"$NONCE"'", "Gas":"1000000","GasPrice":"10000000000","ChainId":"122","Data":"'"$DATA"'"}],"id":67}' -H "Content-Type: application/json" -X POST localhost:8545 | jq '.result')
-
+    TXHASH=$(curl --data '{"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{"from":"'"$PUBLIC_ADDRESS"'","to":"'"$CONSENSUS_ADDR"'","value":0,"Nonce":"'"$NONCE"'", "Gas":"1000000","GasPrice":"10000000000","ChainId":"122","Data":"'"$DATA"'"}],"id":67}' -H "Content-Type: application/json" -X POST localhost:8545)
     echo -e "\nRequest sent TX_ID = ${TXHASH}"
 
     lock_account
