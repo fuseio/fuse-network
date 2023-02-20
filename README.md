@@ -87,7 +87,7 @@ Make sure that your user is added to the `docker` user-group on _Unix_ systems, 
  > * Depending on your node purpose (shared RPC endpoint with hight load) system requirements could be different
  > * `-` in each column means that role has the same parameters like previous
 
- | Node role          | Bootnode                                                  | Node | Validator | Explorer                                                 |
+ | Node role          | Bootnode                                                  | Node | Validator | Archival                                                 |
  | ------------------ | --------------------------------------------------------- | ---- | --------- | -------------------------------------------------------- |
  | Operating system   | Ubuntu (18.04 and higher) or any other Linux distribution | -    | -         | -                                                        |
  | Runtime            | On - Premise, Docker, Kubernetes                          | -    | -         | -                                                        |
