@@ -13,8 +13,7 @@
   - [Run Local Node](#run-local-node)
     - [Pre-Requisites](#pre-requisites)
     - [Hardware](#hardware)
-        - [Bootnode, Node or Explorer Node](#bootnode-node-or-explorer-node)
-        - [Validator](#validator)
+    - [Networking](#networking)
     - [Using Quickstart](#using-quickstart)
       - [OE](#oe)
       - [Nethermind](#nethermind)
@@ -23,7 +22,7 @@
       - [Examples](#examples)
         - [Bootnode](#bootnode)
         - [Node](#node)
-        - [Validator](#validator-1)
+        - [Validator](#validator)
         - [Create New Account](#create-new-account)
         - [Explorer node](#explorer-node)
   - [Building containers](#building-containers)
@@ -82,43 +81,31 @@ A complete [Docker](https://docs.docker.com) environment is needed to be install
 Make sure that your user is added to the `docker` user-group on _Unix_ systems, if you can't access root permissions to run containers.
 
 ### Hardware
-*Note: specified for [Microsoft Azure](https://portal.azure.com), but similar on other providers as well*
 
-##### Bootnode, Node or Explorer Node
+ > Note: 
+ > * Specified for [AWS](https://console.aws.amazon.com), but similar on other providers as well
+ > * Depending on your node purpose (shared RPC endpoint with hight load) system requirements could be different
+ > * `-` in each column means that role has the same parameters like previous
 
-* OS - `Linux (ubuntu 18.04)`
-* Size - `Standard B2ms (2 vcpus, 8 GiB memory)`
-* Disk - `30 GiB Premium SSD`
-* Networking
+ | Node role          | Bootnode                                                  | Node | Validator | Explorer                                                 |
+ | ------------------ | --------------------------------------------------------- | ---- | --------- | -------------------------------------------------------- |
+ | Operating system   | Ubuntu (18.04 and higher) or any other Linux distribution | -    | -         | -                                                        |
+ | Runtime            | On - Premise, Docker, Kubernetes                          | -    | -         | -                                                        |
+ | Compute            | Minimal: 2vCPU, 8GB RAM; Recommended: 4vCPU, 16GB RAM     | -    | -         |                                                          |
+ | Disk type and size | 150GB SSD; Read/Write IOPS - 5000, Throughput - 125 MB/s  | -    | -         | 2TB SSD; Read / Write IOPS - 5000, Throughput - 125 MB/s |
 
-```
-| Priority 	| Description                    	| Port  	| Protocol 	| Source                  	| Destination    	| Action 	|
-|----------	|--------------------------------	|-------	|----------	|-------------------------	|----------------	|--------	|
-| 1000     	| ssh	                            | 22    	| TCP      	| ip list comma-separated 	| Any            	| Allow  	|
-| 1001     	| p2p                            	| 30303 	| TCP      	| Any                     	| Any            	| Allow  	|
-| 1002     	| p2p udp                        	| 30303 	| UDP      	| Any                     	| Any            	| Allow  	|
-| 1003     	| rpc                            	| 8545  	| TCP      	| Any                     	| Any            	| Allow  	|
-| 1004     	| https                          	| 443   	| TCP      	| Any                     	| Any            	| Allow  	|
-| 1005     	| http                           	| 80    	| TCP      	| Any                     	| Any            	| Allow  	|
-| 65000    	| AllowVnetInBound               	| Any   	| Any      	| VirtualNetwork          	| VirtualNetwork 	| Allow  	|
-| 65001    	| AllowAzureLoadBalancerInBound  	| Any   	| Any      	| AzureLoadBalancer       	| Any            	| Allow  	|
-| 65500    	| DenyAllInBound                 	| Any   	| Any      	| Any                     	| Any            	| Deny   	|
-```
+### Networking
 
-##### Validator
+ | Name | Port  | Protocol | Action       | Description                                                   | Notes                          |
+ | ---- | ----- | -------- | ------------ | ------------------------------------------------------------- | ------------------------------ |
+ | P2P  | 30303 | TCP      | Allow        | Port used for communication with the network peers            | Should be openned for everyone |
+ | P2P  | 30303 | UDP      | Allow        | -                                                             | -                              |
+ | RPC  | 8545  | TCP      | Allow / Deny | Port used for communication with the node with HTTP JSON RPC  | Please, see notes below        |
+ | WS   | 8546  | TCP      | Allow / Deny | Port used for communication with the node with HTTP WebSocket | Please, see notes below        |
 
-* OS - `Linux (ubuntu 18.04)`
-* Size - `Standard D2s v3 (2 vcpus, 8 GiB memory)`
-* Disk - `30 GiB Premium SSD`
-* Networking
-
-```
-| Priority 	| Description                    	| Port  	| Protocol 	| Source                  	| Destination    	| Action 	|
-|----------	|--------------------------------	|-------	|----------	|-------------------------	|----------------	|--------	|
-| 1000     	| ssh	                            | 22    	| TCP      	| ip list comma-separated 	| Any            	| Allow  	|
-| 1001     	| p2p                            	| 30303 	| TCP      	| Any                     	| Any            	| Allow  	|
-| 1002     	| p2p udp                        	| 30303 	| UDP      	| Any                     	| Any            	| Allow  	|
-```
+ > Note: 
+ > * Outbound traffic should be oppened for all IP addresses
+ > * For Bootnode node role not necessarry to open RPC and WS ports, only P2P are required; for Validator node role WS and RPC ports should be openned on `localhost` and granted restricted access through IP whitelists
 
 ### Using Quickstart
 
