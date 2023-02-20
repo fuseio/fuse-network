@@ -24,7 +24,7 @@
         - [Node](#node)
         - [Validator](#validator)
         - [Create New Account](#create-new-account)
-        - [Explorer node](#explorer-node)
+        - [Archival node](#archival-node)
   - [Building containers](#building-containers)
 
 ## General
@@ -367,8 +367,8 @@ The address corresponding to the generated private key gets printed out on the C
 
 Please copy it for the later use. It will be needed for the `--address` argument where it will be added in plain text.
 
-##### Explorer node
-If you want to run a node to be used by the [blockscout explorer](https://github.com/fuseio/blockscout/tree/fuse) run the following command:
+##### Archival node
+If you intent to run an archival node, for example for the explorer [blockscout explorer](https://github.com/fuseio/blockscout/tree/fuse):
 
 ```
 ## Start parity container with all necessary arguments.
