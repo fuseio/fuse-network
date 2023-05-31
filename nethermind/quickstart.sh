@@ -21,7 +21,7 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.14.7-v3.0.2-beta"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.17.3-v4.0.0"
 DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
 
 # Directories
@@ -474,7 +474,8 @@ function run() {
             --config $CONFIG \
             --Init.WebSocketsEnabled true \
             --HealthChecks.Enabled true \
-            --HealthChecks.Slug /api/health
+            --HealthChecks.Slug /api/health \
+			--JsonRpc.EnabledModules "Eth,Web3,RPC,Net,Parity,Health"
 
         # Run Netstat
         $PERMISSION_PREFIX docker run \
