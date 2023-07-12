@@ -41,8 +41,8 @@ REQUIRED_DRIVE_SPACE_MB=15360
 REQUIRED_RAM_MB=1800
 DEFAULT_GAS_ORACLE="https:\/\/ethgasstation.info\/json\/ethgasAPI.json"
 
-PARITY_SNAPSHOT="https://node-snapshot.s3.eu-central-1.amazonaws.com/db.tar.gz"
-OE_SNAPSHOT="https://node-snapshot-oe.s3.eu-central-1.amazonaws.com/db.tar.gz"
+PARITY_SNAPSHOT="https://fuse-snapshot-oe.s3.eu-central-1.amazonaws.com/db.tar.gz"
+OE_SNAPSHOT="https://fuse-snapshot-oe.s3.eu-central-1.amazonaws.com/db.tar.gz"
 BOOTNODE_FILE_FUSE="https://raw.githubusercontent.com/fuseio/fuse-network/master/config/bootnodes.txt"
 BOOTNODE_FILE_SPARK="https://raw.githubusercontent.com/fuseio/fuse-network/master/config/spark/bootnodes.txt"
 
