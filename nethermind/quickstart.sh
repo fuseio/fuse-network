@@ -21,8 +21,8 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.17.3-v4.0.0"
-DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.18.0-v4.0.1"
+DOCKER_IMAGE_NET_STATS_VERSION="2.0.0"
 
 # Directories
 BASE_DIR="$(pwd)/fusenet"
@@ -186,7 +186,7 @@ function check_ram_memory_space() {
 
     # Check with specified treshold
     if [ $total_ram_memory_size_gb -lt $REQUIRED_RAM_GB ]; then
-        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_volume_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
+        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_ram_memory_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
     else
         echo -e "\nCheck RAM memory space... OK!"
     fi
@@ -277,7 +277,7 @@ function setup() {
     # Install and configure NTP
     install_ntp
 
-    if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
+    if [ "$OVERRIDE_VERSION_FILE" == false ]; then
         echo -e "\nGrab docker Versions"
         if [[ $NETWORK == "spark" ]]; then
             VERSION_FILE="$SPARK_VERSION_FILE"
@@ -475,7 +475,7 @@ function run() {
             --Init.WebSocketsEnabled true \
             --HealthChecks.Enabled true \
             --HealthChecks.Slug /api/health \
-			--JsonRpc.EnabledModules "Eth,Web3,RPC,Net,Parity,Health"
+            --JsonRpc.EnabledModules "Eth,Web3,RPC,Net,Parity,Health"
 
         # Run Netstat
         $PERMISSION_PREFIX docker run \
@@ -488,6 +488,7 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
+            --network $NETWORK \
             --instance-name $NODE_KEY \
             --role ${ROLE^} \
             --netstats-version $NETSTATS_VERSION
@@ -538,6 +539,7 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
+            --network $NETWORK \
             --instance-name "${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
             --role ${ROLE^} \
             --netstats-version $NETSTATS_VERSION \
@@ -609,9 +611,9 @@ function unlock_account() {
 
     pass=$(<"$KEYSTORE_DIR/pass.pwd")
     PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
-    
+
     RESULT=$(curl localhost:8545 -H 'Content-Type: application/json;charset=UTF-8' -H 'Accept: application/json, text/plain, /' -H 'Cache-Control: no-cache' -X \
-    POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'"$PUBLIC_ADDRESS"'", "'"$pass"'"],"id":67}' | jq '.result')
+        POST --data '{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["'"$PUBLIC_ADDRESS"'", "'"$pass"'"],"id":67}' | jq '.result')
 
     if [[ "$RESULT" != "true" ]]; then
         display_error_and_exit "Failed to unlock account"
