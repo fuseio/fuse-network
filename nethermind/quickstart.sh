@@ -17,7 +17,7 @@ DISTRIBUTION_ID=$(awk -F '[="]*' '/^ID=/ { print $2 }' </etc/os-release)
 PERMISSION_PREFIX="sudo"
 
 OVERRIDE_VERSION_FILE=false
-VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
+FUSE_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
@@ -277,13 +277,19 @@ function setup() {
     # Install and configure NTP
     install_ntp
 
-    if [ "$OVERRIDE_VERSION_FILE" == false ]; then
+    if [ "$OVERRIDE_VERSION_FILE" == true ]; then
         echo -e "\nGrab docker Versions"
+
         if [[ $NETWORK == "spark" ]]; then
             VERSION_FILE="$SPARK_VERSION_FILE"
+        else
+            VERSION_FILE="$FUSE_VERSION_FILE"
         fi
+
+        # Download versionFile and grab it
         wget -O versionFile $VERSION_FILE
         export $(grep -v '^#' versionFile | xargs)
+
     else
         echo -e "\n Using hardcoded version Info"
     fi
