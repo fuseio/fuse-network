@@ -391,10 +391,13 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   function _jailValidator(address _address) internal {
-    _pendingValidatorsRemove(_address);
-    _addJailedValidator(_address);
-    _setJailRelease(_address);
-    _resetStrikeReset(_address);
+    if(!isJailed(_address))
+    {
+      _pendingValidatorsRemove(_address);
+      _addJailedValidator(_address);
+      _setJailRelease(_address);
+      _resetStrikeReset(_address);
+    }
   }
 
   function _maintenance(address _address) internal {
@@ -422,23 +425,27 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   function _jailedValidatorRemove(address _address) internal {
     bool found = false;
     uint256 removeIndex;
-    for (uint256 i; i < jailedValidatorsLength(); i++) {
-      if (_address == jailedValidatorsAtPosition(i)) {
-        removeIndex = i;
-        found = true;
-        break;
+    do {
+      found = false;
+      for (uint256 i; i < jailedValidatorsLength(); i++) {
+        if (_address == jailedValidatorsAtPosition(i)) {
+          removeIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        uint256 lastIndex = jailedValidatorsLength() - 1;
+        address lastValidator = jailedValidatorsAtPosition(lastIndex);
+        if (lastValidator != address(0)) {
+          _setJailedValidatorsAtPosition(removeIndex, lastValidator);
+        }
+        delete addressArrayStorage[JAILED_VALIDATORS][lastIndex];
+        addressArrayStorage[JAILED_VALIDATORS].length--;
+        // if the validator in on of the current validators
       }
     }
-    if (found) {
-      uint256 lastIndex = jailedValidatorsLength() - 1;
-      address lastValidator = jailedValidatorsAtPosition(lastIndex);
-      if (lastValidator != address(0)) {
-        _setJailedValidatorsAtPosition(removeIndex, lastValidator);
-      }
-      delete addressArrayStorage[JAILED_VALIDATORS][lastIndex];
-      addressArrayStorage[JAILED_VALIDATORS].length--;
-      // if the validator in on of the current validators
-    }
+    while (found == true);
   }
 
   function _pendingValidatorsRemove(address _address) internal {
