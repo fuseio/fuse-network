@@ -21,8 +21,8 @@ FUSE_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/blob/fix/nethermind-quickstart/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.18.0-v4.0.1"
-DOCKER_IMAGE_SPARK_APP_VERSION="decentralized"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.21.0-rc-v4.0.5-beta"
+DOCKER_IMAGE_SPARK_APP_VERSION="latest"
 DOCKER_IMAGE_NET_STATS_VERSION="2.0.0"
 
 # Directories
@@ -300,7 +300,7 @@ function setup() {
     FUSE_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
 
     # Specify images / versions (Spark)
-    SPARK_VALIDATOR_DOCKER_REPOSITORY="gr8h/spark-validator-app"
+    SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
     SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_SPARK_APP_VERSION"
 
     SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
