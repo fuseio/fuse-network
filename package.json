@@ -4,13 +4,11 @@
   "description": "Fuse Network",
   "main": "",
   "scripts": {
-    "test": "scripts/test.sh",
-    "compile": "node_modules/.bin/truffle compile",
-    "flatten": "scripts/flatten.sh",
-    "abi": "scripts/abi.sh",
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "flatten": "npx hardhat flatten",
     "deploy:fuse": "node_modules/.bin/truffle migrate --reset --network fuse",
-    "deploy:local": "node_modules/.bin/truffle migrate --reset --network local",
-    "app": "node app/index.js"
+    "deploy:local": "node_modules/.bin/truffle migrate --reset --network local"
   },
   "repository": {
     "type": "git",
@@ -29,9 +27,7 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^8.0.0",
-    "ethereumjs-wallet": "^0.6.3",
-    "openzeppelin-solidity": "2.1.0",
-    "truffle-hdwallet-provider": "^1.0.12"
+    "openzeppelin-solidity": "2.1.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-truffle5": "^2.0.7",
