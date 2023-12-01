@@ -63,7 +63,7 @@ $ yarn flatten
 
 ### Deploy
 
-Make sure `NETWORK_NAME` is defined in [`truffle-config`](https://github.com/fuseio/fuse-network/blob/master/truffle-config.js)
+Make sure `NETWORK_NAME` is defined in [`hardhat.config`](https://github.com/fuseio/fuse-network/blob/master/hardhat.config.js)
 
 Make sure you've created an `.env` using the template [`env.example`](https://github.com/fuseio/fuse-network/blob/master/.env.example)
 
