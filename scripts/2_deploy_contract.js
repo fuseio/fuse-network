@@ -1,8 +1,8 @@
 require("dotenv").config();
 const fs = require("fs");
-
 const hre = require("hardhat");
 const ethers = hre.ethers;
+const { assert } = require("chai");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -53,6 +53,14 @@ async function main() {
   debug(`consensus: ${consensus.address}`);
 
   await consensus.initialize(initialValidatorAddress);
+  let consensusInitialValidatorAddress = await consensus.getValidators();
+  debug(`consensus.getValidators: ${consensusInitialValidatorAddress}`);
+
+  assert.equal(
+    initialValidatorAddress,
+    consensusInitialValidatorAddress[0].toLowerCase(),
+    "InitialValidatorAddress Mismatch"
+  );
   debug(`consensus.initialize(initialValidator): ${initialValidatorAddress}`);
 
   // ProxyStorage
@@ -70,8 +78,21 @@ async function main() {
 
   await proxyStorage.initialize(consensus.address);
   debug(`proxyStorage.initialize: ${consensus.address}`);
+  assert.equal(
+    consensus.address,
+    await proxyStorage.getConsensus(),
+    "Consensus Mismatch"
+  );
+
+  let proxyStorageConsensus = await proxyStorage.getConsensus();
+  debug(`proxyStorage.getConsensus: ${proxyStorageConsensus}`);
 
   await consensus.setProxyStorage(proxyStorage.address);
+  assert.equal(
+    proxyStorage.address,
+    await consensus.getProxyStorage(),
+    "ProxyStorage Mismatch"
+  );
   debug(`consensus.setProxyStorage: ${proxyStorage.address}`);
 
   // BlockReward
@@ -104,6 +125,22 @@ async function main() {
   debug(`voting: ${voting.address}`);
   await voting.initialize();
   debug(`voting.initialize`);
+
+  // Initialize ProxyStorage
+  await proxyStorage.initializeAddresses(blockReward.address, voting.address);
+  assert.equal(
+    blockReward.address,
+    await proxyStorage.getBlockReward(),
+    "BlockReward Mismatch"
+  );
+  assert.equal(
+    voting.address,
+    await proxyStorage.getVoting(),
+    "Voting Mismatch"
+  );
+  debug(
+    `proxyStorage.initializeAddresses: ${blockReward.address}, ${voting.address}`
+  );
 
   console.log(
     `
