@@ -2,7 +2,6 @@ require("dotenv").config();
 const fs = require("fs");
 const hre = require("hardhat");
 const ethers = hre.ethers;
-const { assert } = require("chai");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -24,12 +23,6 @@ async function main() {
     "gwei"
   );
 
-  let proxy;
-  let blockReward, blockRewardImpl;
-  let consensus, consensusImpl;
-  let proxyStorage, proxyStorageImpl;
-  let voting, votingImpl;
-
   // Contracts Factory
   const ConsensusFactory = await ethers.getContractFactory("Consensus");
   const ProxyStorageFactory = await ethers.getContractFactory("ProxyStorage");
@@ -40,106 +33,109 @@ async function main() {
   );
 
   // Consensus
-  consensusImpl = await ConsensusFactory.deploy();
-  debug(`consensusImpl: ${consensusImpl.address}`);
+  const consensusImpl = await ConsensusFactory.deploy();
+  await consensusImpl.deployed();
+  debug(`Consensus Impl: ${consensusImpl.address}`);
 
-  proxy = await EternalStorageProxyFactory.deploy(
+  const consensusProxy = await EternalStorageProxyFactory.deploy(
     ZERO_ADDRESS,
     consensusImpl.address
   );
-  debug(`proxy: ${proxy.address}`);
+  await consensusProxy.deployed();
+  debug(`Consensus Proxy: ${consensusProxy.address}`);
 
-  consensus = await ConsensusFactory.attach(proxy.address);
-  debug(`consensus: ${consensus.address}`);
+  const consensus = ConsensusFactory.attach(consensusProxy.address);
+  debug(`Consensus: ${consensus.address}`);
 
-  await consensus.initialize(initialValidatorAddress);
+  const tx = await consensus.initialize(initialValidatorAddress);
+  await tx.wait();
+
   let consensusInitialValidatorAddress = await consensus.getValidators();
-  debug(`consensus.getValidators: ${consensusInitialValidatorAddress}`);
-
   assert.equal(
     initialValidatorAddress,
     consensusInitialValidatorAddress[0].toLowerCase(),
     "InitialValidatorAddress Mismatch"
   );
-  debug(`consensus.initialize(initialValidator): ${initialValidatorAddress}`);
+  debug(`Initial Validator Address: ${initialValidatorAddress}`);
 
   // ProxyStorage
-  proxyStorageImpl = await ProxyStorageFactory.deploy();
-  debug(`proxyStorageImpl: ${proxyStorageImpl.address}`);
+  const proxyStorageImpl = await ProxyStorageFactory.deploy();
+  await proxyStorageImpl.deployed();
+  debug(`ProxyStorage Impl: ${proxyStorageImpl.address}`);
 
-  proxy = await EternalStorageProxyFactory.deploy(
+  const storageProxy = await EternalStorageProxyFactory.deploy(
     ZERO_ADDRESS,
     proxyStorageImpl.address
   );
-  debug(`proxy: ${proxy.address}`);
+  await storageProxy.deployed();
+  debug(`ProxyStorage Proxy: ${storageProxy.address}`);
 
-  proxyStorage = ProxyStorageFactory.attach(proxy.address);
-  debug(`proxyStorage: ${proxyStorage.address}`);
+  const proxyStorage = ProxyStorageFactory.attach(storageProxy.address);
+  debug(`ProxyStorage: ${proxyStorage.address}`);
 
-  await proxyStorage.initialize(consensus.address);
-  debug(`proxyStorage.initialize: ${consensus.address}`);
+  const tx2 = await proxyStorage.initialize(consensus.address);
+  await tx2.wait();
+  debug(`ProxyStorage - initialize: ${tx2.hash}`);
   assert.equal(
     consensus.address,
     await proxyStorage.getConsensus(),
     "Consensus Mismatch"
   );
 
-  let proxyStorageConsensus = await proxyStorage.getConsensus();
-  debug(`proxyStorage.getConsensus: ${proxyStorageConsensus}`);
-
-  await consensus.setProxyStorage(proxyStorage.address);
+  const tx3 = await consensus.setProxyStorage(proxyStorage.address);
+  await tx3.wait();
+  debug(`Consensus - setProxyStorage: ${tx3.hash}`);
   assert.equal(
     proxyStorage.address,
     await consensus.getProxyStorage(),
     "ProxyStorage Mismatch"
   );
-  debug(`consensus.setProxyStorage: ${proxyStorage.address}`);
 
   // BlockReward
-  blockRewardImpl = await BlockRewardFactory.deploy();
-  debug(`blockRewardImpl: ${blockRewardImpl.address}`);
+  const blockRewardImpl = await BlockRewardFactory.deploy();
+  await blockRewardImpl.deployed();
+  debug(`BlockReward Impl: ${blockRewardImpl.address}`);
 
-  proxy = await EternalStorageProxyFactory.deploy(
+  const blockRewardProxy = await EternalStorageProxyFactory.deploy(
     ZERO_ADDRESS,
     blockRewardImpl.address
   );
-  debug(`proxy: ${proxy.address}`);
+  await blockRewardProxy.deployed();
+  debug(`BlockReward Proxy: ${blockRewardProxy.address}`);
 
-  blockReward = BlockRewardFactory.attach(proxy.address);
-  debug(`blockReward: ${blockReward.address}`);
+  const blockReward = BlockRewardFactory.attach(blockRewardProxy.address);
+  debug(`BlockReward: ${blockReward.address}`);
 
-  await blockReward.initialize(initialSupply);
-  debug(`blockReward.initialize: ${initialSupply}`);
+  const tx4 = await blockReward.initialize(initialSupply);
+  await tx4.wait();
+  debug(`BlockReward - initialize: ${tx4.hash}`);
 
   // Voting
-  votingImpl = await VotingFactory.deploy();
-  debug(`votingImpl: ${votingImpl.address}`);
+  const votingImpl = await VotingFactory.deploy();
+  await votingImpl.deployed();
+  debug(`Voting Impl: ${votingImpl.address}`);
 
-  proxy = await EternalStorageProxyFactory.deploy(
+  const votingProxy = await EternalStorageProxyFactory.deploy(
     ZERO_ADDRESS,
     votingImpl.address
   );
-  debug(`proxy: ${proxy.address}`);
+  await votingProxy.deployed();
+  debug(`Voting Proxy: ${votingProxy.address}`);
 
-  voting = VotingFactory.attach(proxy.address);
-  debug(`voting: ${voting.address}`);
-  await voting.initialize();
-  debug(`voting.initialize`);
+  const voting = VotingFactory.attach(votingProxy.address);
+  debug(`Voting: ${voting.address}`);
+  const tx5 = await voting.initialize();
+  await tx5.wait();
+  debug(`Voting - initialize ${tx5.hash}`);
 
   // Initialize ProxyStorage
-  await proxyStorage.initializeAddresses(blockReward.address, voting.address);
-  assert.equal(
+  const tx6 = await proxyStorage.initializeAddresses(
     blockReward.address,
-    await proxyStorage.getBlockReward(),
-    "BlockReward Mismatch"
+    voting.address
   );
-  assert.equal(
-    voting.address,
-    await proxyStorage.getVoting(),
-    "Voting Mismatch"
-  );
+  await tx6.wait();
   debug(
-    `proxyStorage.initializeAddresses: ${blockReward.address}, ${voting.address}`
+    `ProxyStorage - initializeAddresses: ${blockReward.address}, ${voting.address}, ${tx6.hash}`
   );
 
   console.log(

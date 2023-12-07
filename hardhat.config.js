@@ -39,7 +39,6 @@ module.exports = {
       url: "http://34.38.118.140:8545",
       chainId: 123,
       accounts: getSigners(),
-      loggingEnabled: true,
       allowUnlimitedContractSize: true,
     },
   },
@@ -51,6 +50,7 @@ module.exports = {
         runs: 200,
       },
     },
+    evmVersion: "byzantium",
   },
   paths: {
     sources: "./contracts",
