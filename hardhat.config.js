@@ -8,6 +8,7 @@ const {
   CREDENTIALS_KEYSTORE,
   CREDENTIALS_PASSWORD,
   MNEMONIC,
+  PRIVATE_KEY,
 } = process.env;
 
 module.exports = {
@@ -40,7 +41,6 @@ module.exports = {
       accounts: getSigners(),
       loggingEnabled: true,
       allowUnlimitedContractSize: true,
-      gas: 1000000000,
     },
   },
   solidity: {
@@ -50,7 +50,6 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
-      evmVersion: "constantinople",
     },
   },
   paths: {
@@ -82,6 +81,8 @@ function getSigners() {
     const wallet = Wallet.fromMnemonic(MNEMONIC);
     const privateKey = wallet.getPrivateKeyString();
     signers.push(privateKey);
+  } else if (WALLET_PROVIDER_METHOD === "privateKey") {
+    signers.push(PRIVATE_KEY);
   }
   return signers;
 }

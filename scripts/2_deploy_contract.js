@@ -30,68 +30,93 @@ async function main() {
   let proxyStorage, proxyStorageImpl;
   let voting, votingImpl;
 
-  const EternalStorageProxy = await ethers.getContractFactory(
+  // Contracts Factory
+  const ConsensusFactory = await ethers.getContractFactory("Consensus");
+  const ProxyStorageFactory = await ethers.getContractFactory("ProxyStorage");
+  const BlockRewardFactory = await ethers.getContractFactory("BlockReward");
+  const VotingFactory = await ethers.getContractFactory("Voting");
+  const EternalStorageProxyFactory = await ethers.getContractFactory(
     "EternalStorageProxy"
   );
 
   // Consensus
-  const Consensus = await ethers.getContractFactory("Consensus");
-  consensusImpl = await Consensus.deploy();
+  consensusImpl = await ConsensusFactory.deploy();
   debug(`consensusImpl: ${consensusImpl.address}`);
 
-  proxy = await EternalStorageProxy.deploy(ZERO_ADDRESS, consensusImpl.address);
-  debug(`Consensus proxy: ${proxy.address}`);
+  proxy = await EternalStorageProxyFactory.deploy(
+    ZERO_ADDRESS,
+    consensusImpl.address
+  );
+  debug(`proxy: ${proxy.address}`);
 
-  consensus = Consensus.attach(proxy.address);
+  consensus = await ConsensusFactory.attach(proxy.address);
+  debug(`consensus: ${consensus.address}`);
+
   await consensus.initialize(initialValidatorAddress);
+  debug(`consensus.initialize(initialValidator): ${initialValidatorAddress}`);
 
   // ProxyStorage
-  const ProxyStorage = await ethers.getContractFactory("ProxyStorage");
-  proxyStorageImpl = await ProxyStorage.deploy();
+  proxyStorageImpl = await ProxyStorageFactory.deploy();
   debug(`proxyStorageImpl: ${proxyStorageImpl.address}`);
 
-  proxy = await EternalStorageProxy.deploy(
+  proxy = await EternalStorageProxyFactory.deploy(
     ZERO_ADDRESS,
     proxyStorageImpl.address
   );
-  debug(`ProxyStorage proxy: ${proxy.address}`);
+  debug(`proxy: ${proxy.address}`);
 
-  proxyStorage = ProxyStorage.attach(proxy.address);
-  await proxyStorage.initialize();
+  proxyStorage = ProxyStorageFactory.attach(proxy.address);
+  debug(`proxyStorage: ${proxyStorage.address}`);
+
+  await proxyStorage.initialize(consensus.address);
+  debug(`proxyStorage.initialize: ${consensus.address}`);
+
+  await consensus.setProxyStorage(proxyStorage.address);
+  debug(`consensus.setProxyStorage: ${proxyStorage.address}`);
 
   // BlockReward
-  const BlockReward = await ethers.getContractFactory("BlockReward");
-  blockRewardImpl = await BlockReward.deploy();
+  blockRewardImpl = await BlockRewardFactory.deploy();
   debug(`blockRewardImpl: ${blockRewardImpl.address}`);
 
-  proxy = await EternalStorageProxy.deploy(
+  proxy = await EternalStorageProxyFactory.deploy(
     ZERO_ADDRESS,
     blockRewardImpl.address
   );
-  debug(`BlockReward proxy: ${proxy.address}`);
+  debug(`proxy: ${proxy.address}`);
 
-  blockReward = BlockReward.attach(proxy.address);
-  await blockReward.initialize();
+  blockReward = BlockRewardFactory.attach(proxy.address);
+  debug(`blockReward: ${blockReward.address}`);
+
+  await blockReward.initialize(initialSupply);
+  debug(`blockReward.initialize: ${initialSupply}`);
 
   // Voting
-  const Voting = await ethers.getContractFactory("Voting");
-  votingImpl = await Voting.deploy();
+  votingImpl = await VotingFactory.deploy();
   debug(`votingImpl: ${votingImpl.address}`);
 
-  proxy = await EternalStorageProxy.deploy(ZERO_ADDRESS, votingImpl.address);
-  debug(`Voting proxy: ${proxy.address}`);
+  proxy = await EternalStorageProxyFactory.deploy(
+    ZERO_ADDRESS,
+    votingImpl.address
+  );
+  debug(`proxy: ${proxy.address}`);
 
-  voting = Voting.attach(proxy.address);
+  voting = VotingFactory.attach(proxy.address);
+  debug(`voting: ${voting.address}`);
   await voting.initialize();
+  debug(`voting.initialize`);
 
-  console.log(`Consensus implementation: ${consensusImpl.address}`);
-  console.log(`Consensus proxy: ${consensus.address}`);
-  console.log(`ProxyStorage implementation: ${proxyStorageImpl.address}`);
-  console.log(`ProxyStorage proxy: ${proxyStorage.address}`);
-  console.log(`BlockReward implementation: ${blockRewardImpl.address}`);
-  console.log(`BlockReward proxy: ${blockReward.address}`);
-  console.log(`Voting implementation: ${votingImpl.address}`);
-  console.log(`Voting proxy: ${voting.address}`);
+  console.log(
+    `
+    Block Reward implementation ...................... ${blockRewardImpl.address}
+    Block Reward storage ............................. ${blockReward.address}
+    Consensus implementation ......................... ${consensusImpl.address}
+    Consensus storage ................................ ${consensus.address}
+    ProxyStorage implementation ...................... ${proxyStorageImpl.address}
+    ProxyStorage storage ............................. ${proxyStorage.address}
+    Voting implementation ............................ ${votingImpl.address}
+    Voting storage ................................... ${voting.address}
+    `
+  );
 }
 
 main()
