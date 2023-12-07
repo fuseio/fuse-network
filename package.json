@@ -25,9 +25,12 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^8.0.0",
+    "ethers": "5.6.2",
+    "keythereum": "^2.0.0",
     "openzeppelin-solidity": "2.1.0"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-truffle5": "^2.0.7",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "chai": "^4.2.0",

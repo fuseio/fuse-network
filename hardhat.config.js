@@ -1,4 +1,15 @@
 require("@nomiclabs/hardhat-truffle5");
+require("@nomiclabs/hardhat-ethers");
+require("dotenv").config();
+
+const {
+  WALLET_PROVIDER_METHOD,
+  CREDENTIALS_ADDRESS,
+  CREDENTIALS_KEYSTORE,
+  CREDENTIALS_PASSWORD,
+  MNEMONIC,
+} = process.env;
+
 module.exports = {
   defaultNetwork: "hardhat",
   networks: {
@@ -16,10 +27,20 @@ module.exports = {
     fuse: {
       url: "https://rpc.fuse.io",
       chainId: 122,
+      accounts: getSigners(),
     },
     spark: {
       url: "https://rpc.fusespark.io",
       chainId: 123,
+      accounts: getSigners(),
+    },
+    devnet: {
+      url: "http://34.38.118.140:8545",
+      chainId: 123,
+      accounts: getSigners(),
+      loggingEnabled: true,
+      allowUnlimitedContractSize: true,
+      gas: 1000000000,
     },
   },
   solidity: {
@@ -42,3 +63,25 @@ module.exports = {
     timeout: 40000,
   },
 };
+function getSigners() {
+  let signers = [];
+  if (WALLET_PROVIDER_METHOD === "keystore") {
+    const fs = require("fs");
+    const os = require("os");
+    const path = require("path");
+    const keythereum = require("keythereum");
+
+    const keystore_dir = path.join(os.homedir(), CREDENTIALS_KEYSTORE);
+    const password_dir = path.join(os.homedir(), CREDENTIALS_PASSWORD);
+    const password = fs.readFileSync(password_dir, "utf8");
+    const keyobj = keythereum.importFromFile(CREDENTIALS_ADDRESS, keystore_dir);
+    const privateKey = keythereum.recover(password, keyobj);
+
+    signers.push(privateKey.toString("hex"));
+  } else if (WALLET_PROVIDER_METHOD === "mnemonic") {
+    const wallet = Wallet.fromMnemonic(MNEMONIC);
+    const privateKey = wallet.getPrivateKeyString();
+    signers.push(privateKey);
+  }
+  return signers;
+}
