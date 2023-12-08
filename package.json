@@ -6,7 +6,8 @@
   "scripts": {
     "test": "npx hardhat test",
     "compile": "npx hardhat compile",
-    "flatten": "npx hardhat flatten"
+    "flatten": "commands/flatten.sh",
+    "app": "node app/index.js"
   },
   "repository": {
     "type": "git",

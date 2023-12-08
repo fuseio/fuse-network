@@ -6,8 +6,8 @@ fi
 
 mkdir flats
 
-./node_modules/.bin/truffle-flattener contracts/eternal-storage/EternalStorageProxy.sol > flats/EternalStorageProxy_flat.sol
-./node_modules/.bin/truffle-flattener contracts/Consensus.sol > flats/Consensus_flat.sol
-./node_modules/.bin/truffle-flattener contracts/BlockReward.sol > flats/BlockReward_flat.sol
-./node_modules/.bin/truffle-flattener contracts/ProxyStorage.sol > flats/ProxyStorage_flat.sol
-./node_modules/.bin/truffle-flattener contracts/Voting.sol > flats/Voting_flat.sol
+npx hardhat flatten contracts/eternal-storage/EternalStorageProxy.sol > flats/EternalStorageProxy_flat.sol
+npx hardhat flatten contracts/Consensus.sol > flats/Consensus_flat.sol
+npx hardhat flatten contracts/BlockReward.sol > flats/BlockReward_flat.sol
+npx hardhat flatten contracts/ProxyStorage.sol > flats/ProxyStorage_flat.sol
+npx hardhat flatten contracts/Voting.sol > flats/Voting_flat.sol
