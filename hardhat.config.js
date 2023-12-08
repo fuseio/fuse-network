@@ -50,7 +50,6 @@ module.exports = {
         runs: 200,
       },
     },
-    evmVersion: "byzantium",
   },
   paths: {
     sources: "./contracts",

@@ -2,6 +2,7 @@ require("dotenv").config();
 const fs = require("fs");
 const hre = require("hardhat");
 const ethers = hre.ethers;
+const { assert } = require("chai");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -97,7 +98,7 @@ async function main() {
   debug(`BlockReward Impl: ${blockRewardImpl.address}`);
 
   const blockRewardProxy = await EternalStorageProxyFactory.deploy(
-    ZERO_ADDRESS,
+    proxyStorage.address,
     blockRewardImpl.address
   );
   await blockRewardProxy.deployed();
@@ -116,7 +117,7 @@ async function main() {
   debug(`Voting Impl: ${votingImpl.address}`);
 
   const votingProxy = await EternalStorageProxyFactory.deploy(
-    ZERO_ADDRESS,
+    proxyStorage.address,
     votingImpl.address
   );
   await votingProxy.deployed();
@@ -128,26 +129,62 @@ async function main() {
   await tx5.wait();
   debug(`Voting - initialize ${tx5.hash}`);
 
+  // Check ProxyStorage
+  assert.equal(
+    proxyStorage.address,
+    await blockReward.getProxyStorage(),
+    "BlockReward ProxyStorage Mismatch"
+  );
+
+  assert.equal(
+    proxyStorage.address,
+    await voting.getProxyStorage(),
+    "Voting ProxyStorage Mismatch"
+  );
+
+  assert.equal(
+    await blockReward.getProxyStorage(),
+    await voting.getProxyStorage(),
+    "Voting.BlockReward ProxyStorage Mismatch"
+  );
+
+  assert.equal(
+    await blockReward.getProxyStorage(),
+    await consensus.getProxyStorage(),
+    "Consensus.BlockReward ProxyStorage Mismatch"
+  );
+
   // Initialize ProxyStorage
   const tx6 = await proxyStorage.initializeAddresses(
     blockReward.address,
     voting.address
   );
   await tx6.wait();
+  assert.equal(
+    blockReward.address,
+    await proxyStorage.getBlockReward(),
+    "BlockReward Mismatch"
+  );
+  assert.equal(
+    voting.address,
+    await proxyStorage.getVoting(),
+    "Voting Mismatch"
+  );
   debug(
     `ProxyStorage - initializeAddresses: ${blockReward.address}, ${voting.address}, ${tx6.hash}`
   );
 
   console.log(
     `
-    Block Reward implementation ...................... ${blockRewardImpl.address}
-    Block Reward storage ............................. ${blockReward.address}
-    Consensus implementation ......................... ${consensusImpl.address}
-    Consensus storage ................................ ${consensus.address}
-    ProxyStorage implementation ...................... ${proxyStorageImpl.address}
-    ProxyStorage storage ............................. ${proxyStorage.address}
-    Voting implementation ............................ ${votingImpl.address}
-    Voting storage ................................... ${voting.address}
+    Deploying contracts with the account ............. ${deployer.address}
+    Block Reward Implementation ...................... ${blockRewardImpl.address}
+    Block Reward Proxy ............................... ${blockReward.address}
+    Consensus Implementation ......................... ${consensusImpl.address}
+    Consensus Proxy .................................. ${consensus.address}
+    ProxyStorage Implementation ...................... ${proxyStorageImpl.address}
+    ProxyStorage Proxy ............................... ${proxyStorage.address}
+    Voting Implementation ............................ ${votingImpl.address}
+    Voting Proxy ..................................... ${voting.address}
     `
   );
 }
