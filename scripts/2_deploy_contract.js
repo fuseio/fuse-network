@@ -6,8 +6,7 @@ const { assert } = require("chai");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-const { INITIAL_VALIDATOR_ADDRESS, INITIAL_SUPPLY_GWEI, SAVE_TO_FILE, DEBUG } =
-  process.env;
+const { INITIAL_VALIDATOR_ADDRESS, INITIAL_SUPPLY_GWEI, DEBUG } = process.env;
 
 const debug = (msg) => {
   if (DEBUG) console.log(msg);
@@ -19,6 +18,7 @@ async function main() {
   console.log(`Deploying contracts with the account: ${deployer.address}`);
 
   let initialValidatorAddress = INITIAL_VALIDATOR_ADDRESS || ZERO_ADDRESS;
+  initialValidatorAddress = ethers.utils.getAddress(initialValidatorAddress);
   let initialSupply = ethers.utils.parseUnits(
     INITIAL_SUPPLY_GWEI || "0",
     "gwei"
@@ -46,15 +46,14 @@ async function main() {
   debug(`Consensus Proxy: ${consensusProxy.address}`);
 
   const consensus = ConsensusFactory.attach(consensusProxy.address);
-  debug(`Consensus: ${consensus.address}`);
+  debug(`Consensus : ${consensus.address}`);
 
   const tx = await consensus.initialize(initialValidatorAddress);
   await tx.wait();
 
-  let consensusInitialValidatorAddress = await consensus.getValidators();
   assert.equal(
     initialValidatorAddress,
-    consensusInitialValidatorAddress[0].toLowerCase(),
+    (await consensus.getValidators())[0],
     "InitialValidatorAddress Mismatch"
   );
   debug(`Initial Validator Address: ${initialValidatorAddress}`);
@@ -105,7 +104,7 @@ async function main() {
   debug(`BlockReward Proxy: ${blockRewardProxy.address}`);
 
   const blockReward = BlockRewardFactory.attach(blockRewardProxy.address);
-  debug(`BlockReward: ${blockReward.address}`);
+  debug(`BlockReward : ${blockReward.address}`);
 
   const tx4 = await blockReward.initialize(initialSupply);
   await tx4.wait();

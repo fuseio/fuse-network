@@ -70,7 +70,7 @@ Make sure you've created an `.env` using the template [`env.example`](https://gi
 Run:
 
 ```
-$ ./node_modules/.bin/truffle migrate --reset --network <NETWORK_NAME>
+npx hardhat run scripts/<SCRIPT_NAME> --network <NETWORK_NAME>
 ```
 
 ## Run Local Node
