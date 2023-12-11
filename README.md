@@ -28,46 +28,49 @@
   - [Building containers](#building-containers)
 
 ## General
+
 ### Clone Repository
+
 ```
 $ git clone https://github.com/fuseio/fuse-network.git ~/Dev/fuse-network
 ```
 
 ### Install Dependencies
+
 ```
-$ npm install
+$ yarn install
 ```
 
 ### Run Unit Tests
+
 ```
-$ npm test
+$ yarn test
 ```
 
 ## Contracts
-### Compile
-```
-$ npm run compile
-```
 
-### ABIs
+### Compile
+
 ```
-$ npm run abi
+$ yarn compile
 ```
 
 ### Flatten
+
 ```
-$ npm run flatten
+$ yarn flatten
 ```
 
 ### Deploy
-Make sure `NETWORK_NAME` is defined in [`truffle-config`](https://github.com/fuseio/fuse-network/blob/master/truffle-config.js)
+
+Make sure `NETWORK_NAME` is defined in [`hardhat.config`](https://github.com/fuseio/fuse-network/blob/master/hardhat.config.js)
 
 Make sure you've created an `.env` using the template [`env.example`](https://github.com/fuseio/fuse-network/blob/master/.env.example)
 
 Run:
 
 ```
-$ ./node_modules/.bin/truffle migrate --reset --network <NETWORK_NAME>
+npx hardhat run scripts/<SCRIPT_NAME> --network <NETWORK_NAME>
 ```
 
 ## Run Local Node
@@ -82,30 +85,32 @@ Make sure that your user is added to the `docker` user-group on _Unix_ systems, 
 
 ### Hardware
 
- > Note: 
- > * Specified for [AWS](https://console.aws.amazon.com), but similar on other providers as well
- > * Depending on your node purpose (shared RPC endpoint with hight load) system requirements could be different
- > * `-` in each column means that role has the same parameters like previous
+> Note:
+>
+> - Specified for [AWS](https://console.aws.amazon.com), but similar on other providers as well
+> - Depending on your node purpose (shared RPC endpoint with hight load) system requirements could be different
+> - `-` in each column means that role has the same parameters like previous
 
- | Node role          | Bootnode                                                  | Node | Validator | Archival                                                 |
- | ------------------ | --------------------------------------------------------- | ---- | --------- | -------------------------------------------------------- |
- | Operating system   | Ubuntu (18.04 and higher) or any other Linux distribution | -    | -         | -                                                        |
- | Runtime            | On - Premise, Docker, Kubernetes                          | -    | -         | -                                                        |
- | Compute            | Minimal: 2vCPU, 8GB RAM; Recommended: 4vCPU, 16GB RAM     | -    | -         |                                                          |
- | Disk type and size | 150GB SSD; Read/Write IOPS - 5000, Throughput - 125 MB/s  | -    | -         | 2TB SSD; Read / Write IOPS - 5000, Throughput - 125 MB/s |
+| Node role          | Bootnode                                                  | Node | Validator | Archival                                                 |
+| ------------------ | --------------------------------------------------------- | ---- | --------- | -------------------------------------------------------- |
+| Operating system   | Ubuntu (18.04 and higher) or any other Linux distribution | -    | -         | -                                                        |
+| Runtime            | On - Premise, Docker, Kubernetes                          | -    | -         | -                                                        |
+| Compute            | Minimal: 2vCPU, 8GB RAM; Recommended: 4vCPU, 16GB RAM     | -    | -         |                                                          |
+| Disk type and size | 150GB SSD; Read/Write IOPS - 5000, Throughput - 125 MB/s  | -    | -         | 2TB SSD; Read / Write IOPS - 5000, Throughput - 125 MB/s |
 
 ### Networking
 
- | Name | Port  | Protocol | Action       | Description                                                   | Notes                          |
- | ---- | ----- | -------- | ------------ | ------------------------------------------------------------- | ------------------------------ |
- | P2P  | 30303 | TCP      | Allow        | Port used for communication with the network peers            | Should be openned for everyone |
- | P2P  | 30303 | UDP      | Allow        | -                                                             | -                              |
- | RPC  | 8545  | TCP      | Allow / Deny | Port used for communication with the node with HTTP JSON RPC  | Please, see notes below        |
- | WS   | 8546  | TCP      | Allow / Deny | Port used for communication with the node with HTTP WebSocket | Please, see notes below        |
+| Name | Port  | Protocol | Action       | Description                                                   | Notes                          |
+| ---- | ----- | -------- | ------------ | ------------------------------------------------------------- | ------------------------------ |
+| P2P  | 30303 | TCP      | Allow        | Port used for communication with the network peers            | Should be openned for everyone |
+| P2P  | 30303 | UDP      | Allow        | -                                                             | -                              |
+| RPC  | 8545  | TCP      | Allow / Deny | Port used for communication with the node with HTTP JSON RPC  | Please, see notes below        |
+| WS   | 8546  | TCP      | Allow / Deny | Port used for communication with the node with HTTP WebSocket | Please, see notes below        |
 
- > Note: 
- > * Outbound traffic should be oppened for all IP addresses
- > * For Bootnode node role not necessarry to open RPC and WS ports, only P2P are required; for Validator node role WS and RPC ports should be openned on `localhost` and granted restricted access through IP whitelists
+> Note:
+>
+> - Outbound traffic should be oppened for all IP addresses
+> - For Bootnode node role not necessarry to open RPC and WS ports, only P2P are required; for Validator node role WS and RPC ports should be openned on `localhost` and granted restricted access through IP whitelists
 
 ### Using Quickstart
 
@@ -240,6 +245,7 @@ $ docker run fusenet/node --help
 Besides the original help, the following sections provide some example instructions how to get started for the different roles.
 
 ##### Bootnode
+
 ```
 ## Start parity container with all necessary arguments.
 $ docker run \
@@ -258,6 +264,7 @@ $ docker run \
 ```
 
 ##### Node
+
 ```
 ## Start parity container with all necessary arguments.
 $ docker run \
@@ -289,11 +296,11 @@ Inside a directory for the keys with another sub-directory for the FuseNetwork c
 
 Your key-file has to be placed there.
 
-Afterwards the key's password has to be stored into a file directly inside the `config` folder. 
+Afterwards the key's password has to be stored into a file directly inside the `config` folder.
 
 To make use of the default configurations without adjustment, the file has to be called `pass.pwd`.
 
-If you have no account already or want to create a new one for this purpose checkout [this section](#create-new-account). 
+If you have no account already or want to create a new one for this purpose checkout [this section](#create-new-account).
 
 Using so the previous paragraph as well as the first 2-3 instructions can be ignored.
 
@@ -352,7 +359,7 @@ If you have no existing account or a new one should be created anyway, _Parity_ 
 
 Please consider other options like [MetaMask](https://metamask.io/) or any other (online) wallet tool.
 
-In relation to the instructions for the [validator](#validator) role, we use the folder called `config` to bind as _Docker_ volume to _Parity_. 
+In relation to the instructions for the [validator](#validator) role, we use the folder called `config` to bind as _Docker_ volume to _Parity_.
 
 Afterwards the key will be placed there and the first steps of these instructions can be skipped.
 
@@ -368,6 +375,7 @@ The address corresponding to the generated private key gets printed out on the C
 Please copy it for the later use. It will be needed for the `--address` argument where it will be added in plain text.
 
 ##### Archival node
+
 If you intent to run an archival node, for example for the explorer [blockscout explorer](https://github.com/fuseio/blockscout/tree/fuse):
 
 ```
@@ -387,9 +395,9 @@ $ docker run \
 	--parity-args --node-key $NODE_KEY
 ```
 
-***Note***
+**_Note_**
 
-All roles should also run a [Ethereum Network Intelligence API](https://github.com/fuseio/eth-net-intelligence-api) app as well, in order to connect themselves as part of the network and be viewed by the [health](https://health.fuse.io) service***
+All roles should also run a [Ethereum Network Intelligence API](https://github.com/fuseio/eth-net-intelligence-api) app as well, in order to connect themselves as part of the network and be viewed by the [health](https://health.fuse.io) service\*\*\*
 
 ```
 $ docker run \
@@ -408,11 +416,11 @@ The [buildContainers script](https://github.com/fuseio/fuse-network/blob/master/
 ```
 1.  cd into the scripts directory
 2.  run the script with elevated privileges (./buildConatiner.sh) - an on screen prompt will be displayed
-3.  (skip if not first time) If running for the first time the script will need to install it's dependencies  this is done by selecting option 4 
+3.  (skip if not first time) If running for the first time the script will need to install it's dependencies  this is done by selecting option 4
     ("First time configure")
 4.  You are given 3 options ("Build Fuse APP container", "Build Fuse Parity container" and "Build both") select the appropriate option
-5.  The script will build the containers and ask you for the new version info in the format x.y.z (where x,y,z are numbers). It will then push the 
+5.  The script will build the containers and ask you for the new version info in the format x.y.z (where x,y,z are numbers). It will then push the
     newly built and tagged containers to the fusenet docker repo
-6.  (optional) A Y/N prompt is given to update the fuse git repo with the new version info. if Y is selected the script will branch at your current 
+6.  (optional) A Y/N prompt is given to update the fuse git repo with the new version info. if Y is selected the script will branch at your current
     head and create and commit the new version file and also create a PR to merge this file back into master (you may be required to input your git creds here)
 ```
