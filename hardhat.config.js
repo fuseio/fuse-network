@@ -1,5 +1,6 @@
 require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-ethers");
+require("@nomicfoundation/hardhat-verify");
 require("dotenv").config();
 
 const {
@@ -41,6 +42,12 @@ module.exports = {
       accounts: getSigners(),
       allowUnlimitedContractSize: true,
     },
+    shadowfork: {
+      url: "http://35.241.160.82:8545",
+      chainId: 123,
+      accounts: getSigners(),
+      allowUnlimitedContractSize: true,
+    },
   },
   solidity: {
     version: "0.4.24",
@@ -59,6 +66,21 @@ module.exports = {
   },
   mocha: {
     timeout: 40000,
+  },
+  etherscan: {
+    apiKey: {
+      spark: "abc",
+    },
+    customChains: [
+      {
+        network: "spark",
+        chainId: 123,
+        urls: {
+          apiURL: "https://explorer.fusespark.io/api/",
+          browserURL: "https://explorer.fusespark.io",
+        },
+      },
+    ],
   },
 };
 function getSigners() {
