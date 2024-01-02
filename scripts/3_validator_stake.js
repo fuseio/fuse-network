@@ -3,10 +3,10 @@ const hre = require("hardhat");
 const ethers = hre.ethers;
 const { assert } = require("chai");
 
-const { CONSENSUS_CONTRACT_ADDRESS, CREDENTIALS_ADDRESS } = process.env;
+const { CONSENSUS_PROXY, CREDENTIALS_ADDRESS } = process.env;
 
 async function main() {
-  let consensusAddress = ethers.utils.getAddress(CONSENSUS_CONTRACT_ADDRESS);
+  let consensusAddress = ethers.utils.getAddress(CONSENSUS_PROXY);
   let credentialsAddress = ethers.utils.getAddress(CREDENTIALS_ADDRESS);
 
   let stakeAmount = ethers.utils.parseUnits("100000", "ether");
@@ -22,7 +22,7 @@ async function main() {
   );
 
   const ConsensusFactory = await ethers.getContractFactory("Consensus");
-  const consensus = ConsensusFactory.attach(CONSENSUS_CONTRACT_ADDRESS);
+  const consensus = ConsensusFactory.attach(CONSENSUS_PROXY);
 
   const tx = await consensus.stake({ value: stakeAmount });
   await tx.wait();
