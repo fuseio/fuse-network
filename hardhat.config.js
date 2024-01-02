@@ -70,6 +70,7 @@ module.exports = {
   etherscan: {
     apiKey: {
       spark: "abc",
+      fuse: "abc",
     },
     customChains: [
       {
@@ -78,6 +79,14 @@ module.exports = {
         urls: {
           apiURL: "https://explorer.fusespark.io/api/",
           browserURL: "https://explorer.fusespark.io",
+        },
+      },
+      {
+        network: "fuse",
+        chainId: 122,
+        urls: {
+          apiURL: "https://explorer.fuse.io/api/",
+          browserURL: "https://explorer.fuse.io",
         },
       },
     ],
