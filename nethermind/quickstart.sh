@@ -21,7 +21,7 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.17.3-v4.0.0"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.21.0-rc-v4.0.5-beta"
 DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
 
 # Directories
