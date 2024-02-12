@@ -488,6 +488,7 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
+            --network $NETWORK \
             --instance-name $NODE_KEY \
             --role ${ROLE^} \
             --netstats-version $NETSTATS_VERSION
@@ -538,6 +539,7 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
+            --network $NETWORK \
             --instance-name "${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
             --role ${ROLE^} \
             --netstats-version $NETSTATS_VERSION \
