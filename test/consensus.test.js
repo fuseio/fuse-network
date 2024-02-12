@@ -2820,6 +2820,145 @@ contract("Consensus", async (accounts) => {
       await consensus.initialize(initialValidator);
       await consensus.setProxyStorage(proxyStorage.address);
     });
+    it("Validator should not be jailed twice when inactive for two cycles", async () => {
+      await consensus.sendTransaction({
+        from: firstCandidate,
+        value: MIN_STAKE,
+      }).should.be.fulfilled;
+      await consensus.sendTransaction({
+        from: secondCandidate,
+        value: MIN_STAKE,
+      }).should.be.fulfilled;
+
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount());
+      let pendingValidators = await consensus.pendingValidators();
+      pendingValidators.length.should.be.equal(2);
+      await mockEoC();
+
+      // Current Cycle -----------------------------------------------------------
+      let currentBlockNumber = await web3.eth.getBlockNumber();
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let blocksToAdvance =
+        currentCycleEndBlock.toNumber() - currentBlockNumber;
+
+      await consensus.setBlockCounterMock(
+        secondCandidate,
+        CYCLE_DURATION_BLOCKS
+      );
+
+      await advanceBlocks(blocksToAdvance);
+      true.should.be.equal(await consensus.hasCycleEnded());
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+      await mockEoC();
+
+      true.should.be.equal(await consensus.isJailed(firstCandidate));
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate));
+      ONE.should.be.bignumber.equal(await consensus.jailedValidatorsLength());
+      false.should.be.equal(await consensus.isJailed(secondCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(secondCandidate));
+
+      // NEXT CYCLE -----------------------------------------------------------
+      currentBlockNumber = await web3.eth.getBlockNumber();
+      currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      blocksToAdvance = currentCycleEndBlock.toNumber() - currentBlockNumber;
+
+      await consensus.setBlockCounterMock(
+        secondCandidate,
+        CYCLE_DURATION_BLOCKS
+      );
+
+      await advanceBlocks(blocksToAdvance);
+      true.should.be.equal(await consensus.hasCycleEnded());
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+      await mockEoC();
+
+      true.should.be.equal(await consensus.isJailed(firstCandidate));
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate));
+      ONE.should.be.bignumber.equal(await consensus.jailedValidatorsLength());
+      false.should.be.equal(await consensus.isJailed(secondCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(secondCandidate));
+
+      // Unjail -----------------------------------------------------------
+      await consensus.unJail({ from: firstCandidate }).should.be.fulfilled;
+
+      false.should.be.equal(await consensus.isJailed(firstCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate));
+      ZERO.should.be.bignumber.equal(await consensus.jailedValidatorsLength());
+    });
+    it("Validator should not be jailed twice when on maintenance", async () => {
+      await consensus.sendTransaction({
+        from: firstCandidate,
+        value: MIN_STAKE,
+      }).should.be.fulfilled;
+      await consensus.sendTransaction({
+        from: secondCandidate,
+        value: MIN_STAKE,
+      }).should.be.fulfilled;
+
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount());
+      let pendingValidators = await consensus.pendingValidators();
+      pendingValidators.length.should.be.equal(2);
+      await mockEoC();
+
+      let currentBlockNumber = await web3.eth.getBlockNumber();
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let blocksToAdvance =
+        currentCycleEndBlock.toNumber() - currentBlockNumber;
+
+      await consensus.maintenance({ from: firstCandidate }).should.be.fulfilled;
+      await consensus.setBlockCounterMock(
+        secondCandidate,
+        CYCLE_DURATION_BLOCKS
+      );
+
+      await advanceBlocks(blocksToAdvance);
+      true.should.be.equal(await consensus.hasCycleEnded());
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+      await mockEoC();
+
+      true.should.be.equal(await consensus.isJailed(firstCandidate));
+      false.should.be.equal(await consensus.isPendingValidator(firstCandidate));
+      ONE.should.be.bignumber.equal(await consensus.jailedValidatorsLength());
+      false.should.be.equal(await consensus.isJailed(secondCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(secondCandidate));
+    });
+    it("Unjailing should remove jailed validator from jailing list", async () => {
+      await consensus.sendTransaction({
+        from: firstCandidate,
+        value: MIN_STAKE,
+      }).should.be.fulfilled;
+      await consensus.sendTransaction({
+        from: secondCandidate,
+        value: MIN_STAKE,
+      }).should.be.fulfilled;
+
+      ZERO.should.be.bignumber.equal(await consensus.totalStakeAmount());
+      let pendingValidators = await consensus.pendingValidators();
+      pendingValidators.length.should.be.equal(2);
+      await mockEoC();
+
+      let currentBlockNumber = await web3.eth.getBlockNumber();
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let blocksToAdvance =
+        currentCycleEndBlock.toNumber() - currentBlockNumber;
+
+      await consensus.maintenance({ from: firstCandidate }).should.be.fulfilled;
+      await consensus.setBlockCounterMock(
+        secondCandidate,
+        CYCLE_DURATION_BLOCKS
+      );
+
+      await advanceBlocks(blocksToAdvance);
+      true.should.be.equal(await consensus.hasCycleEnded());
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+      await mockEoC();
+
+      await consensus.unJail({ from: firstCandidate }).should.be.fulfilled;
+
+      false.should.be.equal(await consensus.isJailed(firstCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate));
+      ZERO.should.be.bignumber.equal(await consensus.jailedValidatorsLength());
+    });
     it("Unjailing should only work for jailed validators", async () => {
       //test with non val
       await consensus

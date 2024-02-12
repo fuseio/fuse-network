@@ -1,3 +1,4 @@
+require("solidity-coverage");
 require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-ethers");
 require("@nomicfoundation/hardhat-verify");
