@@ -364,9 +364,8 @@ function setup() {
 
     # Generate keystore file
     if [[ $ROLE == "validator" ]]; then
-        keystore_files=("$KEYSTORE_DIR"/UTC--**)
-        if [[ ${#keystore_files[@]} -gt 0 ]]; then
-            for keystore_file_path in "${keystore_files[@]}"; do
+        if [ -n "$(find "$KEYSTORE_DIR" -type f -name 'UTC--*' -print -quit)" ]; then
+            for keystore_file_path in "$KEYSTORE_DIR"/UTC--*; do
                 PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat "$keystore_file_path" | jq -r '.address')
 
                 echo -e "\nPrivate key is present in directory. Your public address - 0x$PUBLIC_ADDRESS"
