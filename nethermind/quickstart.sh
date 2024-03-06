@@ -364,13 +364,53 @@ function setup() {
 
     # Generate keystore file
     if [[ $ROLE == "validator" ]]; then
-        if ls $KEYSTORE_DIR/UTC--**; then
+        if [ -n "$(find "$KEYSTORE_DIR" -type f -name 'UTC--*' -print -quit)" ]; then
+            for keystore_file_path in "$KEYSTORE_DIR"/UTC--*; do
+                PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat "$keystore_file_path" | jq -r '.address')
 
-            PUBLIC_ADDRESS=$($PERMISSION_PREFIX cat $KEYSTORE_DIR/UTC--* | jq -r '.address')
+                echo -e "\nPrivate key is present in directory. Your public address - 0x$PUBLIC_ADDRESS"
+                echo -e "\nChecking if key file matches expected format..."
 
-            echo -e "\nPrivate key is present in directory. You public address - 0x$PUBLIC_ADDRESS"
+                # Extract just the file name
+                keystore_file_name=$(basename "$keystore_file_path")
+                keystore_file_name=$(echo "$keystore_file_name" | tr -d '[:space:]')
+                echo "keystore_file_name: $keystore_file_name"
 
-            echo -e "\nSkipping creating new private key..."
+                # Check date format
+                if [[ $keystore_file_name =~ UTC--[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}\.[0-9]+Z ]]; then
+                    echo -e "\nDate format is correct...."
+
+                    # Check if 42 characters at the end are missing
+                    if [[ $keystore_file_name =~ .{42}$ ]]; then
+                        echo -e "\npublic address not found at the end."
+
+                        # Check if the fractional seconds part is missing
+                        if [[ $keystore_file_name != *.*Z* ]]; then
+                            echo -e "\nFractional seconds are missing. Appending..."
+                            stripped_name=$(echo "$keystore_file_name" | sed 's/\(.*\)--.*/\1/')
+                            stripped_name=$(echo "$stripped_name" | awk '{gsub(/Z$/, ".123456000Z")}1')
+                            new_file_name="$stripped_name--$PUBLIC_ADDRESS"
+                            mv "$keystore_file_path" "$KEYSTORE_DIR/$new_file_name"
+                        else
+                            echo -e "\nFractional seconds are present."
+                        fi
+                    else
+                        echo -e "\nAppending public address...."
+                        stripped_name=$(echo "$keystore_file_name" | sed 's/\(.*\)--.*/\1/')
+                        stripped_name=$(echo "$stripped_name" | awk '{gsub(/Z$/, ".123456000Z")}1')
+                        new_file_name="$stripped_name--$PUBLIC_ADDRESS"
+                        mv "$keystore_file_path" "$KEYSTORE_DIR/$new_file_name"
+                    fi
+                else
+                    echo -e "\nDate format is incorrect."
+                    stripped_name=$(echo "$keystore_file_name" | sed 's/\(.*\)--.*/\1/')
+                    stripped_name=$(echo "$stripped_name" | awk '{gsub(/Z$/, ".123456000Z")}1')
+                    new_file_name="$stripped_name--$PUBLIC_ADDRESS"
+                    mv "$keystore_file_path" "$KEYSTORE_DIR/$new_file_name"
+                fi
+
+                echo -e "\nSkipping creating a new private key..."
+            done
         else
             generate_eth_private_key
         fi
