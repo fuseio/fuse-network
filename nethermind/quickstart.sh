@@ -21,8 +21,8 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.17.3-v4.0.0"
-DOCKER_IMAGE_NET_STATS_VERSION="1.0.0"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.3-v4.0.5"
+DOCKER_IMAGE_NET_STATS_VERSION="2.0.1"
 
 # Directories
 BASE_DIR="$(pwd)/fusenet"
@@ -294,7 +294,7 @@ function setup() {
 
     # Specify images / versions (Spark)
     SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
-    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
+    SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_FUSE_APP_VERSION"
 
     SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NET_STATS_VERSION"
@@ -528,6 +528,7 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
+            --network $NETWORK \
             --instance-name $NODE_KEY \
             --role ${ROLE^} \
             --netstats-version $NETSTATS_VERSION
@@ -578,6 +579,7 @@ function run() {
             --restart always \
             --memory "250m" \
             $NETSTATS_DOCKER_IMAGE \
+            --network $NETWORK \
             --instance-name "${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
             --role ${ROLE^} \
             --netstats-version $NETSTATS_VERSION \
@@ -685,7 +687,7 @@ function send_tx_to_consensus() {
     unlock_account
 
     if [[ $NETWORK == "spark" ]]; then
-        CONSENSUS_ADDR="0xC8c3a332f9e4CE6bfFFcf967026cB006Db2311c7"
+        CONSENSUS_ADDR="0x8C682051D70301A0ca913Ce0A0e71539702E1122"
     else
         CONSENSUS_ADDR="0x3014ca10b91cb3D0AD85fEf7A3Cb95BCAc9c0f79"
     fi
