@@ -186,7 +186,7 @@ function check_ram_memory_space() {
 
     # Check with specified treshold
     if [ $total_ram_memory_size_gb -lt $REQUIRED_RAM_GB ]; then
-        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_volume_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
+        display_error_and_exit "\nCheck RAM memory space... ERROR - Not enoguh total RAM memory space! you have $total_ram_memory_size_gb GB you require at least $REQUIRED_RAM_GB GB!"
     else
         echo -e "\nCheck RAM memory space... OK!"
     fi
