@@ -9,6 +9,7 @@ yarn-error.log*
 
 node_modules/
 .env*
+!.env*.*.example
 !.env*.default
 .vscode/*
 !.vscode/settings.json.default

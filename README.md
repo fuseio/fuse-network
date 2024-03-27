@@ -120,7 +120,7 @@ To make starting a node for the FuseNetwork as quick as possible, the _quickstar
 
 1. Download the script.
 
-2. Download one of the example `.env` files located at the [examples folder](https://github.com/fuseio/fuse-network/tree/master/scripts/examples).
+2. Download one of the example `.env` files located at the [examples folder](https://github.com/fuseio/fuse-network/tree/master/commands/examples).
 
 3. Modify the `.env` file according to the role/type of node you're running.
 
@@ -131,9 +131,9 @@ The script will make sure you have everything that is necessary, create a new ac
 The script can be called multiple times without problems, so it checks what is already there and will at least update all service processes.
 
 ```sh
-$ wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/quickstart.sh
+$ wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/commands/quickstart.sh
 $ chmod 777 quickstart.sh
-$ wget -O .env https://raw.githubusercontent.com/fuseio/fuse-network/master/scripts/examples/.env.<ROLE>.example
+$ wget -O .env https://raw.githubusercontent.com/fuseio/fuse-network/master/commands/examples/.env.<ROLE>.example
 $ ./quickstart.sh
 ```
 
