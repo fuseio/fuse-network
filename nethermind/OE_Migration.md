@@ -28,9 +28,10 @@ With your data backed up, the next step is to install the Nethermind client.
 
 1. **Extract the downloaded file** it's advised to sync the database from scratch and not to use the backup from OpenEthereum node.
 2. **Download & install Nethermind** Please refere to [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind)
-   - Monitor the CMD while running the quickstart.sh script file and verify that the public address matches the node address.
-     - `Private key is present in directory. Your public address 0x0..........`
-     - `Skipping creating new private key...`
+3. **Monitor** the CMD while running the quickstart.sh script file and verify that the public address matches the node address.
+
+- `Private key is present in directory. Your public address 0x0..........`
+- `Skipping creating new private key...`
 
 #### Step 5: Verifying the Migration
 
