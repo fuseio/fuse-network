@@ -26,18 +26,18 @@ Before starting the migration, ensure you have a backup of your node data. This 
 
 With your data backed up, the next step is to install the Nethermind client.
 
-1. **Extract the downloaded file** it's advised to sync the database from scratch and not to use the backup from OpenEthereum node.
-2. **Download & install Nethermind** Please refer to [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind)
+1. **Extract the downloaded file**; it's advised to sync the database from scratch and not to use the backup from OpenEthereum node.
+2. **Download & install Nethermind**. Please refer to the [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind).
 3. **Monitor** the command line while running the quickstart.sh script file and verify that the public address matches the node address.
 
-- `Private key is present in directory. Your public address 0x0..........`
+- `Private key is present in the directory. Your public address 0x0..........`
 - `Skipping creating new private key...`
 
 #### Step 5: Verifying the Migration
 
 Once Nethermind is up and running, perform checks to ensure everything is working as expected.
 
-1. **Check keystore folder** The keystore structure is different brtween OE client and Nethermind client. The quickstart.sh script will handle the keystore migration from the old structure to the new one supported by Nethermind.
+1. **Check keystore folder**. The keystore structure is different between OE client and Nethermind client. The quickstart.sh script will handle the keystore migration from the old structure to the new one supported by Nethermind.
 
    - Under keystore folder the UTC file should follow this structure:
      - `UTC--{yyyy-MM-dd}T{HH-mm-ss.ffffff}000Z--{address}`
@@ -47,12 +47,14 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
 
 - To check the logs of the Nethermind client (assuming it's running under the container name `fusenet`):
   - Things to look for
-    - `Address 0x0.......... is configured for signing blocks.` Verify that the public address matches the node address
+    - `Address 0x0.......... is configured for signing blocks.` (if you are running a validator node)
+    - `Address 0x0.......... is configured for .TODO.` (if you are **not** running a validator node)
+    - Verify that the public address matches the node address.
     - The node is sealing/syncing new blocks.
   ```bash
   docker logs fusenet
   ```
-- To check the logs of the validator app (if your are running a validator node):
+- To check the logs of the validator app (if you are running a validator node):
 
   ```bash
   docker logs fuseapp
@@ -66,4 +68,4 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
 
 #### Troubleshooting
 
-- If you encounter issues during the migration please contact us.
+- If you encounter issues during the migration, please reach out to us for support at nodes-support@fuse.io.
