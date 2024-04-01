@@ -2,7 +2,7 @@
 
 #### Introduction
 
-This guide provides step-by-step instructions for node operators looking to migrate their Ethereum nodes from the OpenEthereum client to the Nethermind client. The migration process involves backing up data, installing the Nethermind client, configuring it, and finally starting and verifying the node's operation.
+This guide provides step-by-step instructions for node operators looking to migrate their Fuse nodes from the OpenEthereum client to the Nethermind client. The migration process involves backing up data, installing the Nethermind client, configuring it, and finally starting and verifying the node's operation.
 
 #### Prerequisites
 
@@ -27,8 +27,8 @@ Before starting the migration, ensure you have a backup of your node data. This 
 With your data backed up, the next step is to install the Nethermind client.
 
 1. **Extract the downloaded file** it's advised to sync the database from scratch and not to use the backup from OpenEthereum node.
-2. **Download & install Nethermind** Please refere to [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind)
-3. **Monitor** the CMD while running the quickstart.sh script file and verify that the public address matches the node address.
+2. **Download & install Nethermind** Please refer to [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind)
+3. **Monitor** the command line while running the quickstart.sh script file and verify that the public address matches the node address.
 
 - `Private key is present in directory. Your public address 0x0..........`
 - `Skipping creating new private key...`
@@ -37,7 +37,7 @@ With your data backed up, the next step is to install the Nethermind client.
 
 Once Nethermind is up and running, perform checks to ensure everything is working as expected.
 
-1. **Check keystore folder** The keystore structure is different brtween OE cleint and Nethermind client, the quickstart.sh script will handle the keystore migration from the old structure to the new one supported by Nethermind.
+1. **Check keystore folder** The keystore structure is different brtween OE client and Nethermind client. The quickstart.sh script will handle the keystore migration from the old structure to the new one supported by Nethermind.
 
    - Under keystore folder the UTC file should follow this structure:
      - `UTC--{yyyy-MM-dd}T{HH-mm-ss.ffffff}000Z--{address}`
