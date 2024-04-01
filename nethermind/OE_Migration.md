@@ -30,8 +30,9 @@ With your data backed up, the next step is to install the Nethermind client.
 2. **Download & install Nethermind**. Please refer to the [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind).
 3. **Monitor** the command line while running the quickstart.sh script file and verify that the public address matches the node address.
 
-- `Private key is present in the directory. Your public address 0x0..........`
-- `Skipping creating new private key...`
+- Things to look for
+  - `Private key is present in the directory. Your public address 0x0..........`
+  - `Skipping creating new private key...`
 
 #### Step 5: Verifying the Migration
 
