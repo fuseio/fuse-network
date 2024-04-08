@@ -21,7 +21,8 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.3-v4.0.5"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v4.0.5"
+SPARK_DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v5.0.0-alpha"
 DOCKER_IMAGE_NET_STATS_VERSION="2.0.1"
 
 # Directories
@@ -291,12 +292,15 @@ function setup() {
     # Specify image versions (generic)
     FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/node"
     FUSE_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
+    if [[ $NETWORK == "spark" ]]; then
+        FUSE_CLIENT_DOCKER_IMAGE_VERSION="$SPARK_DOCKER_IMAGE_NM_CLIENT"
+    fi
 
     # Specify images / versions (Spark)
     SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
     SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_FUSE_APP_VERSION"
 
-    SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
+    SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NET_STATS_VERSION"
 
     # Specify images / versions (Fuse)
