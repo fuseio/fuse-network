@@ -531,11 +531,21 @@ function run() {
             --log-opt compress=true \
             --restart always \
             --memory "250m" \
-            $NETSTATS_DOCKER_IMAGE \
-            --network $NETWORK \
-            --instance-name $NODE_KEY \
-            --role ${ROLE^} \
-            --netstats-version $NETSTATS_VERSION
+            --env NODE_ENV=production \
+            --env RPC_HOST=$CONTAINER_NAME \
+            --env RPC_PORT=8545 \
+            --env LISTENING_PORT=30303 \
+            --env INSTANCE_NAME=$NODE_KEY \
+            --env ROLE=${ROLE^} \
+            --env BRIDGE_VERSION="" \
+            --env FUSE_APP_VERSION="" \
+            --env NETSTATS_VERSION=$NETSTATS_VERSION \
+            --env PARITY_VERSION="" \
+            --env CONTACT_DETAILS="" \
+            --env WS_SERVER="" \
+            --env WS_SECRET="" \
+            --env VERBOSITY=2 \
+            $NETSTATS_DOCKER_IMAGE
     fi
 
     if [[ $ROLE == "validator" ]]; then
@@ -582,12 +592,22 @@ function run() {
             --log-opt compress=true \
             --restart always \
             --memory "250m" \
-            $NETSTATS_DOCKER_IMAGE \
-            --network $NETWORK \
-            --instance-name "${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
-            --role ${ROLE^} \
-            --netstats-version $NETSTATS_VERSION \
-            --fuseapp-version "1.0.0"
+            --env NODE_ENV=production \
+            --env RPC_HOST=$CONTAINER_NAME \
+            --env RPC_PORT=8545 \
+            --env LISTENING_PORT=30303 \
+            --env INSTANCE_NAME="${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
+            --env ROLE=${ROLE^} \
+            --env BRIDGE_VERSION="" \
+            --env FUSE_APP_VERSION="1.0.0" \
+            --env NETSTATS_VERSION=$NETSTATS_VERSION \
+            --env PARITY_VERSION="" \
+            --env CONTACT_DETAILS="" \
+            --env WS_SERVER="" \
+            --env WS_SECRET="" \
+            --env VERBOSITY=2 \
+            --entrypoint "pm2 start processes.json --no-daemon" \
+            $NETSTATS_DOCKER_IMAGE
     fi
 
     # Get ENODE public address
