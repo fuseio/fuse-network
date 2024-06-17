@@ -31,6 +31,7 @@
     "openzeppelin-solidity": "2.1.0"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.11",
     "@nomicfoundation/hardhat-verify": "^2.0.3",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-truffle5": "^2.0.7",

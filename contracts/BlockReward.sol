@@ -164,8 +164,21 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   /**
   * returns yearly inflation rate (percentage)
   */
-  function getInflation() public pure returns(uint256) {
-    return INFLATION;
+  function getInflation() public view returns(uint256) {
+    uint256 yearNumber = block.number / getBlocksPerYear();
+    if (yearNumber < 5) {
+      return 500;
+    } else if (yearNumber == 5)  {
+      return 300;
+    } else if (yearNumber == 6) {
+      return 150;
+    } else if (yearNumber == 7) {
+      return 100;
+    } else if (yearNumber == 8) {
+      return 75;
+    } else {
+      return 50;
+    }
   }
 
   /**
@@ -174,9 +187,9 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   function getBlocksPerYear() public pure returns(uint256) {
     return BLOCKS_PER_YEAR;
   }
-
+  
   function _setBlockRewardAmount() private {
-    uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply().mul(getInflation().mul(DECIMALS).div(100))).div(getBlocksPerYear()).div(DECIMALS);
+    uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply().mul(getInflation().mul(DECIMALS).div(10000))).div(getBlocksPerYear()).div(DECIMALS);
   }
 
   function getBlockRewardAmount() public view returns(uint256) {
