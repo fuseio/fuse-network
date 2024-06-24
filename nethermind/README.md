@@ -67,6 +67,8 @@ The node should appear on the [health dashboard](https://health.fuse.io) and can
 
 ## Additional Information
 
-Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations). Additionally, configure Nethermind monitoring by following the instructions [here](https://docs.nethermind.io/monitoring/metrics/grafana-and-prometheus).
+Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations), and disk speed [here](https://docs.nethermind.io/get-started/system-requirements/#disk-speed).
+
+Additionally, configure Nethermind monitoring by following the instructions [here](https://docs.nethermind.io/monitoring/metrics/grafana-and-prometheus).
 
 ---
