@@ -59,6 +59,12 @@ chmod 755 quickstart.sh
 ./quickstart.sh -m
 ```
 
+## Health Dashboard
+
+The node should appear on the [health dashboard](https://health.fuse.io) and can be monitored there.
+
+> For testnet: [Spark health dashboard](https://health.fusespark.io/)
+
 ## Additional Information
 
 Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations). Additionally, configure Nethermind monitoring by following the instructions [here](https://docs.nethermind.io/monitoring/metrics/grafana-and-prometheus).
