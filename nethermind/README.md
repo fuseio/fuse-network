@@ -2,7 +2,7 @@
 
 This custom .sh script is designed to help you easily bootstrap your own node for either the Fuse mainnet or the Spark testnet.
 
-> Note: at this moment script supports next roles: `node`, `bootnode`, `explorer`.
+> **Note:** at this moment script supports next roles: `node`, `bootnode`, `explorer`.
 
 ## Description
 
@@ -41,7 +41,9 @@ chmod 755 quickstart.sh
 ./quickstart.sh -r [node_role] -n [network_name] -k [node_key]
 ```
 
-Examples:
+> **Note:** If the node is already configured, repeating this step with the same arguments will update the client if a new version is available.
+
+### Examples:
 
 ```bash
 # Run node for Fuse (Mainnet)
@@ -56,3 +58,9 @@ Examples:
 # Flag a node for maintenance
 ./quickstart.sh -m
 ```
+
+## Additional Information
+
+Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations). Additionally, configure Nethermind monitoring by following the instructions [here](https://docs.nethermind.io/monitoring/metrics/grafana-and-prometheus).
+
+---
