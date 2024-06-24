@@ -65,6 +65,13 @@ The node should appear on the [health dashboard](https://health.fuse.io) and can
 
 > For testnet: [Spark health dashboard](https://health.fusespark.io/)
 
+## Nethermind DB Snapshot
+
+| Network | Type     | Location                                                                     |
+| ------- | -------- | ---------------------------------------------------------------------------- |
+| Fuse    | FastSync | https://storage.cloud.google.com/fuse-node-snapshot/nethermind/database.zip  |
+| Spark   | FastSync | https://storage.cloud.google.com/spark-node-snapshot/nethermind/database.zip |
+
 ## Additional Information
 
 Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations), and disk speed [here](https://docs.nethermind.io/get-started/system-requirements/#disk-speed).
