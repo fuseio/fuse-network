@@ -598,11 +598,13 @@ EOF
             --hostname $CONTAINER_NAME \
             -p 30303:30300/tcp \
             -p 30303:30300/udp \
-            -p 8545:8545 \
-            -p 8546:8546 \
             --restart always \
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
+            --JsonRpc.Enabled true \
+            --JsonRpc.EnabledModules [Eth,Web3,Personal,Net,Parity] \
+            --JsonRpc.Host 0.0.0.0 \
+            --JsonRpc.Port 8545 \
             --KeyStore.PasswordFiles "keystore/pass.pwd" \
             --KeyStore.EnodeAccount "0x$PUBLIC_ADDRESS" \
             --KeyStore.UnlockAccounts "0x$PUBLIC_ADDRESS" \
@@ -614,6 +616,7 @@ EOF
         $PERMISSION_PREFIX docker run \
             --detach \
             --name "validator" \
+            --net container:$CONTAINER_NAME \
             --volume $KEYSTORE_DIR:/config/keys/FuseNetwork \
             --volume $KEYSTORE_DIR/pass.pwd:/config/pass.pwd \
             --restart always \
