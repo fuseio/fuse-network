@@ -59,7 +59,7 @@ Before starting the migration, flag your node for maintenance to ensure it is re
    }'
    ```
 
-> **Please only proceed if the node is out of the active set.**
+> **Important:** Please only proceed if the node is out of the active set.
 
 ## Step 2: Backing Up Your Node Data
 
@@ -92,7 +92,7 @@ This backup step is to revert to OpenEthereum in case of migration failure.
 
 5. **Backup your data directory**. This directory contains the blockchain data and keys. The folder structure should be similar to the below:
 
-   > Please be aware that the names of the folders may differ depending on your initial setup.
+   > **Note**: Please be aware that the names of the folders may differ depending on your initial setup.
 
    - fusenet/database
    - fusenet/config/keystore
@@ -100,7 +100,7 @@ This backup step is to revert to OpenEthereum in case of migration failure.
      - pass.pwd
      - UTC--[Date]--xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx
 
-   > The database backup from the OpenEthereum node cannot be used for Nethermind. It is to revert to OpenEthereum in case of migration failure.
+   > **Note**: The database backup from the OpenEthereum node cannot be used for Nethermind. It is to revert to OpenEthereum in case of migration failure.
 
 ## Step 3: Copying the Keystore Directory
 
@@ -137,7 +137,7 @@ With your data backed up and the keystore directory copied, the next step is to 
    ```
 
 2. **Install the Nethermind client** by following the guide above.
-   > Please ensure the OpenEthereum node is not running and only one key is active at any time.
+   > **Important:** Please ensure the OpenEthereum node is not running and only one key is active at any time.
    ```bash
    ./quickstart.sh -r [node/validator] -n [fuse/spark] -k [node_name]
    ```
@@ -179,8 +179,9 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
    - nethermind/logs
    - nethermind/config/keystore
      - `UTC--{yyyy-MM-dd}T{HH-mm-ss.ffffff}000Z--{address}`
-       > Please verify the node address matches the address in the UTC file name above.
      - Verify that you have only one key file.
+
+> **Note**:Please verify the node address matches the address in the UTC file name above.
 
 2. **Check the logs** by running the following commands:
    ```bash
