@@ -25,8 +25,7 @@ Before starting the migration, flag your node for maintenance to ensure it is re
 ### Step 2: Backing Up Your Node Data
 
 Once the node is flagged for maintenance and out of the active set, proceed to back up your node data. This includes the blockchain data and keys.
-
-**The backup is to revert to OpenEthereum in case of migration failure.**
+**This backup is to revert to OpenEthereum in case of migration failure.**
 
 > In this guide, we will assume the containers are named fusenet, netstats, fuseapp (if you are running a validator node).
 
@@ -67,7 +66,7 @@ docker stop fusenet netstats fuseapp
      - pass.pwd
      - UTC--[Date]--xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx
 
-   > It is advised to sync the database from scratch and not use the backup from the OpenEthereum node.
+   > The databse backup from the OpenEthereum node cannot be used for Nethermind. It is to revert to OpenEthereum in case of migration failure.
 
 ### Step 3: Copying the Keystore Directory
 
@@ -118,7 +117,29 @@ chmod 755 quickstart.sh
 
   > **Estimate**: Syncing Nethermind may take 4-6 hours depending on server and network speed.
 
-### Step 5: Verifying the Migration
+### Step 5: Syncing Nethermind
+
+Syncing the Nethermind client from scratch can take several hours. Optionaly to speed up this process, you can use a database snapshot.
+
+1. **Download the Nethermind DB Snapshot** from the link provided:
+
+| Network | Type     | Location                                                                    |
+| ------- | -------- | --------------------------------------------------------------------------- |
+| Fuse    | FastSync | https://storage.cloud.google.com/fuse-node-snapshot/nethermind/database.zip |
+
+2. **Extract the snapshot** to the Nethermind database directory:
+
+```bash
+unzip database.zip -d ~/nethermind/database
+```
+
+3. **Start the Nethermind client**:
+
+```bash
+./quickstart.sh -r [node/validator] -n [fuse/spark] -k [node_name]
+```
+
+### Step 6: Verifying the Migration
 
 Once Nethermind is up and running, perform checks to ensure everything is working as expected.
 
