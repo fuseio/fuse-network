@@ -8,13 +8,14 @@ const Voting = artifacts.require("Voting.sol");
 const { ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS } = require("./helpers");
 const { ZERO, ONE, TWO, THREE, FOUR, TEN } = require("./helpers");
 const { toBN, toWei, toChecksumAddress } = web3.utils;
+const { mine, time } = require("@nomicfoundation/hardhat-network-helpers");
 
 const INITIAL_SUPPLY = toWei(toBN(300000000000000000 || 0), "gwei");
 const BLOCKS_PER_YEAR = 100;
-const YEARLY_INFLATION_PERCENTAGE = 5;
+const YEARLY_INFLATION_PERCENTAGE_ON_START = 500;
 const SYSTEM_ADDRESS = "0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE";
 
-contract("BlockReward", async (accounts) => {
+contract.only("BlockReward", async (accounts) => {
   let blockRewardImpl,
     proxy,
     blockReward,
@@ -78,12 +79,12 @@ contract("BlockReward", async (accounts) => {
 
       INITIAL_SUPPLY.should.be.bignumber.equal(initialSupply);
       toBN(BLOCKS_PER_YEAR).should.be.bignumber.equal(blocksPerYear);
-      toBN(YEARLY_INFLATION_PERCENTAGE).should.be.bignumber.equal(inflation);
+      toBN(YEARLY_INFLATION_PERCENTAGE_ON_START).should.be.bignumber.equal(inflation);
 
       let blockRewardAmount = initialSupply
         .mul(decimals)
         .mul(inflation)
-        .div(toBN(100))
+        .div(toBN(10000))
         .div(blocksPerYear)
         .div(decimals);
       blockRewardAmount.should.be.bignumber.equal(
@@ -404,7 +405,7 @@ contract("BlockReward", async (accounts) => {
         totalSupply
           .mul(decimals)
           .mul(inflation)
-          .div(toBN(100))
+          .div(toBN(10000))
           .div(blocksPerYear)
           .div(decimals)
       );
@@ -429,6 +430,70 @@ contract("BlockReward", async (accounts) => {
       // let initialSupply = await blockReward.getTotalSupply()
       // let blockRewardAmount = await blockReward.getBlockRewardAmountPerValidator(validator)
       // let {logs} = await blockReward.reward([validator], [0], {from: mockSystemAddress}).should.be.fulfilled
+    });
+  });
+
+  describe("getInflation", async () => {
+    it.only("should return correct inflation rate for different block numbers", async () => {
+      const blocksPerYear = await blockReward.getBlocksPerYear();
+      // console.log(blocksPerYear.toString())
+      // console.log(await time.latestBlock())
+      
+      // 1th year
+      let inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(500));
+
+      // second year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(500));
+
+      // third year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(500));
+
+      // four year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(500));
+
+      // fifth year
+      await mine(blocksPerYear);
+      console.log(await time.latestBlock())
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(500));
+
+      // sixth year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(300));
+
+      // seventh year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(150));
+
+      // eighth year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(100));
+
+      // nineth year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(75));
+
+      // tenth year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(50));
+
+      // beyond tenth year
+      await mine(blocksPerYear);
+      inflation = await blockReward.getInflation();
+      inflation.should.be.bignumber.equal(toBN(50));
+
     });
   });
 
