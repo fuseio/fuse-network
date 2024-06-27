@@ -1,4 +1,4 @@
-# Documentation Guide: Migrating from OpenEthereum to Nethermind Client
+# Migrating from OpenEthereum to Nethermind Client
 
 ## Introduction
 
@@ -10,7 +10,7 @@ This guide provides step-by-step instructions for node operators looking to migr
 - Sufficient storage space for blockchain data.
 - Basic command-line interface (CLI) knowledge.
 
-## Step 1: Flagging for Maintenance
+## Step 1: Flagging for Maintenance (Validator Nodes Only)
 
 Before starting the migration, flag your node for maintenance to ensure it is removed from the active set.
 
@@ -20,7 +20,42 @@ Before starting the migration, flag your node for maintenance to ensure it is re
    ./quickstart.sh -m
    ```
 
-2. **Wait for the node to be out of the active set**. Monitor the status on the [health](https://health.fuse.io/) dashboard to ensure the node is no longer active.
+2. **Wait for the validator node to be out of the active set**, which will take effect on the next cycle. To get the current cycle end block, use the following command:
+
+   ```bash
+   curl --location 'https://rpc.fuse.io/' \
+   --header 'Content-Type: application/json' \
+   --data '{
+     "jsonrpc": "2.0",
+     "id": 1,
+     "method": "eth_call",
+     "params": [
+       {
+         "to": "0x3014ca10b91cb3D0AD85fEf7A3Cb95BCAc9c0f79",
+         "data": "0xaf295181"
+       },
+       "latest"
+     ]
+   }'
+   ```
+
+3. **To check if the validator node is no longer in the validation set**, use the following command:
+   ```bash
+   curl --location 'https://rpc.fuse.io/' \
+   --header 'Content-Type: application/json' \
+   --data '{
+     "jsonrpc": "2.0",
+     "id": 1,
+     "method": "eth_call",
+     "params": [
+       {
+         "to": "0x3014ca10b91cb3D0AD85fEf7A3Cb95BCAc9c0f79",
+         "data": "0xfacd743b000000000000000000000000"
+       },
+       "latest"
+     ]
+   }'
+   ```
 
 ## Step 2: Backing Up Your Node Data
 
@@ -28,7 +63,7 @@ Once the node is flagged for maintenance and out of the active set, proceed to b
 
 **This backup is to revert to OpenEthereum in case of migration failure.**
 
-> In this guide, we will assume the containers are named fusenet, netstats, fuseapp (if you are running a validator node).
+> In this guide, we will assume the containers are named fusenet, netstats, fuseapp (Validator Nodes Only).
 
 1. **Navigate to the [health](https://health.fuse.io/)** dashboard and verify that the node is healthy.
 2. **Check the logs** to verify the node's health:
@@ -110,7 +145,6 @@ With your data backed up and the keystore directory copied, the next step is to 
    ```
 
 - **Things to look for:**
-
   - Running Docker container for the Fuse network. Role - .....
   - **Monitor** the command line while running the quickstart.sh script and verify that the public address matches the node address.
 
@@ -160,12 +194,12 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
 
   - Nethermind initialization completed.
   - Node address: 0x..........
-  - Address 0x0.......... is configured for signing blocks. (if you are running a validator node)
+  - Address 0x0.......... is configured for signing blocks. (Validator Nodes Only)
   - Skipping the creation of a new private key...
   - Verify that the public address matches the node address.
   - The node is sealing/syncing new blocks.
 
-- **For validator app logs** (if you are running a validator node):
+- **For validator app logs** (Validator Nodes Only):
 
   ```bash
   docker logs fuseapp
