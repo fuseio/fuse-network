@@ -1,5 +1,3 @@
-Sure, here is the updated guide incorporating the new instructions:
-
 ## Documentation Guide: Migrating from OpenEthereum to Nethermind Client
 
 ### Introduction
@@ -28,6 +26,8 @@ Before starting the migration, flag your node for maintenance to ensure it is re
 
 Once the node is flagged for maintenance and out of the active set, proceed to back up your node data. This includes the blockchain data and keys.
 
+**The backup is to revert to OpenEthereum in case of migration failure.**
+
 > In this guide, we will assume the containers are named fusenet, netstats, fuseapp (if you are running a validator node).
 
 1. **Navigate to the [health](https://health.fuse.io/)** dashboard and verify that the node is healthy.
@@ -55,33 +55,56 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
 docker stop fusenet netstats fuseapp
 ```
 
+> **Important**: The OpenEthereum node must be stopped to allow migration.
+
 5. **Backup your data directory**. This directory contains the blockchain data and keys. The folder structure should be similar to the below:
+
    > Please be aware that the names of the folders may differ depending on your initial setup.
+
    - fusenet/database
    - fusenet/config/keystore
      - node.key.plain
      - pass.pwd
      - UTC--[Date]--xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx
 
-### Step 3: Installing Nethermind
+   > It is advised to sync the database from scratch and not use the backup from the OpenEthereum node.
 
-With your data backed up, the next step is to install the Nethermind client. Please check the Nethermind [system requirements](https://docs.nethermind.io/get-started/system-requirements/) before continuing.
+### Step 3: Copying the Keystore Directory
 
-1. **Create a new folder for Nethermind** and copy the keystore directory from the OpenEthereum node.
-   > It's advised to sync the database from scratch and not to use the backup from the OpenEthereum node.
+Create a new folder for Nethermind and copy the keystore directory from the OpenEthereum node. This step is crucial to ensure your keys are correctly transferred.
+
+1. **Create a new folder for Nethermind** in your home directory.
 
 ```bash
-mkdir nethermind && cd nethermind
+mkdir ~/nethermind && cd ~/nethermind
 ```
 
-2. **Download the Nethermind quickstart.sh script**. Please refer to the [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind) for more details.
+2. **Copy the keystore directory** from the OpenEthereum node to the Nethermind directory.
+
+```bash
+cp -r /path/to/openethereum/config/keystore ~/nethermind/config/keystore
+```
+
+> **Note**: Ensure you replace `/path/to/openethereum/config/keystore` with the actual path to your OpenEthereum keystore directory.
+
+3. **Optional**: To protect the keystore, you may want to change the permissions.
+
+```bash
+chmod -R 700 ~/nethermind/config/keystore
+```
+
+### Step 4: Installing Nethermind
+
+With your data backed up and the keystore directory copied, the next step is to install the Nethermind client. Please check the Nethermind [system requirements](https://docs.nethermind.io/get-started/system-requirements/) before continuing.
+
+1. **Download the Nethermind quickstart.sh script**. Please refer to the [quickstart.sh guide](https://github.com/fuseio/fuse-network/tree/master/nethermind) for more details.
 
 ```bash
 wget -O quickstart.sh https://raw.githubusercontent.com/fuseio/fuse-network/master/nethermind/quickstart.sh
 chmod 755 quickstart.sh
 ```
 
-3. **Install the Nethermind client** by following the guide above.
+2. **Install the Nethermind client** by following the guide above.
    > Please ensure the OpenEthereum node is not running and only one key is active at any time.
 
 ```bash
@@ -89,10 +112,13 @@ chmod 755 quickstart.sh
 ```
 
 - **Things to look for:**
+
   - Running Docker container for the Fuse network. Role - .....
   - **Monitor** the command line while running the quickstart.sh script and verify that the public address matches the node address.
 
-### Step 4: Verifying the Migration
+  > **Estimate**: Syncing Nethermind may take 4-6 hours depending on server and network speed.
+
+### Step 5: Verifying the Migration
 
 Once Nethermind is up and running, perform checks to ensure everything is working as expected.
 
@@ -100,9 +126,9 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
 
    Use the `ls` command to view the folder structure:
 
-   - fusenet/database
-   - fusenet/logs
-   - fusenet/keystore
+   - nethermind/database
+   - nethermind/logs
+   - nethermind/config/keystore
      - `UTC--{yyyy-MM-dd}T{HH-mm-ss.ffffff}000Z--{address}`
        > Please verify the node address matches the address in the UTC file name above.
      - Verify that you have only one key file.
