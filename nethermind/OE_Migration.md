@@ -183,6 +183,6 @@ docker logs fuseapp
 docker logs netstats
 ```
 
-### Troubleshooting
+### Support and Issues
 
-- If you encounter issues during the migration, please reach out to us for support at nodes-support@fuse.io.
+If you encounter issues during the migration, please post an issue on [GitHub](https://github.com/fuseio/fuse-network/issues) and specify `[OE Migration]` in the title. This will help us identify and address migration-related issues more efficiently.
