@@ -1,8 +1,10 @@
+Sure, here is the updated guide incorporating the new instructions:
+
 ## Documentation Guide: Migrating from OpenEthereum to Nethermind Client
 
 ### Introduction
 
-This guide provides step-by-step instructions for node operators looking to migrate their Fuse nodes from the OpenEthereum client to the Nethermind client. The migration process involves backing up data, installing the Nethermind client, configuring it, and finally starting and verifying the node's operation.
+This guide provides step-by-step instructions for node operators looking to migrate their Fuse nodes from the OpenEthereum client to the Nethermind client. The migration process involves flagging the node for maintenance, backing up data, installing the Nethermind client, configuring it, and finally starting and verifying the node's operation.
 
 ### Prerequisites
 
@@ -10,17 +12,29 @@ This guide provides step-by-step instructions for node operators looking to migr
 - Sufficient storage space for blockchain data.
 - Basic command-line interface (CLI) knowledge.
 
-### Step 1: Backing Up Your Node Data
+### Step 1: Flagging for Maintenance
 
-Before starting the migration, ensure you have a backup of your node data. This includes the blockchain data and keys.
+Before starting the migration, flag your node for maintenance to ensure it is removed from the active set.
 
-> In this guide, we will assume the containers are named openethereum, netstats, fuseapp (if you are running a validator node).
+1. **Flag the node for maintenance** using the following command:
+
+```bash
+./quickstart.sh -m
+```
+
+2. **Wait for the node to be out of the active set**. Monitor the status on the [health](https://health.fuse.io/) dashboard to ensure the node is no longer active.
+
+### Step 2: Backing Up Your Node Data
+
+Once the node is flagged for maintenance and out of the active set, proceed to back up your node data. This includes the blockchain data and keys.
+
+> In this guide, we will assume the containers are named fusenet, netstats, fuseapp (if you are running a validator node).
 
 1. **Navigate to the [health](https://health.fuse.io/)** dashboard and verify that the node is healthy.
 2. **Check the logs** to verify the node's health.
 
 ```bash
-docker logs openethereum -f
+docker logs fusenet -f
 ```
 
 - **Things to look for:**
@@ -38,7 +52,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
 4. **Stop your OpenEthereum node** to ensure data integrity during the backup process:
 
 ```bash
-docker stop openethereum netstats fuseapp
+docker stop fusenet netstats fuseapp
 ```
 
 5. **Backup your data directory**. This directory contains the blockchain data and keys. The folder structure should be similar to the below:
@@ -49,7 +63,7 @@ docker stop openethereum netstats fuseapp
      - pass.pwd
      - UTC--[Date]--xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx
 
-### Step 2: Installing Nethermind
+### Step 3: Installing Nethermind
 
 With your data backed up, the next step is to install the Nethermind client. Please check the Nethermind [system requirements](https://docs.nethermind.io/get-started/system-requirements/) before continuing.
 
@@ -68,7 +82,7 @@ chmod 755 quickstart.sh
 ```
 
 3. **Install the Nethermind client** by following the guide above.
-   > Please ensure the OpenEthereum node is not running.
+   > Please ensure the OpenEthereum node is not running and only one key is active at any time.
 
 ```bash
 ./quickstart.sh -r [node/validator] -n [fuse/spark] -k [node_name]
@@ -78,7 +92,7 @@ chmod 755 quickstart.sh
   - Running Docker container for the Fuse network. Role - .....
   - **Monitor** the command line while running the quickstart.sh script and verify that the public address matches the node address.
 
-### Step 3: Verifying the Migration
+### Step 4: Verifying the Migration
 
 Once Nethermind is up and running, perform checks to ensure everything is working as expected.
 
