@@ -96,9 +96,9 @@ This backup step is to revert to OpenEthereum in case of migration failure.
 
    - fusenet/database
    - fusenet/config/keystore
-     - node.key.plain
-     - pass.pwd
-     - UTC--[Date]--xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx
+     - `node.key.plain`
+     - `pass.pwd`
+     - `UTC--[Date]--xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx`
 
    > **Note**: The database backup from the OpenEthereum node cannot be used for Nethermind. It is to revert to OpenEthereum in case of migration failure.
 
@@ -172,9 +172,6 @@ Syncing the Nethermind client from scratch can take several hours. Optionally, t
 Once Nethermind is up and running, perform checks to ensure everything is working as expected.
 
 1. **Check the keystore folder**. The keystore structure differs between the OE client and the Nethermind client. The quickstart.sh script will handle the keystore migration from the old structure to the new one supported by Nethermind.
-
-   Use the `ls` command to view the folder structure:
-
    - nethermind/database
    - nethermind/logs
    - nethermind/config/keystore
@@ -192,8 +189,8 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
 - **Things to look for:**
 
   - Nethermind initialization completed.
-  - Node address: 0x..........
-  - Address 0x0.......... is configured for signing blocks. (Validator Nodes Only)
+  - Node address: `0x..........`
+  - Address `0x0..........` is configured for signing blocks. (Validator Nodes Only)
   - Skipping the creation of a new private key...
   - Verify that the public address matches the node address.
   - The node is sealing/syncing new blocks.
