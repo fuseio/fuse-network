@@ -1,4 +1,20 @@
+Certainly! Here's the updated guide with the added step to remove the maintenance flag and verify that the node is starting to validate blocks again:
+
 # Migrating from OpenEthereum to Nethermind Client
+
+## Index
+
+- [Introduction](#introduction)
+- [Prerequisites](#prerequisites)
+- [Step 0: Avoid having two nodes with the same key!](#step-0-avoid-having-two-nodes-with-the-same-key)
+- [Step 1: Flagging for Maintenance (Validator Nodes Only)](#step-1-flagging-for-maintenance-validator-nodes-only)
+- [Step 2: Backing Up Your Node Data](#step-2-backing-up-your-node-data)
+- [Step 3: Copying the Keystore Directory](#step-3-copying-the-keystore-directory)
+- [Step 4: Installing Nethermind](#step-4-installing-nethermind)
+- [Step 5: Syncing Nethermind](#step-5-syncing-nethermind)
+- [Step 6: Verifying the Migration](#step-6-verifying-the-migration)
+- [Step 7: Removing Maintenance Flag (Validator Nodes Only)](#step-7-removing-maintenance-flag-validator-nodes-only)
+- [Support and Issues](#support-and-issues)
 
 ## Introduction
 
@@ -11,6 +27,12 @@ This guide provides step-by-step instructions for node operators looking to migr
 - Basic command-line interface (CLI) knowledge.
 
 ### In this guide, we will assume the containers are named fusenet, netstats, and **fuseapp** (Validator Nodes Only).
+
+## Step 0: Avoid having two nodes with the same key!
+
+> **⚠️ Important: Only One Instance of OpenEthereum or Nethermind Client Can Be Running with the Same Key. ⚠️**
+>
+> You must make sure that the OpenEthereum node is not running before starting the Nethermind node. Failure to do this will result in double signing, which can cause reorgs, potentially lead to consensus failure, and forking.
 
 ## Step 1: Flagging for Maintenance (Validator Nodes Only)
 
@@ -178,7 +200,7 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
      - `UTC--{yyyy-MM-dd}T{HH-mm-ss.ffffff}000Z--{address}`
      - Verify that you have only one key file.
 
-> **Note**:Please verify the node address matches the address in the UTC file name above.
+> **Note**: Please verify the node address matches the address in the UTC file name above.
 
 2. **Check the logs** by running the following commands:
    ```bash
@@ -206,6 +228,22 @@ Once Nethermind is up and running, perform checks to ensure everything is workin
   docker logs netstats
   ```
 
+## Step 7: Removing Maintenance Flag (Validator Nodes Only)
+
+After verifying that the Nethermind client is functioning correctly, remove the maintenance flag to re-enable validation.
+
+1. **Remove the maintenance flag** using the following command:
+
+   ```bash
+   ./quickstart.sh -m
+   ```
+
+2. **Wait for the next cycle** for the node to rejoin the active validation set. Verify that the node is starting
+
+to validate blocks again.
+
+> **Note**: To check if the validator node is back in the validation set, use the commands mentioned in Step 1.
+
 ## Support and Issues
 
-If you encounter issues during the migration, please post an issue on [GitHub](https://github.com/fuseio/fuse-network/issues) and specify `[OE Migration]` in the title. This will help us identify and address migration-related issues more efficiently.
+If you encounter any issues during the migration or have suggestions to improve this guide, please post an [issue](<(https://github.com/fuseio/fuse-network/issues)>) or create a pull request on this GitHub repo, using `[OE Migration]` in the title. This will help us promptly identify and address migration-related concerns.
