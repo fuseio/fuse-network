@@ -21,7 +21,8 @@ VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Versi
 SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.3-v4.0.5"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v4.0.5"
+SPARK_DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v5.0.0-alpha"
 DOCKER_IMAGE_NET_STATS_VERSION="2.0.1"
 
 # Directories
@@ -291,12 +292,15 @@ function setup() {
     # Specify image versions (generic)
     FUSE_CLIENT_DOCKER_REPOSITORY="fusenet/node"
     FUSE_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NM_CLIENT"
+    if [[ $NETWORK == "spark" ]]; then
+        FUSE_CLIENT_DOCKER_IMAGE_VERSION="$SPARK_DOCKER_IMAGE_NM_CLIENT"
+    fi
 
     # Specify images / versions (Spark)
     SPARK_VALIDATOR_DOCKER_REPOSITORY="fusenet/spark-validator-app"
     SPARK_VALIDATOR_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_FUSE_APP_VERSION"
 
-    SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/spark-netstat"
+    SPARK_NETSTATS_CLIENT_DOCKER_REPOSITORY="fusenet/netstat"
     SPARK_NETSTATS_CLIENT_DOCKER_IMAGE_VERSION="$DOCKER_IMAGE_NET_STATS_VERSION"
 
     # Specify images / versions (Fuse)
@@ -426,9 +430,34 @@ function run() {
 
     echo -e "\nDone!"
 
+    echo -e "\nGenerate processes.json file for 'netstats' Docker container..."
+
+    cat <<EOF > $BASE_DIR/processes.json
+[
+    {
+        "name": "netstats-agent",
+        "script": "app.js",
+        "log_date_format": "YYYY-MM-DD HH:mm Z",
+        "merge_logs": false,
+        "watch": false,
+        "max_restarts": 10,
+        "exec_interpreter": "node",
+        "exec_mode": "fork_mode"
+    }
+]
+EOF
+
+    echo -e "\nDone!"
+
     echo -e "\nRun Docker container for ${NETWORK^} network. Role - ${ROLE^}"
 
     # Specify needed variables (Spark)
+
+    # Netstats
+    if [[ $NETWORK == "spark" ]]; then
+        WS_SERVER="https://health.fusespark.io/ws"
+        WS_SECRET="i5WsUJWaMUHOS2CwvTRy"
+    fi
 
     # For node / bootnode
     if [[ $NETWORK == "spark" ]] && [[ $ROLE == "node" || $ROLE == "bootnode" ]]; then
@@ -462,6 +491,12 @@ function run() {
     fi
 
     # Specify needed variables (Fuse)
+
+    # Netstats
+    if [[ $NETWORK == "fuse" ]]; then
+        WS_SERVER="https://health.fuse.io/ws"
+        WS_SECRET="i5WsUJWaMUHOS2CwvTRy"
+    fi
 
     # For node / bootnode
     if [[ $NETWORK == "fuse" ]] && [[ $ROLE == "node" || $ROLE == "bootnode" ]]; then
@@ -505,6 +540,7 @@ function run() {
             --log-opt max-size=10m \
             --log-opt max-file=25 \
             --log-opt compress=true \
+            --hostname $CONTAINER_NAME \
             -p 30303:30300/tcp \
             -p 30303:30300/udp \
             -p 8545:8545 \
@@ -527,11 +563,26 @@ function run() {
             --log-opt compress=true \
             --restart always \
             --memory "250m" \
+            --volume $BASE_DIR/processes.json:/app/processes.json \
+            --env NODE_ENV=production \
+            --env RPC_HOST=$CONTAINER_NAME \
+            --env RPC_PORT=8545 \
+            --env LISTENING_PORT=30303 \
+            --env INSTANCE_NAME=$NODE_KEY \
+            --env ROLE=${ROLE^} \
+            --env BRIDGE_VERSION="" \
+            --env FUSE_APP_VERSION="" \
+            --env NETSTATS_VERSION=$NETSTATS_VERSION \
+            --env PARITY_VERSION="" \
+            --env CONTACT_DETAILS="" \
+            --env WS_SERVER=$WS_SERVER \
+            --env WS_SECRET=$WS_SECRET \
+            --env VERBOSITY=2 \
+            --entrypoint pm2 \
             $NETSTATS_DOCKER_IMAGE \
-            --network $NETWORK \
-            --instance-name $NODE_KEY \
-            --role ${ROLE^} \
-            --netstats-version $NETSTATS_VERSION
+            start \
+            processes.json \
+            --no-daemon
     fi
 
     if [[ $ROLE == "validator" ]]; then
@@ -544,14 +595,16 @@ function run() {
             --log-opt max-size=10m \
             --log-opt max-file=25 \
             --log-opt compress=true \
+            --hostname $CONTAINER_NAME \
             -p 30303:30300/tcp \
             -p 30303:30300/udp \
-            -p 8545:8545 \
-            -p 8546:8546 \
-            --network host \
             --restart always \
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
+            --JsonRpc.Enabled true \
+            --JsonRpc.EnabledModules [Eth,Web3,Personal,Net,Parity] \
+            --JsonRpc.Host 0.0.0.0 \
+            --JsonRpc.Port 8545 \
             --KeyStore.PasswordFiles "keystore/pass.pwd" \
             --KeyStore.EnodeAccount "0x$PUBLIC_ADDRESS" \
             --KeyStore.UnlockAccounts "0x$PUBLIC_ADDRESS" \
@@ -563,6 +616,7 @@ function run() {
         $PERMISSION_PREFIX docker run \
             --detach \
             --name "validator" \
+            --net container:$CONTAINER_NAME \
             --volume $KEYSTORE_DIR:/config/keys/FuseNetwork \
             --volume $KEYSTORE_DIR/pass.pwd:/config/pass.pwd \
             --restart always \
@@ -578,12 +632,26 @@ function run() {
             --log-opt compress=true \
             --restart always \
             --memory "250m" \
+            --volume $BASE_DIR/processes.json:/app/processes.json \
+            --env NODE_ENV=production \
+            --env RPC_HOST=$CONTAINER_NAME \
+            --env RPC_PORT=8545 \
+            --env LISTENING_PORT=30303 \
+            --env INSTANCE_NAME="${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
+            --env ROLE=${ROLE^} \
+            --env BRIDGE_VERSION="" \
+            --env FUSE_APP_VERSION="1.0.0" \
+            --env NETSTATS_VERSION=$NETSTATS_VERSION \
+            --env PARITY_VERSION="" \
+            --env CONTACT_DETAILS="" \
+            --env WS_SERVER=$WS_SERVER \
+            --env WS_SECRET=$WS_SECRET \
+            --env VERBOSITY=2 \
+            --entrypoint pm2 \
             $NETSTATS_DOCKER_IMAGE \
-            --network $NETWORK \
-            --instance-name "${NODE_KEY}_0x${PUBLIC_ADDRESS}" \
-            --role ${ROLE^} \
-            --netstats-version $NETSTATS_VERSION \
-            --fuseapp-version "1.0.0"
+            start \
+            processes.json \
+            --no-daemon
     fi
 
     # Get ENODE public address
