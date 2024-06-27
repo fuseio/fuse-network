@@ -10,6 +10,8 @@ This guide provides step-by-step instructions for node operators looking to migr
 - Sufficient storage space for blockchain data.
 - Basic command-line interface (CLI) knowledge.
 
+### In this guide, we will assume the containers are named fusenet, netstats, and **fuseapp** (Validator Nodes Only).
+
 ## Step 1: Flagging for Maintenance (Validator Nodes Only)
 
 Before starting the migration, flag your node for maintenance to ensure it is removed from the active set.
@@ -57,13 +59,11 @@ Before starting the migration, flag your node for maintenance to ensure it is re
    }'
    ```
 
+> **Please only proceed if the node is out of the active set.**
+
 ## Step 2: Backing Up Your Node Data
 
-Once the node is flagged for maintenance and out of the active set, proceed to back up your node data. This includes the blockchain data and keys.
-
-**This backup is to revert to OpenEthereum in case of migration failure.**
-
-> In this guide, we will assume the containers are named fusenet, netstats, fuseapp (Validator Nodes Only).
+This backup step is to revert to OpenEthereum in case of migration failure.
 
 1. **Navigate to the [health](https://health.fuse.io/)** dashboard and verify that the node is healthy.
 2. **Check the logs** to verify the node's health:
@@ -73,10 +73,8 @@ Once the node is flagged for maintenance and out of the active set, proceed to b
    ```
 
    - **Things to look for:**
-     - Operating mode: active
-     - Not preparing block; cannot sign. (if you are not running a validator node)
-     - Configured for FuseNetwork using the AuthorityRound engine
-     - Syncing #[Block-Number]
+     - Not preparing block (Validator Nodes Only)
+     - Syncing #[Block-Number] is the latest.
 
 3. **Identify running containers** by executing the command below:
 
