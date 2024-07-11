@@ -18,7 +18,6 @@ PERMISSION_PREFIX="sudo"
 
 OVERRIDE_VERSION_FILE=false
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
-SPARK_VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version_testNet"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
 DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v4.0.5"
@@ -280,9 +279,6 @@ function setup() {
 
     if [ "$OVERRIDE_VERSION_FILE" == false ] ; then
         echo -e "\nGrab docker Versions"
-        if [[ $NETWORK == "spark" ]]; then
-            VERSION_FILE="$SPARK_VERSION_FILE"
-        fi
         wget -O versionFile $VERSION_FILE
         export $(grep -v '^#' versionFile | xargs)
     else
