@@ -15,7 +15,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant INFLATION = 5;
-  uint256 public constant BLOCKS_PER_YEAR = 6307200;
+  uint256 public constant BLOCKS_PER_YEAR = 51840;
 
   /**
   * @dev This event will be emitted every block, describing the rewards given
@@ -166,15 +166,15 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   */
   function getInflation() public view returns(uint256) {
     uint256 yearNumber = block.number / getBlocksPerYear();
-    if (yearNumber < 5) {
+    if (yearNumber < 330) {
       return 500;
-    } else if (yearNumber == 5)  {
+    } else if (yearNumber == 331)  {
       return 300;
-    } else if (yearNumber == 6) {
+    } else if (yearNumber == 333) {
       return 150;
-    } else if (yearNumber == 7) {
+    } else if (yearNumber == 335) {
       return 100;
-    } else if (yearNumber == 8) {
+    } else if (yearNumber == 337) {
       return 75;
     } else {
       return 50;
