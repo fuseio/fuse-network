@@ -17,7 +17,7 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant MAX_VALIDATORS = 100;
   uint256 public constant MIN_STAKE = 1e23; // 100,000
   uint256 public constant MAX_STAKE = 1e25; // 10,000,000
-  uint256 public constant CYCLE_DURATION_BLOCKS = 34560; // 48 hours [48*60*60/5]
+  uint256 public constant CYCLE_DURATION_BLOCKS = 720; // 1 hour [60*60/5]
   uint256 public constant SNAPSHOTS_PER_CYCLE = 0; // snapshot each 288 minutes [34560/10/60*5]
   uint256 public constant DEFAULT_VALIDATOR_FEE = 15e16; // 15%
   uint256 public constant VALIDATOR_PRODUCTIVITY_BP = 3000; // 30%
