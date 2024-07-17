@@ -106,14 +106,13 @@ Make sure that your user is added to the `docker` user-group on _Unix_ systems, 
 
  To speed up node sync there are the snapshot download links.
 
- | Endpoint                       | Network | Direct link (latest)                                  |
- | ------------------------------ | ------- | ----------------------------------------------------- |
- | https://snapshot.fusespark.io  | Spark   | https://snapshot.fusespark.io/nethermind/database.zip |
- | https://snapshot.fuse.io       | Fuse    | https://snapshot.fuse.io/nethermind/database.zip      |
+ | Endpoint                       | Network | Type      | Direct link (latest)                                |
+ | ------------------------------ | ------- | --------- | --------------------------------------------------- |
+ | https://snapshot.fuse.io       | Fuse    | FastSync  | https://snapshot.fuse.io/openethereum/database.zip  |
 
  The archive file contains `database` folder, blockchain ledger, with n blocks depending on the snapshot date.
 
- > Note: Fuse still support OpenEthereum v3.3.5, Docker image `fusenet/node:2.0.2`. The snapshot direct link to the latest snapshot is https://snapshot.fuse.io/openethereum/database.zip.
+ > Note: Fuse snapshot compatible with OpenEthereum v3.3.5, Docker image `fusenet/node:2.0.2`.
 
 ### Using Quickstart
 
