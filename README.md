@@ -99,8 +99,20 @@ Make sure that your user is added to the `docker` user-group on _Unix_ systems, 
 
 > Note:
 >
-> - Outbound traffic should be oppened for all IP addresses
-> - For Bootnode node role not necessarry to open RPC and WS ports, only P2P are required; for Validator node role WS and RPC ports should be openned on `localhost` and granted restricted access through IP whitelists
+> - Outbound traffic should be opened for all IP addresses
+> - For Bootnode node role not necessary to open RPC and WebSocket ports, only P2P are required; for Validator node role WebSocket and RPC ports should be opened on `localhost` and granted restricted access through IP whitelists
+
+### Snapshot
+
+ To speed up node sync there are the snapshot download links.
+
+ | Endpoint                       | Network | Type      | Direct link (latest)                                |
+ | ------------------------------ | ------- | --------- | --------------------------------------------------- |
+ | https://snapshot.fuse.io       | Fuse    | FastSync  | https://snapshot.fuse.io/openethereum/database.zip  |
+
+ The archive file contains `database` folder, blockchain ledger, with n blocks depending on the snapshot date.
+
+ > Note: Fuse snapshot compatible with OpenEthereum v3.3.5, Docker image `fusenet/node:2.0.2`.
 
 ### Using Quickstart
 

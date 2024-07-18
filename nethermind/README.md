@@ -71,9 +71,13 @@ Additionally, configure Nethermind monitoring by following the instructions [her
 
 ## Nethermind DB Snapshot
 
-| Network | Type     | Location                                                                     |
-| ------- | -------- | ---------------------------------------------------------------------------- |
-| Fuse    | FastSync | https://storage.cloud.google.com/fuse-node-snapshot/nethermind/database.zip  |
-| Spark   | FastSync | https://storage.cloud.google.com/spark-node-snapshot/nethermind/database.zip |
+To speed up node sync there are the snapshot download links.
+
+| Endpoint                       | Network | Type      | Direct link (latest)                                   |
+| ------------------------------ | ------- | --------- | ------------------------------------------------------ |
+| https://snapshot.fusespark.io  | Spark   | FastSync  | https://snapshot.fusespark.io/nethermind/database.zip  |
+| https://snapshot.fuse.io       | Fuse    | FastSync  | https://snapshot.fuse.io/nethermind/database.zip       |
+
+The archive file contains `database` folder, blockchain ledger, with `n` blocks depending on the snapshot date.
 
 ---
