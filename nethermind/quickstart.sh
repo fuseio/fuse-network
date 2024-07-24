@@ -20,7 +20,7 @@ OVERRIDE_VERSION_FILE=false
 VERSION_FILE="https://raw.githubusercontent.com/fuseio/fuse-network/master/Version"
 DOCKER_IMAGE_ORACLE_VERSION="3.0.0"
 DOCKER_IMAGE_FUSE_APP_VERSION="2.0.1"
-DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v4.0.6"
+DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v6.0.1"
 SPARK_DOCKER_IMAGE_NM_CLIENT="nethermind-1.25.4-v5.0.0-alpha"
 DOCKER_IMAGE_NET_STATS_VERSION="2.0.1"
 
