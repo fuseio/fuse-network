@@ -594,6 +594,8 @@ EOF
             --hostname $CONTAINER_NAME \
             -p 30303:30300/tcp \
             -p 30303:30300/udp \
+            -p 8545:8545 \
+            -p 8546:8546 \
             --restart always \
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
