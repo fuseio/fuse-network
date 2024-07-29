@@ -1,8 +1,10 @@
-# Fuse Network - Nethermind
+# Fuse Network - Nethermind Node Bootstrap Script
 
 This custom script is designed to help you easily bootstrap your own node for either the Fuse mainnet or the Spark testnet.
 
-Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations), and disk speed [here](https://docs.nethermind.io/get-started/system-requirements/#disk-speed).
+Before proceeding, please ensure you have checked the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations) and the required disk speed [here](https://docs.nethermind.io/get-started/system-requirements/#disk-speed).
+
+Additionally, it is crucial to review the [Security Considerations](https://docs.nethermind.io/fundamentals/security) for Nethermind nodes, if you plan to run a **validator** using the Nethermind client.
 
 ## Description
 
@@ -60,24 +62,6 @@ chmod 755 quickstart.sh
 # Flag a node for maintenance
 ./quickstart.sh -m
 ```
-
-## Security
-
-**General Security Considerations**
-
-*Warning:* Only enable the JSON-RPC namespaces you need. This is especially crucial for namespaces like admin and debug, which can be exploited to gain elevated access to your node or conduct DOS attacks.
-
-*Danger:* The private key from which the node ID is derived is stored on the disk in plaintext.
-
-**Networking Security**
-
-The following firewall rules are highly recommended:
-
-- Block all traffic to port 8545, or whichever port is configured for the JSON-RPC interface, except for traffic from trusted sources.
-- Allow traffic to TCP port 30303, or whichever port is set for P2P communication, to enable the node to connect to peers.
-- Allow traffic to UDP port 30303, or whichever port is designated for P2P communication, to facilitate node discovery.
-
-Referance: https://docs.nethermind.io/fundamentals/security/
 
 ## Health Dashboard
 
