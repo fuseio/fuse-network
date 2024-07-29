@@ -61,6 +61,24 @@ chmod 755 quickstart.sh
 ./quickstart.sh -m
 ```
 
+## Security
+
+**General Security Considerations**
+
+*Warning:* Only enable the JSON-RPC namespaces you need. This is especially crucial for namespaces like admin and debug, which can be exploited to gain elevated access to your node or conduct DOS attacks.
+
+*Danger:* The private key from which the node ID is derived is stored on the disk in plaintext.
+
+**Networking Security**
+
+The following firewall rules are highly recommended:
+
+- Block all traffic to port 8545, or whichever port is configured for the JSON-RPC interface, except for traffic from trusted sources.
+- Allow traffic to TCP port 30303, or whichever port is set for P2P communication, to enable the node to connect to peers.
+- Allow traffic to UDP port 30303, or whichever port is designated for P2P communication, to facilitate node discovery.
+
+Referance: https://docs.nethermind.io/fundamentals/security/
+
 ## Health Dashboard
 
 The node should appear on the [health dashboard](https://health.fuse.io) and can be monitored there.
