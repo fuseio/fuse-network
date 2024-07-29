@@ -1,8 +1,10 @@
-# Fuse Network - Nethermind
+# Fuse Network - Nethermind Node Bootstrap Script
 
 This custom script is designed to help you easily bootstrap your own node for either the Fuse mainnet or the Spark testnet.
 
-Please check the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations), and disk speed [here](https://docs.nethermind.io/get-started/system-requirements/#disk-speed).
+Before proceeding, please ensure you have checked the minimum system requirements for Nethermind [here](https://docs.nethermind.io/validators/#hardware-configurations) and the required disk speed [here](https://docs.nethermind.io/get-started/system-requirements/#disk-speed).
+
+Additionally, it is crucial to review the [Security Considerations](https://docs.nethermind.io/fundamentals/security) for Nethermind nodes, if you plan to run a **validator** using the Nethermind client.
 
 ## Description
 
