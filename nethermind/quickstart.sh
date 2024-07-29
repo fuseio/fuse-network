@@ -592,6 +592,7 @@ EOF
             --log-opt max-file=25 \
             --log-opt compress=true \
             --hostname $CONTAINER_NAME \
+            -p 8545:8545 \
             -p 30303:30300/tcp \
             -p 30303:30300/udp \
             --restart always \
