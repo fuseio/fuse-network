@@ -165,7 +165,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * returns yearly inflation rate (percentage)
   */
   function getInflation() public view returns(uint256) {
-    uint256 yearNumber = block.number / getBlocksPerYear();
+    uint256 yearNumber = block.number.div(getBlocksPerYear());
     if (yearNumber < 5) {
       return 500;
     } else if (yearNumber == 5)  {

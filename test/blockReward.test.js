@@ -15,7 +15,7 @@ const BLOCKS_PER_YEAR = 100;
 const YEARLY_INFLATION_PERCENTAGE_ON_START = 500;
 const SYSTEM_ADDRESS = "0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE";
 
-contract.only("BlockReward", async (accounts) => {
+contract("BlockReward", async (accounts) => {
   let blockRewardImpl,
     proxy,
     blockReward,
@@ -434,7 +434,7 @@ contract.only("BlockReward", async (accounts) => {
   });
 
   describe("getInflation", async () => {
-    it.only("should return correct inflation rate for different block numbers", async () => {
+    it("should return correct inflation rate for different block numbers", async () => {
       const blocksPerYear = await blockReward.getBlocksPerYear();
       // console.log(blocksPerYear.toString())
       // console.log(await time.latestBlock())
