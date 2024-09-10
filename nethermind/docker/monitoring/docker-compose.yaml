@@ -1,0 +1,120 @@
+---
+services:
+  prometheus:
+    # Official Docker image with Prometheus application
+    image: ${PROMETHEUS_DOCKER_IMAGE_REPOSITORY}:${PROMETHEUS_DOCKER_IMAGE_TAG}
+
+    # Container name & hostname
+    container_name: prometheus
+    hostname: prometheus
+
+    # Volumes
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+
+    # Command
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention=200h"
+      - "--web.enable-lifecycle"
+
+    # Always restart if container go down
+    restart: always
+
+    # Expose Prometheus API port
+    expose:
+      - 9090
+
+    # Ports
+    ports:
+      - "9090:9090/tcp"
+
+    # Networks
+    networks:
+      - metrics
+
+    # Use .env file for the variables
+    env_file:
+      - .monitoring.env
+
+  grafana:
+    # Official Docker image with Grafana application
+    image: ${GRAFANA_DOCKER_IMAGE_REPOSITORY}:${GRAFANA_DOCKER_IMAGE_TAG}
+
+    # Container name & hostname
+    container_name: grafana
+    hostname: grafana
+
+    # Volumes
+    volumes:
+      - ./grafana/config.ini:/etc/grafana/config.ini
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+
+    # Command (use grafana.ini file as a configuration)
+    command: >
+      --config /etc/grafana/config.ini
+
+    # Always restart if container go down
+    restart: always
+
+    # Expose Grafana UI & API port
+    expose:
+      - 3000
+
+    # Ports
+    ports:
+      - 3000:3000/tcp
+
+    # Networks
+    networks:
+      - metrics
+
+    # Use .env file for the variables
+    env_file:
+      - .monitoring.env
+
+  seq:
+    # Official Docker image with Seq application
+    image: ${SEQ_DOCKER_IMAGE_REPOSITORY}:${SEQ_DOCKER_IMAGE_TAG}
+
+    # Container name & hostname
+    container_name: seq
+    hostname: seq
+
+    # Volumes
+    volumes:
+      - seq_data:/data
+
+    # Always restart if container go down
+    restart: always
+
+    # Expose Seq UI & API port
+    expose:
+      - 5341
+
+    # Ports
+    ports:
+      - 5341:80/tcp
+
+    # Networks
+    networks:
+      - metrics
+
+    # Use .env file for the variables
+    env_file:
+      - .monitoring.env
+
+# Use external - managed network
+networks:
+  metrics:
+    name: nethermind
+    external: true
+
+# Volumes for persistent data
+volumes:
+  prometheus_data: {}
+  seq_data: {}
