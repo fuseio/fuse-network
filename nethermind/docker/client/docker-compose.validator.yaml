@@ -46,7 +46,7 @@ services:
 
     # Environment file location, file provided in the 'docker' root directory
     env_file:
-      - .node.env
+      - .validator.env
 
     # Docker container ports
     ports:
@@ -81,7 +81,7 @@ services:
 
     # Environment file location, file provided in the 'docker' root directory
     env_file:
-      - .node.env
+      - .validator.env
 
     # Volumes
     volumes:
@@ -115,6 +115,10 @@ services:
 
     # Always restart if there are some agent issues
     restart: always
+
+    # Environment file location, file provided in the 'docker' root directory
+    env_file:
+      - .validator.env
 
     # Volumes
     volumes:
