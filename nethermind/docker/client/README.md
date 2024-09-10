@@ -20,3 +20,20 @@
  ```
 
  depending on Docker Compose version.
+
+
+## How-To
+
+ How-To tutorials used to provide detailed info for Docker Compose setup usage.
+
+### Update Docker image version
+
+ There are the next steps to update Docker image version:
+
+ 1. Go to the `[node_role].env` file;
+ 
+ 2. Find the needed section `[APP]_DOCKER_IMAGE_TAG`;
+
+ 3. Update the Docker image tag;
+
+ 4. Run the command provided in `README.md` file, `Usage` section.

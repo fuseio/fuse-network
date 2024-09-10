@@ -30,10 +30,70 @@
  - For running a `validator` node, a JSON-based wallet and a wallet password file are required to sign and validate blocks.
 
 
-## How-To
+## Move setup from quickstart.sh to the Docker Compose stack
 
- How-To tutorials used to provide detailed info for Docker Compose setup usage.
+ There is the description how to migrate the node from `quickstart.sh` to the Docker Compose stack. Let's imagine that you have `validator` node role. Your folder's structure is:
 
-### Deprecate quickstart.sh
+ - `[root_folder]/quickstart.sh` - quickstart bash file to run the blockchain node;
 
- Update is coming.
+ - `[root_folder]/fusenet/database` - blockchain node ledger;
+
+ - `[root_folder]/fusenet/keystore` - blockchain node private key (wallet);
+
+ - `[root_folder]/fusenet/logs` - blockchain client logs.
+
+ ---
+
+ There are the next steps to migrate everything smoothly:
+
+ - Login on the server and stop your existing setup;
+ 
+ - Clone GitHub repository:
+
+ ```bash
+ git clone https://github.com/fuseio/fuse-network.git
+ ```
+
+ - As a convention each optional packages should be stored in `/opt` folder. Create the folder `/opt/nethermind/[network]`:
+
+ ```bash
+ mkdir -p /opt/nethermind/fuse
+ ```
+
+ - Copy (enough disk space is required) the folders `[root_folder]/fusenet/database` and `[root_folder]/fusenet/keystore` to the new directory;
+
+ - From cloned repository copy `docker-compose.validator.yaml`, `.validator.env` and `processes.json` files to the new directory;
+
+ - The new folder structure should be:
+
+ ```bash
+ ls -a /opt/nethermind/fuse
+ . database docker-compose.validator.yaml
+ .. keystore processes.json .validator.env
+ ```
+
+ - In the .validator.env file specify the next environment variables (variables already have specified, just need to provide values compatible with your setup):
+
+ ```bash
+ # Netstats instance name. Example: 'fuse-nethermind-validator-1_[wallet_address]'
+ INSTANCE_NAME=fuse-nethermind-validator-1_[wallet_address]
+ 
+ # Netstats contact details. Example: 'hello@nethermind.io'
+ CONTACT_DETAILS=[contact_details]
+
+ # Keystore (required for 'validator' node role, for empty variables specify wallet address)
+ NETHERMIND_KEYSTORECONFIG_BLOCKAUTHORACCOUNT=[wallet_address]
+ NETHERMIND_KEYSTORECONFIG_ENODEACCOUNT=[wallet_address]
+ NETHERMIND_KEYSTORECONFIG_PASSWORDFILES=keystore/pass.pwd
+ NETHERMIND_KEYSTORECONFIG_UNLOCKACCOUNTS=[wallet_address]
+ ```
+
+ - Run everything:
+
+ ```bash
+ docker-compose -f docker-compose.validator.yaml --env-file .validator.env up -d
+ ```
+
+ There are 3 Docker containers should be up and running: `nethermind`, `netstats` and `validator`.
+
+ Almost the same approach looks for the other node roles. The difference is no need to specify the private key (wallet) parameters.
