@@ -1,0 +1,140 @@
+---
+services:
+  nethermind:
+    # Official Docker image with nethermind application
+    image: "${NETHERMIND_DOCKER_IMAGE_REPOSITORY}:${NETHERMIND_DOCKER_IMAGE_TAG}"
+
+    # Pull image if not present locally
+    pull_policy: if_not_present
+
+    # Container name & hostname
+    container_name: nethermind
+    hostname: nethermind
+
+    # Always restart if container go down
+    restart: always
+
+    # Entrypoint
+    entrypoint: ./Nethermind.Runner --config ${NETHERMIND_CONFIG}
+
+    # Docker logging parameters to avoid full storage issue
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3
+        compress: "true"
+
+    # Ulimits parameters advised by Nethermind team
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+
+    # Resource limits, specify
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: "8GiB"
+
+    # Container volumes
+    volumes:
+      - ${NETHERMIND_DATABASE_FOLDER:-./database}:/nethermind/nethermind_db/${NETWORK}
+      - ${NETHERMIND_KEYSTORE_FOLDER:-./keystore}:/nethermind/keystore
+      - ${NETHERMIND_LOGS_FOLDER:-./logs}:/nethermind/logs
+
+    # Environment file location, file provided in the 'docker' root directory
+    env_file:
+      - .validator.env
+
+    # Docker container ports
+    ports:
+      - 30303:30303/tcp
+      - 30303:30303/udp
+
+      # Note: for 'validator' node role do not recommend to expose RPC port in public
+      # - 8545:8545/tcp
+
+      # Note: for 'Metrics' module add metrics port like '[port]:[port]/tcp' specified in 'NETHERMIND_METRICSCONFIG_EXPOSEPORT' environment variable
+      # - 9091:9091/tcp
+
+    # Docker network to dedicate the blockchain node infrastructure
+    networks:
+      - nethermind
+
+  netstats:
+    # Official Docker image with netstats-agent application
+    image: "${NETSTATS_DOCKER_IMAGE_REPOSITORY}:${NETSTATS_DOCKER_IMAGE_TAG}"
+
+    # Pull image if not present locally
+    pull_policy: if_not_present
+
+    # Container name
+    container_name: netstats
+
+    # Always restart if container go down
+    restart: always
+
+    # Entrypoint
+    entrypoint: pm2 start processes.json --no-daemon
+
+    # Environment file location, file provided in the 'docker' root directory
+    env_file:
+      - .validator.env
+
+    # Volumes
+    volumes:
+      - ./processes.json:/app/processes.json
+
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 3
+        compress: "true"
+
+    # Networks
+    networks:
+      - nethermind
+
+    # Dependency
+    depends_on:
+      - nethermind
+
+  validator:
+    # Fuse self-managed Docker image - Validator application
+    image: "${VALIDATOR_DOCKER_IMAGE_REPOSITORY}:${VALIDATOR_DOCKER_IMAGE_TAG}"
+
+    # Always pull the image even if presents
+    pull_policy: always
+
+    # Container name
+    container_name: validator
+
+    # Always restart if there are some agent issues
+    restart: always
+
+    # Environment file location, file provided in the 'docker' root directory
+    env_file:
+      - .validator.env
+
+    # Volumes
+    volumes:
+      - ${NETHERMIND_KEYSTORE_FOLDER:-./keystore}:/config/keys/FuseNetwork
+      - ${NETHERMIND_KEYSTORE_FOLDER:-./keystore}/pass.pwd:/config/pass.pwd
+
+    # Networks
+    networks:
+      - nethermind
+
+    # Dependency
+    depends_on:
+      - nethermind
+
+# Networks
+networks:
+  nethermind:
+    name: nethermind
+    driver: bridge
