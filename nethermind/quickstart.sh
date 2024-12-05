@@ -547,6 +547,7 @@ EOF
             --Init.WebSocketsEnabled true \
             --HealthChecks.Enabled true \
             --HealthChecks.Slug /api/health \
+            --Discovery.Bootnodes "enode://57ab1850bbd6cbdf48835d19ccf046efd1228e96c5a5db3a3cdbea3036838a99bd9fb9ff1cb708f34443766cf056e15a5d86d46adf431c15dbfe92af9ec65cf0@135.148.233.9:30303,enode://9001cf3b321c4c6035b95cf326b7b3524f238aa7bdcdd62f45cf51c4f5e3d0bce0cd5a714c109ebbe4a8806f2017bfd68902ab24e15ab1a2612a120923e31ae9@135.148.232.105:30303" \
 			--JsonRpc.EnabledModules "Eth,Web3,RPC,Net,Parity,Health"
 
         # Run Netstat
@@ -599,6 +600,7 @@ EOF
             $FUSE_CLIENT_DOCKER_IMAGE \
             --config $CONFIG \
             --JsonRpc.Enabled true \
+            --Discovery.Bootnodes "enode://57ab1850bbd6cbdf48835d19ccf046efd1228e96c5a5db3a3cdbea3036838a99bd9fb9ff1cb708f34443766cf056e15a5d86d46adf431c15dbfe92af9ec65cf0@135.148.233.9:30303,enode://9001cf3b321c4c6035b95cf326b7b3524f238aa7bdcdd62f45cf51c4f5e3d0bce0cd5a714c109ebbe4a8806f2017bfd68902ab24e15ab1a2612a120923e31ae9@135.148.232.105:30303" \
             --JsonRpc.EnabledModules [Eth,Web3,Personal,Net,Parity] \
             --JsonRpc.Host 0.0.0.0 \
             --JsonRpc.Port 8545 \
