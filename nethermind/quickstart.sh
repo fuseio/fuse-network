@@ -549,6 +549,7 @@ EOF
             --HealthChecks.Enabled true \
             --HealthChecks.Slug /api/health \
             --Discovery.Bootnodes $BOOTNODES_LIST \
+            --Network.Bootnodes $BOOTNODES_LIST \
 			--JsonRpc.EnabledModules "Eth,Web3,RPC,Net,Parity,Health"
 
         # Run Netstat
@@ -602,6 +603,7 @@ EOF
             --config $CONFIG \
             --JsonRpc.Enabled true \
             --Discovery.Bootnodes $BOOTNODES_LIST \
+            --Network.Bootnodes $BOOTNODES_LIST \
             --JsonRpc.EnabledModules [Eth,Web3,Personal,Net,Parity] \
             --JsonRpc.Host 0.0.0.0 \
             --JsonRpc.Port 8545 \
