@@ -15,7 +15,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant INFLATION = 5;
-  uint256 public constant BLOCKS_PER_YEAR = 6307200;
+  uint256 public constant BLOCKS_PER_YEAR = 15768000;
 
   /**
   * @dev This event will be emitted every block, describing the rewards given
