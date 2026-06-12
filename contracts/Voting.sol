@@ -29,8 +29,30 @@ contract Voting is VotingUtils {
     require(_proposedValue != address(0));
     require(validContractType(_contractType));
     uint256 ballotId = _createBallot(_startAfterNumberOfCycles, _cyclesDuration, _description);
+    _setBallotType(ballotId, uint256(BallotTypes.ContractAddress));
     _setProposedValue(ballotId, _proposedValue);
     _setContractType(ballotId, _contractType);
+    return ballotId;
+  }
+
+  /**
+  * @dev Function to create a new ballot for scheduling a network upgrade. If accepted, validators which
+  * have not reported at least the proposed node version get jailed on the last cycle boundary before the
+  * activation block (see Consensus.setRequiredNodeVersion)
+  * @param _startAfterNumberOfCycles number of cycles after which the ballot should open for voting
+  * @param _cyclesDuration number of cycles the ballot will remain open for voting
+  * @param _version minimum required node version (encoded as major * 1e6 + minor * 1e3 + patch). 0 proposes cancelling a scheduled upgrade
+  * @param _activationBlock block at which the new spec activates
+  * @param _description ballot text description
+  */
+  function newNodeVersionBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, uint256 _version, uint256 _activationBlock, string calldata _description) external onlyValidVotingKey(msg.sender) onlyValidDuration(_startAfterNumberOfCycles, _cyclesDuration) returns(uint256) {
+    if (_version != 0) {
+      require(_activationBlock > block.number);
+    }
+    uint256 ballotId = _createBallot(_startAfterNumberOfCycles, _cyclesDuration, _description);
+    _setBallotType(ballotId, uint256(BallotTypes.NodeVersion));
+    _setProposedNodeVersion(ballotId, _version);
+    _setProposedActivationBlock(ballotId, _activationBlock);
     return ballotId;
   }
 

@@ -301,6 +301,176 @@ contract("Voting", async (accounts) => {
     });
   });
 
+  describe("newNodeVersionBallot", async () => {
+    const SPEC_VERSION = toBN(6000003); // 6.0.3
+    const BALLOT_TYPES = { INVALID: 0, CONTRACT_ADDRESS: 1, NODE_VERSION: 2 };
+
+    beforeEach(async () => {
+      await voting.initialize().should.be.fulfilled;
+      voteStartAfterNumberOfCycles = 1;
+      voteCyclesDuration = 2;
+    });
+
+    const newNodeVersionBallot = async (version, activationBlock, from) => {
+      let id = await voting.getNextBallotId();
+      await voting.newNodeVersionBallot(
+        voteStartAfterNumberOfCycles,
+        voteCyclesDuration,
+        version,
+        activationBlock,
+        "network upgrade",
+        { from }
+      ).should.be.fulfilled;
+      return id;
+    };
+
+    const voteAndFinalize = async (id, choices) => {
+      let currentValidators = await consensus.getValidators();
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      let voteStartBlock = await voting.getStartBlock(id);
+      await advanceBlocks(voteStartBlock.sub(currentBlock).toNumber() + 1);
+      for (let [validator, choice] of choices) {
+        await voting.vote(id, choice, { from: validator }).should.be.fulfilled;
+      }
+      currentBlock = toBN(await web3.eth.getBlockNumber());
+      let voteEndBlock = await voting.getEndBlock(id);
+      await advanceBlocks(voteEndBlock.sub(currentBlock).add(toBN(1)).toNumber());
+      await voting.setConsensusMock(owner);
+      await voting.onCycleEnd(currentValidators).should.be.fulfilled;
+    };
+
+    it("should be successful", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      let activationBlock = currentBlock.addn(10000);
+      let id = await newNodeVersionBallot(
+        SPEC_VERSION,
+        activationBlock,
+        validators[0]
+      );
+      toBN(BALLOT_TYPES.NODE_VERSION).should.be.bignumber.equal(
+        await voting.getBallotType(id)
+      );
+      SPEC_VERSION.should.be.bignumber.equal(
+        await voting.getProposedNodeVersion(id)
+      );
+      activationBlock.should.be.bignumber.equal(
+        await voting.getProposedActivationBlock(id)
+      );
+    });
+
+    it("should fail if not called by valid voting key", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      await voting
+        .newNodeVersionBallot(
+          voteStartAfterNumberOfCycles,
+          voteCyclesDuration,
+          SPEC_VERSION,
+          currentBlock.addn(10000),
+          "network upgrade",
+          { from: owner }
+        )
+        .should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it("should fail if activation block is not in the future", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      await voting
+        .newNodeVersionBallot(
+          voteStartAfterNumberOfCycles,
+          voteCyclesDuration,
+          SPEC_VERSION,
+          currentBlock,
+          "network upgrade",
+          { from: validators[0] }
+        )
+        .should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it("accepted ballot should set the required node version on consensus", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      let activationBlock = currentBlock.addn(10000);
+      let id = await newNodeVersionBallot(
+        SPEC_VERSION,
+        activationBlock,
+        validators[0]
+      );
+      await voteAndFinalize(id, [
+        [validators[0], ACTION_CHOICES.ACCEPT],
+        [validators[1], ACTION_CHOICES.ACCEPT],
+        [validators[2], ACTION_CHOICES.REJECT],
+      ]);
+      true.should.be.equal(await voting.getIsFinalized(id));
+      toBN(QUORUM_STATES.ACCEPTED).should.be.bignumber.equal(
+        await voting.getQuorumState(id)
+      );
+      SPEC_VERSION.should.be.bignumber.equal(
+        await consensus.getRequiredNodeVersion()
+      );
+      activationBlock.should.be.bignumber.equal(
+        await consensus.getNodeVersionActivationBlock()
+      );
+    });
+
+    it("rejected ballot should not set the required node version on consensus", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      let id = await newNodeVersionBallot(
+        SPEC_VERSION,
+        currentBlock.addn(10000),
+        validators[0]
+      );
+      await voteAndFinalize(id, [
+        [validators[0], ACTION_CHOICES.ACCEPT],
+        [validators[1], ACTION_CHOICES.REJECT],
+        [validators[2], ACTION_CHOICES.REJECT],
+      ]);
+      true.should.be.equal(await voting.getIsFinalized(id));
+      toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(
+        await voting.getQuorumState(id)
+      );
+      toBN(0).should.be.bignumber.equal(
+        await consensus.getRequiredNodeVersion()
+      );
+    });
+
+    it("ballot below turnout should not set the required node version on consensus", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      let id = await newNodeVersionBallot(
+        SPEC_VERSION,
+        currentBlock.addn(10000),
+        validators[0]
+      );
+      // only 1 of 8 validators votes (12.5% < 20% turnout)
+      await voteAndFinalize(id, [[validators[0], ACTION_CHOICES.ACCEPT]]);
+      true.should.be.equal(await voting.getIsFinalized(id));
+      toBN(QUORUM_STATES.REJECTED).should.be.bignumber.equal(
+        await voting.getQuorumState(id)
+      );
+      true.should.be.equal(await voting.getBelowTurnOut(id));
+      toBN(0).should.be.bignumber.equal(
+        await consensus.getRequiredNodeVersion()
+      );
+    });
+
+    it("accepted ballot with stale activation block should not revert onCycleEnd", async () => {
+      let currentBlock = toBN(await web3.eth.getBlockNumber());
+      // activation block passes before the ballot can be finalized (start + duration is ~3 cycles away)
+      let id = await newNodeVersionBallot(
+        SPEC_VERSION,
+        currentBlock.addn(10),
+        validators[0]
+      );
+      await voteAndFinalize(id, [
+        [validators[0], ACTION_CHOICES.ACCEPT],
+        [validators[1], ACTION_CHOICES.ACCEPT],
+      ]);
+      // the consensus call failed gracefully - ballot is left unfinalized and nothing was scheduled
+      false.should.be.equal(await voting.getIsFinalized(id));
+      toBN(0).should.be.bignumber.equal(
+        await consensus.getRequiredNodeVersion()
+      );
+    });
+  });
+
   describe("vote", async () => {
     let id, proposedValue, contractType;
     beforeEach(async () => {

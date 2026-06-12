@@ -100,6 +100,7 @@ contract Consensus is ConsensusUtils {
       IVoting(ProxyStorage(getProxyStorage()).getVoting()).onCycleEnd(currentValidators());
       _setCurrentCycle();
       _checkJail(currentValidators());
+      _checkNodeVersions(currentValidators());
       address[] memory newSet = pendingValidators();
       if (newSet.length > 0) {
         _setNewValidatorSet(newSet);
@@ -136,9 +137,13 @@ contract Consensus is ConsensusUtils {
 
   /**
   * @dev Function to be called by jailed validator, in order to be released from jail
+  * When a network upgrade is scheduled, running (and reporting) the required node version is a release precondition
   */
   function unJail() external onlyJailedValidator {
     require(getReleaseBlock(msg.sender) <= getCurrentCycleEndBlock());
+    if (getRequiredNodeVersion() != 0) {
+      require(getNodeVersion(msg.sender) >= getRequiredNodeVersion());
+    }
 
     _removeFromJail(msg.sender);
   }
