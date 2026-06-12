@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "../BlockReward.sol";
 
@@ -11,7 +12,7 @@ contract BlockRewardMock is BlockReward {
     return addressStorage[SYSTEM_ADDRESS];
   }
 
-  function getBlocksPerYear() public pure returns(uint256) {
+  function getBlocksPerYear() public pure override returns(uint256) {
     return 100;
   }
 

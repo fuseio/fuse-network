@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "../Voting.sol";
 
@@ -17,7 +18,7 @@ contract VotingMock is Voting {
   /**
   * @dev This modifier verifies that msg.sender is the consensus contract
   */
-  modifier onlyConsensus() {
+  modifier onlyConsensus() override {
     if (addressStorage[CONSESNSUS_MOCK] != address(0)) {
       require(msg.sender == addressStorage[CONSESNSUS_MOCK]);
     } else {

@@ -1,16 +1,14 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "./eternal-storage/EternalStorageProxy.sol";
 import "./eternal-storage/EternalStorage.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Contract used for access and upgradeability to all network contracts
 * @author LiorRabin
 */
 contract ProxyStorage is EternalStorage {
-  using SafeMath for uint256;
-
   /**
   * @dev Available contract types on the network
   */
@@ -96,13 +94,13 @@ contract ProxyStorage is EternalStorage {
     bool success = false;
 
     if (_contractType == uint256(ContractTypes.Consensus)) {
-      success = EternalStorageProxy(getConsensus()).upgradeTo(_contractAddress);
+      success = EternalStorageProxy(payable(getConsensus())).upgradeTo(_contractAddress);
     } else if (_contractType == uint256(ContractTypes.BlockReward)) {
-      success = EternalStorageProxy(getBlockReward()).upgradeTo(_contractAddress);
+      success = EternalStorageProxy(payable(getBlockReward())).upgradeTo(_contractAddress);
     } else if (_contractType == uint256(ContractTypes.ProxyStorage)) {
-      success = EternalStorageProxy(this).upgradeTo(_contractAddress);
+      success = EternalStorageProxy(payable(address(this))).upgradeTo(_contractAddress);
     } else if (_contractType == uint256(ContractTypes.Voting)) {
-      success = EternalStorageProxy(getVoting()).upgradeTo(_contractAddress);
+      success = EternalStorageProxy(payable(getVoting())).upgradeTo(_contractAddress);
     }
 
     if (success) {

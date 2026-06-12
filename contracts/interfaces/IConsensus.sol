@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 interface IConsensus {
     function currentValidatorsLength() external view returns(uint256);
@@ -7,7 +8,7 @@ interface IConsensus {
     function getCurrentCycleEndBlock() external view returns(uint256);
     function cycle(address _validator) external;
     function isValidator(address _address) external view returns(bool);
-    function getDelegatorsForRewardDistribution(address _validator, uint256 _rewardAmount) external view returns(address[], uint256[]);
+    function getDelegatorsForRewardDistribution(address _validator, uint256 _rewardAmount) external view returns(address[] memory, uint256[] memory);
     function isFinalized() external view returns(bool);
     function stakeAmount(address _address) external view returns(uint256);
     function totalStakeAmount() external view returns(uint256);
