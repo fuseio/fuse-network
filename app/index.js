@@ -70,6 +70,65 @@ function initBlockRewardContract() {
   blockReward = new web3.eth.Contract(require(path.join(cwd, 'abi/blockReward')), process.env.BLOCK_REWARD_ADDRESS)
 }
 
+function encodeNodeVersion(versionString) {
+  // use the last x.y.z component of the version string, so for a client image tag
+  // like 1.29.0-v6.0.3 the spec version (6.0.3) is the one reported
+  const re = /v?(\d+)\.(\d+)\.(\d+)/g
+  let match, last
+  while ((match = re.exec(versionString)) !== null) {
+    last = match
+  }
+  if (!last) {
+    return null
+  }
+  return parseInt(last[1]) * 1e6 + parseInt(last[2]) * 1e3 + parseInt(last[3])
+}
+
+let nodeVersionReported = false
+
+function reportNodeVersion() {
+  return new Promise(async (resolve) => {
+    try {
+      if (nodeVersionReported || !process.env.NODE_VERSION) {
+        return resolve()
+      }
+      const version = encodeNodeVersion(process.env.NODE_VERSION)
+      if (!version) {
+        logger.warn(`could not parse NODE_VERSION "${process.env.NODE_VERSION}", skipping version report`)
+        nodeVersionReported = true
+        return resolve()
+      }
+      const reported = await consensus.methods.getNodeVersion(account).call()
+      if (reported.toString() === version.toString()) {
+        logger.info(`node version ${version} already reported`)
+        nodeVersionReported = true
+        return resolve()
+      }
+      logger.info(`${account} sending reportNodeVersion(${version}) transaction`)
+      let nonce = await getNonce()
+      let gasPrice = await getGasPrice()
+      consensus.methods.reportNodeVersion(version).send({ from: account, gas: process.env.GAS || 1000000, gasPrice: process.env.GAS_PRICE || gasPrice, nonce: nonce })
+        .on('transactionHash', hash => {
+          logger.info(`transactionHash: ${hash}`)
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          if (confirmationNumber == 1) {
+            logger.debug(`receipt: ${JSON.stringify(receipt)}`)
+          }
+          nodeVersionReported = true
+          resolve()
+        })
+        .on('error', error => {
+          logger.error(error); resolve()
+        })
+    } catch (e) {
+      // do not crash the cycle loop if the consensus contract does not support version reporting yet
+      logger.warn(`reportNodeVersion failed: ${e.message}`)
+      resolve()
+    }
+  })
+}
+
 function emitInitiateChange() {
   return new Promise(async (resolve, reject) => {
     try {
@@ -148,6 +207,9 @@ async function runMain() {
     if (!blockReward) {
       initBlockRewardContract()
     }
+    // report the node version before the validator check - a version-jailed validator
+    // is no longer in the current set but must report its new version to be released
+    await reportNodeVersion()
     const isValidator = await consensus.methods.isValidator(web3.utils.toChecksumAddress(account)).call()
     if (!isValidator) {
       logger.warn(`${account} is not a validator, skipping`)

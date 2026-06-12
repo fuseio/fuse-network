@@ -3366,6 +3366,209 @@ contract("Consensus", async (accounts) => {
     });
   });
 
+  describe("NodeVersion", async () => {
+    const SPEC_VERSION = toBN(6000003); // 6.0.3
+    let candidates;
+
+    beforeEach(async () => {
+      await consensus.initialize(initialValidator);
+      await consensus.setProxyStorage(proxyStorage.address);
+      candidates = [firstCandidate, secondCandidate, thirdCandidate];
+    });
+
+    const stakeAndActivate = async () => {
+      for (let candidate of candidates) {
+        await consensus.sendTransaction({
+          from: candidate,
+          value: MIN_STAKE,
+        }).should.be.fulfilled;
+      }
+      await mockEoC();
+      let currentValidators = await consensus.getValidators();
+      currentValidators.length.should.be.equal(3);
+    };
+
+    const setFullProductivity = async () => {
+      for (let candidate of candidates) {
+        await consensus.setBlockCounterMock(candidate, CYCLE_DURATION_BLOCKS);
+      }
+    };
+
+    const advanceToCycleEnd = async () => {
+      let currentBlockNumber = await web3.eth.getBlockNumber();
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let blocksToAdvance =
+        currentCycleEndBlock.toNumber() - currentBlockNumber;
+      if (blocksToAdvance > 0) {
+        await advanceBlocks(blocksToAdvance);
+      }
+      true.should.be.equal(await consensus.hasCycleEnded());
+    };
+
+    it("validators can report their node version", async () => {
+      ZERO.should.be.bignumber.equal(
+        await consensus.getNodeVersion(firstCandidate)
+      );
+      let { logs } = await consensus.reportNodeVersion(SPEC_VERSION, {
+        from: firstCandidate,
+      }).should.be.fulfilled;
+      logs[0].event.should.be.equal("NodeVersionReported");
+      logs[0].args["validator"].should.be.equal(firstCandidate);
+      logs[0].args["version"].should.be.bignumber.equal(SPEC_VERSION);
+      SPEC_VERSION.should.be.bignumber.equal(
+        await consensus.getNodeVersion(firstCandidate)
+      );
+      await consensus
+        .reportNodeVersion(ZERO, { from: firstCandidate })
+        .should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it("scheduling a required node version is only allowed via the voting contract", async () => {
+      let currentBlockNumber = await web3.eth.getBlockNumber();
+      let activationBlock = toBN(currentBlockNumber + 1000);
+      // direct calls are rejected (even from the owner) - scheduling goes through a voting ballot
+      await consensus
+        .setRequiredNodeVersion(SPEC_VERSION, activationBlock, {
+          from: owner,
+        })
+        .should.be.rejectedWith(ERROR_MSG);
+      await consensus
+        .setRequiredNodeVersion(SPEC_VERSION, activationBlock, {
+          from: nonOwner,
+        })
+        .should.be.rejectedWith(ERROR_MSG);
+      // activation block must be in the future
+      await consensus
+        .setRequiredNodeVersionMock(SPEC_VERSION, toBN(currentBlockNumber))
+        .should.be.rejectedWith(ERROR_MSG);
+      await consensus.setRequiredNodeVersionMock(SPEC_VERSION, activationBlock).should.be.fulfilled;
+      SPEC_VERSION.should.be.bignumber.equal(
+        await consensus.getRequiredNodeVersion()
+      );
+      activationBlock.should.be.bignumber.equal(
+        await consensus.getNodeVersionActivationBlock()
+      );
+      false.should.be.equal(await consensus.isNodeVersionCheckExecuted());
+      // clearing a scheduled upgrade
+      await consensus.setRequiredNodeVersionMock(ZERO, ZERO).should.be
+        .fulfilled;
+      ZERO.should.be.bignumber.equal(
+        await consensus.getRequiredNodeVersion()
+      );
+      ZERO.should.be.bignumber.equal(
+        await consensus.getNodeVersionActivationBlock()
+      );
+    });
+
+    it("jails outdated validators on the cycle boundary before activation when more than 66% upgraded", async () => {
+      await stakeAndActivate();
+      // 2 out of 3 validators (66.7% > 66%) report the required version
+      await consensus.reportNodeVersion(SPEC_VERSION, { from: firstCandidate });
+      await consensus.reportNodeVersion(SPEC_VERSION, {
+        from: secondCandidate,
+      });
+
+      // new spec activates in the middle of the upcoming cycle
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let activationBlock = currentCycleEndBlock.addn(50);
+      await consensus.setRequiredNodeVersionMock(SPEC_VERSION, activationBlock).should.be.fulfilled;
+
+      await setFullProductivity();
+      await advanceToCycleEnd();
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+
+      true.should.be.equal(await consensus.isNodeVersionCheckExecuted());
+      true.should.be.equal(await consensus.isJailed(thirdCandidate));
+      false.should.be.equal(await consensus.isPendingValidator(thirdCandidate));
+      false.should.be.equal(await consensus.isJailed(firstCandidate));
+      false.should.be.equal(await consensus.isJailed(secondCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(firstCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(secondCandidate));
+    });
+
+    it("does not jail anybody when the 66% upgrade quorum is not met", async () => {
+      await stakeAndActivate();
+      // only 1 out of 3 validators (33%) reports the required version
+      await consensus.reportNodeVersion(SPEC_VERSION, { from: firstCandidate });
+
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let activationBlock = currentCycleEndBlock.addn(50);
+      await consensus.setRequiredNodeVersionMock(SPEC_VERSION, activationBlock).should.be.fulfilled;
+
+      await setFullProductivity();
+      await advanceToCycleEnd();
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+
+      true.should.be.equal(await consensus.isNodeVersionCheckExecuted());
+      false.should.be.equal(await consensus.isJailed(secondCandidate));
+      false.should.be.equal(await consensus.isJailed(thirdCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(secondCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(thirdCandidate));
+    });
+
+    it("does not run the check before the cycle preceding activation", async () => {
+      await stakeAndActivate();
+      await consensus.reportNodeVersion(SPEC_VERSION, { from: firstCandidate });
+      await consensus.reportNodeVersion(SPEC_VERSION, {
+        from: secondCandidate,
+      });
+
+      // activation is several cycles away
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let activationBlock = currentCycleEndBlock.addn(
+        3 * CYCLE_DURATION_BLOCKS
+      );
+      await consensus.setRequiredNodeVersionMock(SPEC_VERSION, activationBlock).should.be.fulfilled;
+
+      await setFullProductivity();
+      await advanceToCycleEnd();
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+
+      // upcoming cycle still ends before activation - no check yet
+      false.should.be.equal(await consensus.isNodeVersionCheckExecuted());
+      false.should.be.equal(await consensus.isJailed(thirdCandidate));
+
+      // keep cycling until the boundary before activation is reached
+      for (let i = 0; i < 3; i++) {
+        await setFullProductivity();
+        await advanceToCycleEnd();
+        await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+      }
+
+      true.should.be.equal(await consensus.isNodeVersionCheckExecuted());
+      true.should.be.equal(await consensus.isJailed(thirdCandidate));
+      false.should.be.equal(await consensus.isJailed(firstCandidate));
+      false.should.be.equal(await consensus.isJailed(secondCandidate));
+    });
+
+    it("outdated validator can only be released from jail after reporting the required version", async () => {
+      await stakeAndActivate();
+      await consensus.reportNodeVersion(SPEC_VERSION, { from: firstCandidate });
+      await consensus.reportNodeVersion(SPEC_VERSION, {
+        from: secondCandidate,
+      });
+
+      let currentCycleEndBlock = await consensus.getCurrentCycleEndBlock();
+      let activationBlock = currentCycleEndBlock.addn(50);
+      await consensus.setRequiredNodeVersionMock(SPEC_VERSION, activationBlock).should.be.fulfilled;
+
+      await setFullProductivity();
+      await advanceToCycleEnd();
+      await blockReward.cycleMock({ from: owner }).should.be.fulfilled;
+      true.should.be.equal(await consensus.isJailed(thirdCandidate));
+
+      // release block has passed, but the validator has not upgraded yet
+      await consensus
+        .unJail({ from: thirdCandidate })
+        .should.be.rejectedWith(ERROR_MSG);
+
+      await consensus.reportNodeVersion(SPEC_VERSION, { from: thirdCandidate });
+      await consensus.unJail({ from: thirdCandidate }).should.be.fulfilled;
+      false.should.be.equal(await consensus.isJailed(thirdCandidate));
+      true.should.be.equal(await consensus.isPendingValidator(thirdCandidate));
+    });
+  });
+
   describe("upgradeTo", async () => {
     let consensusOldImplementation, consensusNew;
     let proxyStorageStub = accounts[3];
