@@ -31,6 +31,18 @@ abstract contract VotingBase {
   }
 
   /**
+  * @dev Possible ballot types
+  * @param ContractAddress - ballot to change a network contract implementation (see ProxyStorage.ContractTypes)
+  * @param NodeVersion - ballot to schedule a network upgrade (required node version + activation block)
+  * Note: ballots created before ballot types were introduced have type Invalid (0) and are treated as ContractAddress
+  */
+  enum BallotTypes {
+    Invalid,
+    ContractAddress,
+    NodeVersion
+  }
+
+  /**
   * @dev This event will be emitted every time a new ballot is created
   * @param id ballot id
   * @param creator address of ballot creator
