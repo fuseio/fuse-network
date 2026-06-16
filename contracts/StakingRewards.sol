@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+
 /// @title StakingRewards
 /// @notice Records validator/user reward weights per cycle and allows users to claim their proportional ETH rewards.
 /// @dev The block reward contract records weights. The owner/operator funds and finalizes each cycle reward.
-contract StakingRewards {
+contract StakingRewards is ReentrancyGuard {
+    using Math for uint256;
+
     /// @notice Address of the trusted block reward contract.
     /// @dev Only this address can call `recordBlockReward`.
     address public immutable blockReward;
@@ -14,6 +20,10 @@ contract StakingRewards {
 
     /// @notice Optional operator allowed to finalize cycle rewards.
     address public operator;
+
+    /// @notice Whether reward recording is paused.
+    /// @dev When paused, `recordBlockReward` calls will be ignored.
+    bool public paused;
 
     /// @notice User reward weight per cycle.
     /// @dev cycle => user => weight.
@@ -41,6 +51,7 @@ contract StakingRewards {
     error NoRewardsToClaim();
     error NoTotalWeight();
     error RewardTransferFailed();
+    error Paused();
 
     /// @notice Emitted when reward weights are recorded for a cycle.
     /// @param cycle The cycle being recorded.
@@ -84,6 +95,10 @@ contract StakingRewards {
     /// @param newOwner New owner address.
     event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
 
+    /// @notice Emitted when the paused state is updated.
+    /// @param paused The new paused state.
+    event Paused(bool paused);
+
     /// @dev Restricts access to the block reward contract.
     modifier onlyBlockReward() {
         if (msg.sender != blockReward) revert NotBlockReward();
@@ -102,11 +117,18 @@ contract StakingRewards {
         _;
     }
 
+    /// @dev Restricts access when the contract is paused.
+    modifier whenNotPaused() {
+        if (paused) revert Paused();
+        _;
+    }
+
     /// @notice Deploys the staking rewards contract.
     /// @param _blockReward Address of the trusted block reward contract.
     /// @param _operator Address of the initial operator.
     constructor(address _blockReward, address _operator) {
         if (_blockReward == address(0)) revert ZeroAddress();
+        if (_operator == address(0)) revert ZeroAddress();
 
         blockReward = _blockReward;
         owner = msg.sender;
@@ -117,6 +139,8 @@ contract StakingRewards {
     /// @dev Can only be called by the owner.
     /// @param newOperator New operator address.
     function setOperator(address newOperator) external onlyOwner {
+        if (newOperator == address(0)) revert ZeroAddress();
+        
         address oldOperator = operator;
         operator = newOperator;
 
@@ -133,6 +157,14 @@ contract StakingRewards {
         owner = newOwner;
 
         emit OwnershipTransferred(oldOwner, newOwner);
+    }
+
+    /// @notice Pauses reward recording.
+    /// @dev When paused, `recordBlockReward` calls will be ignored.
+    function setPaused(bool newPauseValue) external onlyOwner {
+        paused = newPauseValue;
+
+        emit Paused(newPauseValue);
     }
 
     /// @notice Records user reward weights for a cycle.
@@ -154,7 +186,9 @@ contract StakingRewards {
         address[] calldata receivers,
         uint256[] calldata rewardWeights
     ) external onlyBlockReward {
-        if (cycleFinalized[cycle]) revert CycleAlreadyFinalized();
+        if (cycleFinalized[cycle]) return;
+
+        if (paused) return;
 
         uint256 receiversLength = receivers.length;
         uint256 weightLength = rewardWeights.length;
@@ -203,6 +237,7 @@ contract StakingRewards {
         external
         payable
         onlyOperatorOrOwner
+        whenNotPaused
     {
         if (msg.value == 0) revert ZeroReward();
         if (cycleFinalized[cycle]) revert CycleAlreadyFinalized();
@@ -217,7 +252,7 @@ contract StakingRewards {
     /// @notice Claims rewards for multiple finalized cycles.
     /// @dev Reverts if any cycle in the list is not claimable by the caller.
     /// @param cycles List of cycle IDs to claim.
-    function claimRewards(uint256[] calldata cycles) external {
+    function claimRewards(uint256[] calldata cycles) external whenNotPaused nonReentrant {
         uint256 length = cycles.length;
 
         for (uint256 i; i < length; ) {
@@ -231,7 +266,7 @@ contract StakingRewards {
 
     /// @notice Claims reward for one finalized cycle.
     /// @param cycle The cycle to claim.
-    function claimReward(uint256 cycle) external {
+    function claimReward(uint256 cycle) external whenNotPaused nonReentrant {
         _claimReward(cycle);
     }
 
@@ -253,7 +288,7 @@ contract StakingRewards {
         uint256 totalWeight = totalCycleWeights[cycle];
         if (totalWeight == 0) return 0;
 
-        rewardAmount = (cycleRewards[cycle] * userWeight) / totalWeight;
+        rewardAmount = Math.mulDiv(cycleRewards[cycle], userWeight, totalWeight);
     }
 
     /// @notice Internal reward claim logic.
@@ -271,7 +306,7 @@ contract StakingRewards {
         uint256 totalWeight = totalCycleWeights[cycle];
         if (totalWeight == 0) revert NoTotalWeight();
 
-        uint256 rewardAmount = (cycleRewards[cycle] * userWeight) / totalWeight;
+        uint256 rewardAmount = Math.mulDiv(cycleRewards[cycle], userWeight, totalWeight);
         if (rewardAmount == 0) revert NoRewardsToClaim();
 
         userCycleWeights[cycle][msg.sender] = 0;
