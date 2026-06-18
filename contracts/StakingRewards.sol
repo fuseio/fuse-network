@@ -51,7 +51,7 @@ contract StakingRewards is ReentrancyGuard {
     error NoRewardsToClaim();
     error NoTotalWeight();
     error RewardTransferFailed();
-    error Paused();
+    error ContractPaused();
 
     /// @notice Emitted when reward weights are recorded for a cycle.
     /// @param cycle The cycle being recorded.
@@ -119,7 +119,7 @@ contract StakingRewards is ReentrancyGuard {
 
     /// @dev Restricts access when the contract is paused.
     modifier whenNotPaused() {
-        if (paused) revert Paused();
+        if (paused) revert ContractPaused();
         _;
     }
 
