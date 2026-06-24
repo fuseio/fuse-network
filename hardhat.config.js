@@ -45,8 +45,11 @@ module.exports = {
     },
   },
   solidity: {
-    version: "0.4.24",
+    version: "0.8.30",
     settings: {
+      // Fuse / Spark do not support the Shanghai EVM (no PUSH0, see config/spec.json),
+      // so target the latest fork the chain has activated
+      evmVersion: "berlin",
       optimizer: {
         enabled: true,
         runs: 200,

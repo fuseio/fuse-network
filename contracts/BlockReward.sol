@@ -1,18 +1,16 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "./abstracts/BlockRewardBase.sol";
 import "./interfaces/IConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Contract handling block reward logic
 * @author LiorRabin
 */
 contract BlockReward is EternalStorage, BlockRewardBase {
-  using SafeMath for uint256;
-
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant INFLATION = 5;
   uint256 public constant BLOCKS_PER_YEAR = 6307200;
@@ -80,7 +78,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * @param kind array of reward types. We support only arrays with one item and type = 0 (Author - Reward attributed to the block author)
   * See https://wiki.parity.io/Block-Reward-Contract.html
   */
-  function reward(address[] benefactors, uint16[] kind) external onlySystem returns (address[], uint256[]) {
+  function reward(address[] calldata benefactors, uint16[] calldata kind) external override onlySystem returns (address[] memory, uint256[] memory) {
     require(benefactors.length == kind.length);
     require(benefactors.length == 1);
     require(kind[0] == 0);
@@ -97,13 +95,13 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     for (uint256 i = 1; i <= _delegators.length; i++) {
       receivers[i] = _delegators[i - 1];
       rewards[i] = _rewards[i - 1];
-      rewards[0] = rewards[0].sub(rewards[i]);
+      rewards[0] = rewards[0] - rewards[i];
     }
 
-    _setRewardedOnCycle(getRewardedOnCycle().add(blockRewardAmount));
-    _setTotalSupply(getTotalSupply().add(blockRewardAmount));
+    _setRewardedOnCycle(getRewardedOnCycle() + blockRewardAmount);
+    _setTotalSupply(getTotalSupply() + blockRewardAmount);
 
-    if ((block.number).mod(getBlocksPerYear()) == 0) {
+    if (block.number % getBlocksPerYear() == 0) {
       _setBlockRewardAmount();
     }
 
@@ -140,7 +138,6 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   }
 
   function _setTotalSupply(uint256 _supply) private {
-    require(_supply >= 0);
     uintStorage[TOTAL_SUPPLY] = _supply;
   }
 
@@ -153,7 +150,6 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   }
 
   function _setRewardedOnCycle(uint256 _amount) private {
-    require(_amount >= 0);
     uintStorage[REWARDED_THIS_CYCLE] = _amount;
   }
 
@@ -171,12 +167,12 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   /**
   * returns blocks per year (block time is 5 seconds)
   */
-  function getBlocksPerYear() public pure returns(uint256) {
+  function getBlocksPerYear() public pure virtual returns(uint256) {
     return BLOCKS_PER_YEAR;
   }
 
   function _setBlockRewardAmount() private {
-    uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply().mul(getInflation().mul(DECIMALS).div(100))).div(getBlocksPerYear()).div(DECIMALS);
+    uintStorage[BLOCK_REWARD_AMOUNT] = (getTotalSupply() * (getInflation() * DECIMALS / 100)) / getBlocksPerYear() / DECIMALS;
   }
 
   function getBlockRewardAmount() public view returns(uint256) {
@@ -193,7 +189,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
     if (totalStakeAmount == 0) {
       return getBlockRewardAmount();
     }
-    return getBlockRewardAmount().mul(stakeAmount).mul(currentValidatorsLength).div(totalStakeAmount);
+    return getBlockRewardAmount() * stakeAmount * currentValidatorsLength / totalStakeAmount;
   }
 
 

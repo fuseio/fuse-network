@@ -1,11 +1,12 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 /**
  * @title Interface to be implemented by voting contract
  * @author LiorRabin
  * @dev abstract contract
  */
-contract VotingBase {
+abstract contract VotingBase {
 
   /**
   * @dev Possible states of quorum
@@ -55,5 +56,5 @@ contract VotingBase {
   * @param _id ballot id
   * @param _choice voter decision on the ballot (see VotingBase.ActionChoices)
   */
-  function vote(uint256 _id, uint256 _choice) external;
+  function vote(uint256 _id, uint256 _choice) external virtual;
 }

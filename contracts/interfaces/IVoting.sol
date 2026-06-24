@@ -1,5 +1,6 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 interface IVoting {
-    function onCycleEnd(address[] validators) external;
+    function onCycleEnd(address[] calldata validators) external;
 }

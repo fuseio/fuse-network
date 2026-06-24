@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "./VotingUtils.sol";
 import "./interfaces/IConsensus.sol";
@@ -24,7 +25,7 @@ contract Voting is VotingUtils {
   * @param _proposedValue proposed address for the contract type
   * @param _description ballot text description
   */
-  function newBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, uint256 _contractType, address _proposedValue, string _description) external onlyValidVotingKey(msg.sender) onlyValidDuration(_startAfterNumberOfCycles, _cyclesDuration) returns(uint256) {
+  function newBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, uint256 _contractType, address _proposedValue, string calldata _description) external onlyValidVotingKey(msg.sender) onlyValidDuration(_startAfterNumberOfCycles, _cyclesDuration) returns(uint256) {
     require(_proposedValue != address(0));
     require(validContractType(_contractType));
     uint256 ballotId = _createBallot(_startAfterNumberOfCycles, _cyclesDuration, _description);
@@ -38,7 +39,7 @@ contract Voting is VotingUtils {
   * @param _id ballot id to get info of
   * @param _key voter key to get if voted already
   */
-  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string description, bool canBeFinalizedNow, bool alreadyVoted, bool belowTurnOut, uint256 accepted, uint256 rejected, uint256 totalStake) {
+  function getBallotInfo(uint256 _id, address _key) external view returns(uint256 startBlock, uint256 endBlock, bool isFinalized, address proposedValue, uint256 contractType, address creator, string memory description, bool canBeFinalizedNow, bool alreadyVoted, bool belowTurnOut, uint256 accepted, uint256 rejected, uint256 totalStake) {
     startBlock = getStartBlock(_id);
     endBlock = getEndBlock(_id);
     isFinalized = getIsFinalized(_id);
@@ -61,7 +62,7 @@ contract Voting is VotingUtils {
   * @param _id ballot id to vote on
   * @param _choice voting decision on the ballot (see VotingBase.ActionChoices)
   */
-  function vote(uint256 _id, uint256 _choice) external {
+  function vote(uint256 _id, uint256 _choice) external override {
     require(!getIsFinalized(_id));
     address voter = msg.sender;
     require(isActiveBallot(_id));
@@ -75,7 +76,7 @@ contract Voting is VotingUtils {
   * @dev Function to be called by the consensus contract when a cycles ends
   * In this function, all active ballots votes will be counted and updated according to the current validators
   */
-  function onCycleEnd(address[] validators) external onlyConsensus {
+  function onCycleEnd(address[] calldata validators) external onlyConsensus {
     uint256 numOfValidators = validators.length;
     if (numOfValidators == 0) {
       return;
@@ -91,9 +92,9 @@ contract Voting is VotingUtils {
           for (uint256 j = 0; j < numOfValidators; j++) {
             uint256 choice = getVoterChoice(ballotId, validators[j]);
             if (choice == uint(ActionChoices.Accept)) {
-              accepts = accepts.add(getStake(validators[j]));
+              accepts = accepts + getStake(validators[j]);
             } else if (choice == uint256(ActionChoices.Reject)) {
-              rejects = rejects.add(getStake(validators[j]));
+              rejects = rejects + getStake(validators[j]);
             }
           }
 
