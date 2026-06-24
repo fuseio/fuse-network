@@ -605,7 +605,7 @@ EOF
             --Discovery.Bootnodes $BOOTNODES_LIST \
             --Network.Bootnodes $BOOTNODES_LIST \
             --JsonRpc.EnabledModules [Eth,Web3,Personal,Net,Parity] \
-            --JsonRpc.Host 0.0.0.0 \
+            --JsonRpc.Host 127.0.0.1 \
             --JsonRpc.Port 8545 \
             --KeyStore.PasswordFiles "keystore/pass.pwd" \
             --KeyStore.EnodeAccount "0x$PUBLIC_ADDRESS" \
