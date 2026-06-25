@@ -20,6 +20,7 @@ contract EternalStorage {
     mapping(bytes32 => bytes) internal bytesStorage;
     mapping(bytes32 => bool) internal boolStorage;
     mapping(bytes32 => int256) internal intStorage;
+    mapping(bytes32 => bytes32) internal bytes32Storage;
 
     mapping(bytes32 => uint256[]) internal uintArrayStorage;
     mapping(bytes32 => string[]) internal stringArrayStorage;
