@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./abstracts/BlockRewardBase.sol";
 import "./interfaces/IConsensus.sol";
+import "./interfaces/IStakingRewards.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -100,6 +101,15 @@ contract BlockReward is EternalStorage, BlockRewardBase {
       rewards[0] = rewards[0].sub(rewards[i]);
     }
 
+    address stakingAddress = getStakingAddress();
+    if (stakingAddress != address(0)) {
+      IStakingRewards(stakingAddress).recordBlockReward(
+        IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getCurrentCycleStartBlock(),
+        receivers,
+        rewards
+      );
+    }
+
     _setRewardedOnCycle(getRewardedOnCycle().add(blockRewardAmount));
     _setTotalSupply(getTotalSupply().add(blockRewardAmount));
 
@@ -134,6 +144,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   bytes32 internal constant REWARDED_THIS_CYCLE = keccak256(abi.encodePacked("rewardedOnCycle"));
   bytes32 internal constant BLOCK_REWARD_AMOUNT = keccak256(abi.encodePacked("blockRewardAmount"));
   bytes32 internal constant SHOULD_EMIT_REWARDED_ON_CYCLE = keccak256(abi.encodePacked("shouldEmitRewardedOnCycle"));
+  bytes32 internal constant STAKING_ADDRESS = keccak256(abi.encodePacked("stakingAddress"));
 
   function _setSystemAddress(address _newAddress) private {
     addressStorage[SYSTEM_ADDRESS] = _newAddress;
@@ -207,5 +218,15 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
   function _setShouldEmitRewardedOnCycle(bool _status) internal {
     boolStorage[SHOULD_EMIT_REWARDED_ON_CYCLE] = _status;
+  }
+
+  function setStakingAddress(address _stakingAddress) external onlyOwner {
+    require(_stakingAddress != address(0));
+
+    addressStorage[STAKING_ADDRESS] = _stakingAddress;
+  }
+
+  function getStakingAddress() public view returns(address) {
+    return addressStorage[STAKING_ADDRESS];
   }
 }
