@@ -225,8 +225,11 @@ contract ConsensusUtils is EternalStorage, ValidatorSet {
     uint256 expectedNumberOfBlocks = getCycleDurationBlocks().mul(VALIDATOR_PRODUCTIVITY_BP).div(_validatorSet.length).div(10000);
     for (uint i = 0; i < _validatorSet.length; i++) {
       if(blockCounter(_validatorSet[i]) < expectedNumberOfBlocks) {
-        // Validator hasn't met the desired uptime jail them and remove them from the next cycle
-        _jailValidator(_validatorSet[i]);
+        // Don't jail below 4 validators
+		if (pendingValidatorsLength() > 4) {
+			// Validator hasn't met the desired uptime jail them and remove them from the next cycle
+			_jailValidator(_validatorSet[i]);
+		}
       } else if (getStrikes(_validatorSet[i]) != 0) {
         // Validator has met desired uptime and has strikes, inc the strike reset
         _incStrikeReset(_validatorSet[i]);
