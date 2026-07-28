@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./abstracts/BlockRewardBase.sol";
 import "./interfaces/IConsensus.sol";
+import "./interfaces/IStakingRewards.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./ProxyStorage.sol";
 
@@ -96,6 +97,15 @@ contract BlockReward is EternalStorage, BlockRewardBase {
       receivers[i] = _delegators[i - 1];
       rewards[i] = _rewards[i - 1];
       rewards[0] = rewards[0] - rewards[i];
+    }
+
+    address stakingAddress = ProxyStorage(getProxyStorage()).getStaking();
+    if (stakingAddress != address(0)) {
+      IStakingRewards(stakingAddress).recordBlockReward(
+        IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getCurrentCycleStartBlock(),
+        receivers, 
+        rewards
+      );
     }
 
     _setRewardedOnCycle(getRewardedOnCycle() + blockRewardAmount);
