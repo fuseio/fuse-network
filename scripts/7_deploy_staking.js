@@ -16,6 +16,9 @@ const ethers = hre.ethers;
  * applied at the first cycle end after it closes, if validators voted for it. The signer has to be a validator
  * to open ballots, and votes for them while they are open (VOTE=false to skip).
  *
+ * To only deploy the contracts (any signer, no ballots), run scripts/7_deploy_staking_contracts.js; this
+ * script then picks up those addresses from the state file.
+ *
  * Every run reads the chain and the state file and does whatever step is due, so run it again as the
  * ballots progress, or set WATCH=true to keep it running until StakingRewards is live:
  *
@@ -96,27 +99,20 @@ function sameAddress(a, b) {
 }
 
 /**
- * Does the next due step of the rollout and reports where every part of it stands.
- * Returns { done: true } once both upgrades are applied and StakingRewards is registered.
+ * Deploys the new ProxyStorage and BlockReward implementations and StakingRewards. Skips any already in the
+ * state file and saves each address as soon as it's deployed, so a rerun never deploys twice. Any signer can
+ * do this step; scripts/7_deploy_staking_contracts.js runs only this.
  */
-async function advance({ signer, statePath, blockRewardProxy, operator, vote = true, verify = false }) {
+async function deployContracts({ signer, statePath, blockRewardProxy, operator, verify = false }) {
   const state = loadState(statePath);
-  const save = () => saveState(statePath, state);
-
   if (state.blockRewardProxy && !sameAddress(state.blockRewardProxy, blockRewardProxy)) {
     throw new Error(`${statePath} is for BlockReward ${state.blockRewardProxy}, not ${blockRewardProxy}`);
   }
   state.blockRewardProxy = blockRewardProxy;
+  state.ballots = state.ballots || {};
+  const save = () => saveState(statePath, state);
+  save();
 
-  const blockRewardProxyContract = await ethers.getContractAt("EternalStorageProxy", blockRewardProxy, signer);
-  const proxyStorageAddress = await blockRewardProxyContract.getProxyStorage();
-  const proxyStorageProxy = await ethers.getContractAt("EternalStorageProxy", proxyStorageAddress, signer);
-  const proxyStorage = await ethers.getContractAt("ProxyStorage", proxyStorageAddress, signer);
-  const voting = await ethers.getContractAt("Voting", await proxyStorage.getVoting(), signer);
-  const consensus = await ethers.getContractAt("Consensus", await proxyStorage.getConsensus(), signer);
-  const isValidator = await voting.isValidVotingKey(signer.address);
-
-  // 1. Deploy, saving after each contract so a rerun never deploys twice
   if (!state.proxyStorageImpl) {
     state.proxyStorageImpl = await deploy("ProxyStorage", [], signer, verify);
     save();
@@ -129,7 +125,25 @@ async function advance({ signer, statePath, blockRewardProxy, operator, vote = t
     state.stakingRewards = await deploy("StakingRewards", [blockRewardProxy, operator], signer, verify);
     save();
   }
-  save();
+  return state;
+}
+
+/**
+ * Does the next due step of the rollout and reports where every part of it stands.
+ * Returns { done: true } once both upgrades are applied and StakingRewards is registered.
+ */
+async function advance({ signer, statePath, blockRewardProxy, operator, vote = true, verify = false }) {
+  // 1. Deploy whatever isn't deployed yet
+  const state = await deployContracts({ signer, statePath, blockRewardProxy, operator, verify });
+  const save = () => saveState(statePath, state);
+
+  const blockRewardProxyContract = await ethers.getContractAt("EternalStorageProxy", blockRewardProxy, signer);
+  const proxyStorageAddress = await blockRewardProxyContract.getProxyStorage();
+  const proxyStorageProxy = await ethers.getContractAt("EternalStorageProxy", proxyStorageAddress, signer);
+  const proxyStorage = await ethers.getContractAt("ProxyStorage", proxyStorageAddress, signer);
+  const voting = await ethers.getContractAt("Voting", await proxyStorage.getVoting(), signer);
+  const consensus = await ethers.getContractAt("Consensus", await proxyStorage.getConsensus(), signer);
+  const isValidator = await voting.isValidVotingKey(signer.address);
 
   const ballot = {
     async open(key, contractType, proposedValue, description) {
@@ -249,13 +263,13 @@ async function checkRecording({ state, consensus, blockRewardProxy, signer }) {
   }
 }
 
-async function main() {
+// Options for this network and signer from the environment variables listed at the top
+function optionsFromEnv(signer) {
   const network = hre.network.name;
   const blockRewardProxy = process.env.BLOCK_REWARD_PROXY || BLOCK_REWARD_PROXIES[network];
   if (!blockRewardProxy) throw new Error(`Set BLOCK_REWARD_PROXY: there's no default BlockReward for ${network}`);
 
-  const [signer] = await ethers.getSigners();
-  const options = {
+  return {
     signer,
     statePath: path.join(__dirname, "..", "deployments", `staking-${network}.json`),
     blockRewardProxy: ethers.utils.getAddress(blockRewardProxy),
@@ -263,7 +277,12 @@ async function main() {
     vote: process.env.VOTE !== "false",
     verify: process.env.VERIFY === "true",
   };
-  console.log(`Network ${network}, signer ${signer.address}, state in ${path.relative(process.cwd(), options.statePath)}`);
+}
+
+async function main() {
+  const [signer] = await ethers.getSigners();
+  const options = optionsFromEnv(signer);
+  console.log(`Network ${hre.network.name}, signer ${signer.address}, state in ${path.relative(process.cwd(), options.statePath)}`);
 
   const pollMs = Number(process.env.POLL_MINUTES || 5) * 60 * 1000;
   for (;;) {
@@ -282,4 +301,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { advance };
+module.exports = { advance, deployContracts, optionsFromEnv };
