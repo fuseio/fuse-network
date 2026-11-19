@@ -3,7 +3,7 @@ const ProxyStorage = artifacts.require("ProxyStorageMock.sol");
 const EternalStorageProxy = artifacts.require("EternalStorageProxyMock.sol");
 const BlockReward = artifacts.require("BlockReward.sol");
 const Voting = artifacts.require("Voting.sol");
-const { ERROR_MSG, ZERO_ADDRESS } = require("./helpers");
+const { ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS } = require("./helpers");
 const { toBN, toWei } = web3.utils;
 
 contract("ProxyStorage", async (accounts) => {
@@ -138,6 +138,46 @@ contract("ProxyStorage", async (accounts) => {
       false.should.be.equal(await proxyStorageNew.isInitialized());
       await proxyStorageNew.initialize(consensus.address).should.be.fulfilled;
       true.should.be.equal(await proxyStorageNew.isInitialized());
+    });
+  });
+
+  describe("setContractAddress (Staking)", async () => {
+    const STAKING = 5;
+    let votingStub = accounts[5];
+    beforeEach(async () => {
+      await proxyStorage.initialize(consensus.address);
+      await proxyStorage.initializeAddresses(blockReward.address, votingStub, {
+        from: owner,
+      });
+    });
+    it("Staking should be a valid contract type", async () => {
+      true.should.be.equal(await proxyStorage.isValidContractType(STAKING));
+    });
+    it("should only be called by voting", async () => {
+      await proxyStorage
+        .setContractAddress(STAKING, RANDOM_ADDRESS, { from: owner })
+        .should.be.rejectedWith(ERROR_MSG);
+    });
+    it("should register the staking contract address", async () => {
+      ZERO_ADDRESS.should.be.equal(await proxyStorage.getStaking());
+      let { logs } = await proxyStorage.setContractAddress(
+        STAKING,
+        RANDOM_ADDRESS,
+        { from: votingStub }
+      ).should.be.fulfilled;
+      logs[0].event.should.be.equal("AddressSet");
+      logs[0].args.contractType.should.be.bignumber.equal(toBN(STAKING));
+      logs[0].args.contractAddress.should.be.equal(RANDOM_ADDRESS);
+      RANDOM_ADDRESS.should.be.equal(await proxyStorage.getStaking());
+    });
+    it("should replace a registered staking contract address", async () => {
+      await proxyStorage.setContractAddress(STAKING, RANDOM_ADDRESS, {
+        from: votingStub,
+      });
+      await proxyStorage.setContractAddress(STAKING, accounts[6], {
+        from: votingStub,
+      });
+      accounts[6].should.be.equal(await proxyStorage.getStaking());
     });
   });
 });

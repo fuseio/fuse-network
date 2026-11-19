@@ -5,6 +5,11 @@ const ProxyStorage = artifacts.require("ProxyStorageMock.sol");
 const EternalStorageProxy = artifacts.require("EternalStorageProxyMock.sol");
 const BlockReward = artifacts.require("BlockRewardMock.sol");
 const Voting = artifacts.require("Voting.sol");
+const StakingRewards = artifacts.require("StakingRewards.sol");
+const StakingRewardsFailingMock = artifacts.require(
+  "StakingRewardsFailingMock.sol"
+);
+const LegacyProxyStorageMock = artifacts.require("LegacyProxyStorageMock.sol");
 const { ERROR_MSG, ZERO_ADDRESS, RANDOM_ADDRESS } = require("./helpers");
 const { ZERO, ONE, TWO, THREE, FOUR, TEN } = require("./helpers");
 const { toBN, toWei, toChecksumAddress } = web3.utils;
@@ -556,6 +561,80 @@ contract("BlockReward", async (accounts) => {
       await proxy.upgradeTo(blockRewardNew.address, { from: proxyStorageStub });
       blockRewardNew = await BlockReward.at(proxy.address);
       RANDOM_ADDRESS.should.be.equal(await blockReward.getSystemAddress());
+    });
+  });
+
+  describe("staking rewards hook", async () => {
+    const validator = accounts[3];
+    beforeEach(async () => {
+      await blockReward.initialize(INITIAL_SUPPLY);
+      await blockReward.setSystemAddressMock(mockSystemAddress, { from: owner });
+      const minStakeAmount = await consensus.getMinStake();
+      await consensus.setTotalStakeAmountMock(minStakeAmount);
+      await consensus.sendTransaction({ from: validator, value: minStakeAmount });
+    });
+    const rewardBlock = () =>
+      blockReward.reward([validator], [0], {
+        from: mockSystemAddress,
+        gas: 29000000,
+      });
+
+    it("records the block reward on the registered staking contract", async () => {
+      const staking = await StakingRewards.new(blockReward.address, owner);
+      await proxyStorage.setStakingMock(staking.address);
+      const cycle = await consensus.getCurrentCycleStartBlock();
+      const amount = await blockReward.getBlockRewardAmountPerValidator(
+        validator
+      );
+      let { logs } = await rewardBlock().should.be.fulfilled;
+      logs.map((log) => log.event).should.deep.equal(["Rewarded"]);
+      amount.should.be.bignumber.equal(
+        await staking.userCycleWeights(cycle, validator)
+      );
+    });
+    it("keeps rewarding when the staking contract reverts", async () => {
+      const staking = await StakingRewardsFailingMock.new(false);
+      await proxyStorage.setStakingMock(staking.address);
+      const initialSupply = await blockReward.getTotalSupply();
+      const amount = await blockReward.getBlockRewardAmountPerValidator(
+        validator
+      );
+      let { logs } = await rewardBlock().should.be.fulfilled;
+      logs.map((log) => log.event).should.deep.equal([
+        "StakingRecordFailed",
+        "Rewarded",
+      ]);
+      logs[0].args.staking.should.be.equal(staking.address);
+      initialSupply
+        .add(amount)
+        .should.be.bignumber.equal(await blockReward.getTotalSupply());
+    });
+    it("keeps rewarding when the staking contract uses up its gas", async () => {
+      const staking = await StakingRewardsFailingMock.new(true);
+      await proxyStorage.setStakingMock(staking.address);
+      let { logs } = await rewardBlock().should.be.fulfilled;
+      logs.map((log) => log.event).should.deep.equal([
+        "StakingRecordFailed",
+        "Rewarded",
+      ]);
+    });
+    it("skips a registered staking address without code", async () => {
+      await proxyStorage.setStakingMock(RANDOM_ADDRESS);
+      let { logs } = await rewardBlock().should.be.fulfilled;
+      logs.map((log) => log.event).should.deep.equal(["Rewarded"]);
+    });
+    it("skips staking when ProxyStorage has not been upgraded to have getStaking", async () => {
+      const proxyStorageProxy = await EternalStorageProxy.at(
+        proxyStorage.address
+      );
+      const legacyImpl = await LegacyProxyStorageMock.new();
+      const originalProxyStorage = await proxyStorageProxy.getProxyStorage();
+      await proxyStorageProxy.setProxyStorageMock(owner);
+      await proxyStorageProxy.upgradeTo(legacyImpl.address, { from: owner });
+      await proxyStorageProxy.setProxyStorageMock(originalProxyStorage);
+
+      let { logs } = await rewardBlock().should.be.fulfilled;
+      logs.map((log) => log.event).should.deep.equal(["Rewarded"]);
     });
   });
 });

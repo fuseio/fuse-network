@@ -84,7 +84,8 @@ contract ProxyStorage is EternalStorage {
   }
 
   /**
-  * @dev Function to be called to set specific contract type address
+  * @dev Function to be called to set specific contract type address. For the proxied contracts this upgrades
+  * the implementation behind the existing proxy; for Staking it registers the staking rewards contract address
   * @param _contractType contract type (See ContractTypes enum)
   * @param _contractAddress contract address set for the contract type
   */
@@ -103,7 +104,10 @@ contract ProxyStorage is EternalStorage {
     } else if (_contractType == uint256(ContractTypes.Voting)) {
       success = EternalStorageProxy(payable(getVoting())).upgradeTo(_contractAddress);
     } else if (_contractType == uint256(ContractTypes.Staking)) {
-      success = EternalStorageProxy(payable(getStaking())).upgradeTo(_contractAddress);
+      // the staking rewards contract is a plain contract, not an EternalStorageProxy,
+      // so the ballot registers (or replaces) its address instead of upgrading an implementation
+      _setStaking(_contractAddress);
+      success = true;
     }
 
     if (success) {
@@ -146,6 +150,10 @@ contract ProxyStorage is EternalStorage {
 
   function getVoting() public view returns(address){
     return addressStorage[VOTING];
+  }
+
+  function _setStaking(address _staking) private {
+    addressStorage[STAKING] = _staking;
   }
 
   function getStaking() public view returns(address){

@@ -8,6 +8,10 @@ contract ProxyStorageMock is ProxyStorage {
     addressStorage[BLOCK_REWARD] = _newAddress;
   }
 
+  function setStakingMock(address _newAddress) public {
+    addressStorage[STAKING] = _newAddress;
+  }
+
   function setConsensusMock(address _newAddress) public {
     addressStorage[CONSENSUS] = _newAddress;
   }

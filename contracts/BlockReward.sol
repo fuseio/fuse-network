@@ -15,6 +15,10 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant INFLATION = 5;
   uint256 public constant BLOCKS_PER_YEAR = 6307200;
+  // gas forwarded to the staking rewards contract on every block. Enough for StakingRewards to record
+  // MAX_RECEIVERS_LIMIT receivers into fresh storage slots, and bounded so a misbehaving staking contract
+  // can't use up the gas the rest of `reward` needs
+  uint256 public constant STAKING_RECORD_GAS_LIMIT = 25000000;
 
   /**
   * @dev This event will be emitted every block, describing the rewards given
@@ -28,6 +32,13 @@ contract BlockReward is EternalStorage, BlockRewardBase {
   * @param amount total rewards distributed on this cycle
   */
   event RewardedOnCycle(uint256 amount);
+
+  /**
+  * @dev This event will be emitted when the staking rewards contract fails to record a block's rewards
+  * @param staking address of the staking rewards contract
+  * @param cycle start block of the cycle the rewards were meant for
+  */
+  event StakingRecordFailed(address indexed staking, uint256 indexed cycle);
 
   /**
   * @dev This modifier verifies that msg.sender is the system address (EIP96)
@@ -99,14 +110,7 @@ contract BlockReward is EternalStorage, BlockRewardBase {
       rewards[0] = rewards[0] - rewards[i];
     }
 
-    address stakingAddress = ProxyStorage(getProxyStorage()).getStaking();
-    if (stakingAddress != address(0)) {
-      IStakingRewards(stakingAddress).recordBlockReward(
-        IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getCurrentCycleStartBlock(),
-        receivers, 
-        rewards
-      );
-    }
+    _recordStakingRewards(receivers, rewards);
 
     _setRewardedOnCycle(getRewardedOnCycle() + blockRewardAmount);
     _setTotalSupply(getTotalSupply() + blockRewardAmount);
@@ -119,6 +123,34 @@ contract BlockReward is EternalStorage, BlockRewardBase {
 
     emit Rewarded(receivers, rewards);
     return (receivers, rewards);
+  }
+
+  /**
+  * @dev Forwards the block's reward receivers and amounts to the staking rewards contract, if one is registered.
+  * `reward` runs on every block, so nothing here may revert: a revert would stop every node from processing the block.
+  * Failures are caught and logged instead
+  */
+  function _recordStakingRewards(address[] memory _receivers, uint256[] memory _rewards) internal {
+    address staking = _getStaking();
+    // calling an address without code reverts in this contract, before `try` could catch it
+    if (staking.code.length == 0) return;
+
+    uint256 cycle = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getCurrentCycleStartBlock();
+    try IStakingRewards(staking).recordBlockReward{gas: STAKING_RECORD_GAS_LIMIT}(cycle, _receivers, _rewards) {
+    } catch {
+      emit StakingRecordFailed(staking, cycle);
+    }
+  }
+
+  /**
+  * @dev Reads the staking rewards contract address from ProxyStorage. Uses a low-level call so that a ProxyStorage
+  * implementation without `getStaking` (eg. if BlockReward is upgraded first) means "no staking contract" rather than a revert
+  */
+  function _getStaking() internal view returns(address staking) {
+    (bool success, bytes memory data) = getProxyStorage().staticcall(abi.encodeWithSelector(ProxyStorage.getStaking.selector));
+    if (success && data.length == 32) {
+      staking = abi.decode(data, (address));
+    }
   }
 
   function onCycleEnd() external onlyConsensus {
