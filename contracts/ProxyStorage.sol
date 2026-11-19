@@ -17,7 +17,8 @@ contract ProxyStorage is EternalStorage {
     Consensus,
     BlockReward,
     ProxyStorage,
-    Voting
+    Voting,
+    Staking
   }
 
   /**
@@ -83,7 +84,8 @@ contract ProxyStorage is EternalStorage {
   }
 
   /**
-  * @dev Function to be called to set specific contract type address
+  * @dev Function to be called to set specific contract type address. For the proxied contracts this upgrades
+  * the implementation behind the existing proxy; for Staking it registers the staking rewards contract address
   * @param _contractType contract type (See ContractTypes enum)
   * @param _contractAddress contract address set for the contract type
   */
@@ -101,6 +103,11 @@ contract ProxyStorage is EternalStorage {
       success = EternalStorageProxy(payable(address(this))).upgradeTo(_contractAddress);
     } else if (_contractType == uint256(ContractTypes.Voting)) {
       success = EternalStorageProxy(payable(getVoting())).upgradeTo(_contractAddress);
+    } else if (_contractType == uint256(ContractTypes.Staking)) {
+      // the staking rewards contract is a plain contract, not an EternalStorageProxy,
+      // so the ballot registers (or replaces) its address instead of upgrading an implementation
+      _setStaking(_contractAddress);
+      success = true;
     }
 
     if (success) {
@@ -118,13 +125,15 @@ contract ProxyStorage is EternalStorage {
       _contractType == uint256(ContractTypes.Consensus) ||
       _contractType == uint256(ContractTypes.BlockReward) ||
       _contractType == uint256(ContractTypes.ProxyStorage) ||
-      _contractType == uint256(ContractTypes.Voting);
+      _contractType == uint256(ContractTypes.Voting) ||
+      _contractType == uint256(ContractTypes.Staking);
   }
 
   bytes32 internal constant OWNER = keccak256(abi.encodePacked("owner"));
   bytes32 internal constant CONSENSUS = keccak256(abi.encodePacked("consensus"));
   bytes32 internal constant BLOCK_REWARD = keccak256(abi.encodePacked("blockReward"));
   bytes32 internal constant VOTING = keccak256(abi.encodePacked("voting"));
+  bytes32 internal constant STAKING = keccak256(abi.encodePacked("staking"));
   bytes32 internal constant PROXY_STORAGE_ADDRESSES_INITIALIZED = keccak256(abi.encodePacked("proxyStorageAddressesInitialized"));
 
   function _setConsensus(address _consensus) private {
@@ -141,5 +150,13 @@ contract ProxyStorage is EternalStorage {
 
   function getVoting() public view returns(address){
     return addressStorage[VOTING];
+  }
+
+  function _setStaking(address _staking) private {
+    addressStorage[STAKING] = _staking;
+  }
+
+  function getStaking() public view returns(address){
+    return addressStorage[STAKING];
   }
 }
