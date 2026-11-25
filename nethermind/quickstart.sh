@@ -621,6 +621,7 @@ EOF
             --net container:$CONTAINER_NAME \
             --volume $KEYSTORE_DIR:/config/keys/FuseNetwork \
             --volume $KEYSTORE_DIR/pass.pwd:/config/pass.pwd \
+            --env NODE_VERSION=$FUSE_CLIENT_DOCKER_IMAGE_VERSION \
             --restart always \
             $VALIDATOR_DOCKER_IMAGE
 

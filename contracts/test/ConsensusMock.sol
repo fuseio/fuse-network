@@ -91,4 +91,8 @@ contract ConsensusMock is Consensus {
   function setBlockCounterMock(address _val, uint256 counter) public {
     uintStorage[keccak256(abi.encodePacked("blockCounter", _val))] = counter;
   }
+
+  function setRequiredNodeVersionMock(uint256 _version, uint256 _activationBlock) public {
+    _setRequiredNodeVersion(_version, _activationBlock);
+  }
 }

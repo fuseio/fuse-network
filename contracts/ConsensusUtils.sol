@@ -20,6 +20,7 @@ abstract contract ConsensusUtils is EternalStorage, ValidatorSet {
   uint256 public constant VALIDATOR_PRODUCTIVITY_BP = 3000; // 30%
   uint256 public constant MAX_STRIKE_COUNT = 5;
   uint256 public constant STRIKE_RESET = 50; // reset strikes after 50 clean cycles
+  uint256 public constant UPGRADE_QUORUM_BP = 6600; // node version jailing only kicks in once more than 66% of validators have upgraded
 
   /**
   * @dev This event will be emitted after a change to the validator set has been finalized
@@ -31,6 +32,29 @@ abstract contract ConsensusUtils is EternalStorage, ValidatorSet {
   * @dev This event will be emitted on cycle end to indicate the `emitInitiateChange` function needs to be called to apply a new validator set
   */
   event ShouldEmitInitiateChange();
+
+  /**
+  * @dev This event will be emitted when a validator reports the node version it is running
+  * @param validator the reporting validator
+  * @param version the reported version (encoded as major * 1e6 + minor * 1e3 + patch)
+  */
+  event NodeVersionReported(address indexed validator, uint256 version);
+
+  /**
+  * @dev This event will be emitted when a network upgrade is scheduled
+  * @param version minimum node version required for the upgrade (0 means the scheduled upgrade was cleared)
+  * @param activationBlock block at which the new spec activates
+  */
+  event RequiredNodeVersionSet(uint256 version, uint256 activationBlock);
+
+  /**
+  * @dev This event will be emitted when the node version check has run on the last cycle boundary before an upgrade
+  * @param requiredVersion minimum node version required
+  * @param upgradedCount number of current validators which reported the required version (or higher)
+  * @param totalCount total number of current validators
+  * @param quorumReached whether more than 66% of validators have upgraded (outdated validators only get jailed if true)
+  */
+  event NodeVersionCheckExecuted(uint256 requiredVersion, uint256 upgradedCount, uint256 totalCount, bool quorumReached);
 
   /**
   * @dev This modifier verifies that the change initiated has not been finalized yet
@@ -65,6 +89,14 @@ abstract contract ConsensusUtils is EternalStorage, ValidatorSet {
   }
 
   /**
+  * @dev This modifier verifies that msg.sender is the voting contract
+  */
+  modifier onlyVoting() {
+    require(msg.sender == ProxyStorage(getProxyStorage()).getVoting());
+    _;
+  }
+
+  /**
   * @dev This modifier verifies that msg.sender is a validator
   */
   modifier onlyValidator() {
@@ -95,6 +127,9 @@ abstract contract ConsensusUtils is EternalStorage, ValidatorSet {
   bytes32 internal constant SHOULD_EMIT_INITIATE_CHANGE = keccak256(abi.encodePacked("shouldEmitInitiateChange"));
   bytes32 internal constant TOTAL_STAKE_AMOUNT = keccak256(abi.encodePacked("totalStakeAmount"));
   bytes32 internal constant JAILED_VALIDATORS = keccak256(abi.encodePacked("jailedValidators"));
+  bytes32 internal constant REQUIRED_NODE_VERSION = keccak256(abi.encodePacked("requiredNodeVersion"));
+  bytes32 internal constant NODE_VERSION_ACTIVATION_BLOCK = keccak256(abi.encodePacked("nodeVersionActivationBlock"));
+  bytes32 internal constant NODE_VERSION_CHECK_EXECUTED = keccak256(abi.encodePacked("nodeVersionCheckExecuted"));
 
   function _delegate(address _staker, uint256 _amount, address _validator) internal {
     require(_staker != address(0));
@@ -238,6 +273,94 @@ abstract contract ConsensusUtils is EternalStorage, ValidatorSet {
     if (stakeAmount(_validator) >= getMinStake() && !isPendingValidator(_validator)) {
       _pendingValidatorsAdd(_validator);
     }
+  }
+
+  /**
+  * @dev Function to be called by validators (their node app) to report the node/spec version they are running
+  * @param _version the version encoded as major * 1e6 + minor * 1e3 + patch (e.g. 6.0.3 => 6000003)
+  */
+  function reportNodeVersion(uint256 _version) external {
+    require(_version != 0);
+    uintStorage[keccak256(abi.encodePacked("nodeVersion", msg.sender))] = _version;
+    emit NodeVersionReported(msg.sender, _version);
+  }
+
+  function getNodeVersion(address _validator) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("nodeVersion", _validator))];
+  }
+
+  /**
+  * @dev Function to be called by the voting contract (on an accepted node version ballot) to schedule
+  * a network upgrade. On the last cycle boundary before _activationBlock, current validators which
+  * have not reported at least _version are jailed, provided more than 66% of the current validator
+  * set has upgraded.
+  * Should be scheduled at least 2 cycles before the new spec activates.
+  * Calling with _version == 0 clears a scheduled upgrade.
+  * @param _version minimum required node version (encoded as major * 1e6 + minor * 1e3 + patch)
+  * @param _activationBlock block at which the new spec activates
+  */
+  function setRequiredNodeVersion(uint256 _version, uint256 _activationBlock) external onlyVoting {
+    _setRequiredNodeVersion(_version, _activationBlock);
+  }
+
+  function _setRequiredNodeVersion(uint256 _version, uint256 _activationBlock) internal {
+    if (_version != 0) {
+      require(_activationBlock > block.number);
+      uintStorage[REQUIRED_NODE_VERSION] = _version;
+      uintStorage[NODE_VERSION_ACTIVATION_BLOCK] = _activationBlock;
+    } else {
+      uintStorage[REQUIRED_NODE_VERSION] = 0;
+      uintStorage[NODE_VERSION_ACTIVATION_BLOCK] = 0;
+    }
+    boolStorage[NODE_VERSION_CHECK_EXECUTED] = false;
+    emit RequiredNodeVersionSet(_version, _activationBlock);
+  }
+
+  function getRequiredNodeVersion() public view returns(uint256) {
+    return uintStorage[REQUIRED_NODE_VERSION];
+  }
+
+  function getNodeVersionActivationBlock() public view returns(uint256) {
+    return uintStorage[NODE_VERSION_ACTIVATION_BLOCK];
+  }
+
+  function isNodeVersionCheckExecuted() public view returns(bool) {
+    return boolStorage[NODE_VERSION_CHECK_EXECUTED];
+  }
+
+  /**
+  * Internal function called on cycle end (after _setCurrentCycle), so getCurrentCycleEndBlock() is the
+  * end of the upcoming cycle. The check fires once, on the last cycle boundary before the scheduled
+  * activation block, so outdated validators are excluded from the validator set which is active when
+  * the new spec comes in.
+  */
+  function _checkNodeVersions(address[] memory _validatorSet) internal {
+    uint256 required = uintStorage[REQUIRED_NODE_VERSION];
+    if (required == 0 || boolStorage[NODE_VERSION_CHECK_EXECUTED]) {
+      return;
+    }
+    if (getCurrentCycleEndBlock() < uintStorage[NODE_VERSION_ACTIVATION_BLOCK]) {
+      // the upcoming cycle ends before the upgrade activates - too early to check
+      return;
+    }
+
+    uint256 upgradedCount = 0;
+    for (uint256 i = 0; i < _validatorSet.length; i++) {
+      if (getNodeVersion(_validatorSet[i]) >= required) {
+        upgradedCount++;
+      }
+    }
+
+    bool quorumReached = upgradedCount * 10000 > _validatorSet.length * UPGRADE_QUORUM_BP;
+    if (quorumReached) {
+      for (uint256 i = 0; i < _validatorSet.length; i++) {
+        if (getNodeVersion(_validatorSet[i]) < required) {
+          _jailValidator(_validatorSet[i]);
+        }
+      }
+    }
+    boolStorage[NODE_VERSION_CHECK_EXECUTED] = true;
+    emit NodeVersionCheckExecuted(required, upgradedCount, _validatorSet.length, quorumReached);
   }
 
   function getCurrentCycleStartBlock() external view returns(uint256) {

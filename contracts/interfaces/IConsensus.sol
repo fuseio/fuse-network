@@ -12,4 +12,5 @@ interface IConsensus {
     function isFinalized() external view returns(bool);
     function stakeAmount(address _address) external view returns(uint256);
     function totalStakeAmount() external view returns(uint256);
+    function setRequiredNodeVersion(uint256 _version, uint256 _activationBlock) external;
 }

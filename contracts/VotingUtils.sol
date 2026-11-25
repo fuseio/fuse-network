@@ -136,6 +136,30 @@ abstract contract VotingUtils is EternalStorage, VotingBase {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "contractType"))] = _value;
   }
 
+  function getBallotType(uint256 _id) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("votingState", _id, "ballotType"))];
+  }
+
+  function _setBallotType(uint256 _id, uint256 _value) internal {
+    uintStorage[keccak256(abi.encodePacked("votingState", _id, "ballotType"))] = _value;
+  }
+
+  function getProposedNodeVersion(uint256 _id) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("votingState", _id, "proposedNodeVersion"))];
+  }
+
+  function _setProposedNodeVersion(uint256 _id, uint256 _value) internal {
+    uintStorage[keccak256(abi.encodePacked("votingState", _id, "proposedNodeVersion"))] = _value;
+  }
+
+  function getProposedActivationBlock(uint256 _id) public view returns(uint256) {
+    return uintStorage[keccak256(abi.encodePacked("votingState", _id, "proposedActivationBlock"))];
+  }
+
+  function _setProposedActivationBlock(uint256 _id, uint256 _value) internal {
+    uintStorage[keccak256(abi.encodePacked("votingState", _id, "proposedActivationBlock"))] = _value;
+  }
+
   /**
   * @dev This function is used to create a ballot
   * @param _startAfterNumberOfCycles number of cycles after which the ballot should open for voting
@@ -206,6 +230,15 @@ abstract contract VotingUtils is EternalStorage, VotingBase {
   }
 
   function _finalizeBallot(uint256 _id) internal returns(bool) {
+    if (getBallotType(_id) == uint256(BallotTypes.NodeVersion)) {
+      // try/catch so a ballot which can no longer be applied (e.g. stale activation block)
+      // does not revert onCycleEnd, which would break the cycle/reward flow
+      try IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).setRequiredNodeVersion(getProposedNodeVersion(_id), getProposedActivationBlock(_id)) {
+        return true;
+      } catch {
+        return false;
+      }
+    }
     return ProxyStorage(getProxyStorage()).setContractAddress(getContractType(_id), getProposedValue(_id));
   }
 
