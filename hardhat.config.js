@@ -33,7 +33,7 @@ module.exports = {
       accounts: getSigners(),
     },
     spark: {
-      url: "https://rpc.fusespark.io",
+      url: process.env.SPARK_RPC_URL || "https://rpc.fusespark.io",
       chainId: 123,
       accounts: getSigners(),
     },
