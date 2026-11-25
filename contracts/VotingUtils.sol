@@ -1,18 +1,16 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "./abstracts/VotingBase.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./interfaces/IConsensus.sol";
 import "./ProxyStorage.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
 * @title Voting utility contract
 * @author LiorRabin
 */
-contract VotingUtils is EternalStorage, VotingBase {
-  using SafeMath for uint256;
-
+abstract contract VotingUtils is EternalStorage, VotingBase {
   uint256 public constant DECIMALS = 10 ** 18;
   uint256 public constant MAX_LIMIT_OF_BALLOTS = 100;
   uint256 public constant MIN_BALLOT_DURATION_CYCLES = 2;
@@ -49,7 +47,7 @@ contract VotingUtils is EternalStorage, VotingBase {
   /**
   * @dev This modifier verifies that msg.sender is the consensus contract
   */
-  modifier onlyConsensus() {
+  modifier onlyConsensus() virtual {
     require(msg.sender == ProxyStorage(getProxyStorage()).getConsensus());
     _;
   }
@@ -91,7 +89,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     if (validatorsCount == 0) {
       return MAX_LIMIT_OF_BALLOTS;
     }
-    uint256 limit = MAX_LIMIT_OF_BALLOTS.div(validatorsCount);
+    uint256 limit = MAX_LIMIT_OF_BALLOTS / validatorsCount;
     if (limit == 0) {
       limit = 1;
     }
@@ -144,12 +142,12 @@ contract VotingUtils is EternalStorage, VotingBase {
   * @param _cyclesDuration number of cycles the ballot will remain open for voting
   * @param _description ballot text description
   */
-  function _createBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, string _description) internal returns(uint256) {
+  function _createBallot(uint256 _startAfterNumberOfCycles, uint256 _cyclesDuration, string memory _description) internal returns(uint256) {
     require(isInitialized());
     address creator = msg.sender;
     require(withinLimit(creator));
     uint256 ballotId = getNextBallotId();
-    _setNextBallotId(ballotId.add(1));
+    _setNextBallotId(ballotId + 1);
     _setStartBlock(ballotId, _startAfterNumberOfCycles);
     _setEndBlock(ballotId, _cyclesDuration);
     _setIsFinalized(ballotId, false);
@@ -253,7 +251,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     IConsensus consensus = IConsensus(ProxyStorage(getProxyStorage()).getConsensus());
     uint256 cycleDurationBlocks = consensus.getCycleDurationBlocks();
     uint256 currentCycleEndBlock = consensus.getCurrentCycleEndBlock();
-    uint256 startBlock = currentCycleEndBlock.add(_startAfterNumberOfCycles.mul(cycleDurationBlocks));
+    uint256 startBlock = currentCycleEndBlock + _startAfterNumberOfCycles * cycleDurationBlocks;
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "startBlock"))] = startBlock;
   }
 
@@ -264,7 +262,7 @@ contract VotingUtils is EternalStorage, VotingBase {
   function _setEndBlock(uint256 _id, uint256 _cyclesDuration) internal {
     uint256 cycleDurationBlocks = IConsensus(ProxyStorage(getProxyStorage()).getConsensus()).getCycleDurationBlocks();
     uint256 startBlock = getStartBlock(_id);
-    uint256 endBlock = startBlock.add(_cyclesDuration.mul(cycleDurationBlocks));
+    uint256 endBlock = startBlock + _cyclesDuration * cycleDurationBlocks;
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "endBlock"))] = endBlock;
   }
 
@@ -284,11 +282,11 @@ contract VotingUtils is EternalStorage, VotingBase {
     boolStorage[keccak256(abi.encodePacked("votingState", _id, "belowTurnOut"))] = _value;
   }
 
-  function getDescription(uint256 _id) public view returns(string) {
+  function getDescription(uint256 _id) public view returns(string memory) {
     return stringStorage[keccak256(abi.encodePacked("votingState", _id, "description"))];
   }
 
-  function _setDescription(uint256 _id, string _value) internal {
+  function _setDescription(uint256 _id, string memory _value) internal {
     stringStorage[keccak256(abi.encodePacked("votingState", _id, "description"))] = _value;
   }
 
@@ -308,7 +306,7 @@ contract VotingUtils is EternalStorage, VotingBase {
     uintStorage[keccak256(abi.encodePacked("votingState", _id, "index"))] = _value;
   }
 
-  function activeBallots() public view returns(uint[]) {
+  function activeBallots() public view returns(uint[] memory) {
     return uintArrayStorage[ACTIVE_BALLOTS];
   }
 
@@ -326,7 +324,7 @@ contract VotingUtils is EternalStorage, VotingBase {
 
   function _activeBallotsDecreaseLength() internal {
     if (activeBallotsLength() > 0) {
-      uintArrayStorage[ACTIVE_BALLOTS].length--;
+      uintArrayStorage[ACTIVE_BALLOTS].pop();
     }
   }
 
@@ -343,7 +341,7 @@ contract VotingUtils is EternalStorage, VotingBase {
   }
 
   function _increaseValidatorLimit(address _key) internal {
-    _setValidatorActiveBallots(_key, validatorActiveBallots(_key).add(1));
+    _setValidatorActiveBallots(_key, validatorActiveBallots(_key) + 1);
   }
 
   function _decreaseValidatorLimit(uint256 _id) internal {

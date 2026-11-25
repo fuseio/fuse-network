@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "./EternalStorage.sol";
 
@@ -50,7 +51,7 @@ contract EternalStorageProxy is EternalStorage {
     * @param _proxyStorage address representing the ProxyStorage contract
     * @param _implementation address representing the implementation contract
     */
-    constructor(address _proxyStorage, address _implementation) public {
+    constructor(address _proxyStorage, address _implementation) {
       require(_implementation != address(0));
       if (_proxyStorage != address(0)) {
         _setProxyStorage(_proxyStorage);
@@ -65,8 +66,19 @@ contract EternalStorageProxy is EternalStorage {
     * @dev Fallback function allowing to perform a delegatecall to the given implementation.
     * This function will return whatever the implementation call returns
     */
+    fallback() external payable {
+      _delegateToImplementation();
+    }
+
+    /**
+    * @dev Receive function delegating plain value transfers to the implementation
+    */
+    receive() external payable {
+      _delegateToImplementation();
+    }
+
     // solhint-disable no-complex-fallback, no-inline-assembly
-    function() payable public {
+    function _delegateToImplementation() internal {
       address _impl = getImplementation();
       require(_impl != address(0));
 
@@ -74,19 +86,19 @@ contract EternalStorageProxy is EternalStorage {
         // Copy msg.data. We take full control of memory in this inline assembly
         // block because it will not return to Solidity code. We overwrite the
         // Solidity scratch pad at memory position 0
-        calldatacopy(0, 0, calldatasize)
+        calldatacopy(0, 0, calldatasize())
 
         // Call the implementation.
         // out and outsize are 0 because we don't know the size yet
-        let result := delegatecall(gas, _impl, 0, calldatasize, 0, 0)
+        let result := delegatecall(gas(), _impl, 0, calldatasize(), 0, 0)
 
         // Copy the returned data
-        returndatacopy(0, 0, returndatasize)
+        returndatacopy(0, 0, returndatasize())
 
         switch result
         // delegatecall returns 0 on error
-        case 0 { revert(0, returndatasize) }
-        default { return(0, returndatasize) }
+        case 0 { revert(0, returndatasize()) }
+        default { return(0, returndatasize()) }
       }
     }
     // solhint-enable no-complex-fallback, no-inline-assembly

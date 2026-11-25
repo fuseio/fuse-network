@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "../ProxyStorage.sol";
 
@@ -12,10 +13,10 @@ contract ProxyStorageMock is ProxyStorage {
   }
 
   function upgradeBlockRewardMock(address _implementation) public {
-    EternalStorageProxy(getBlockReward()).upgradeTo(_implementation);
+    EternalStorageProxy(payable(getBlockReward())).upgradeTo(_implementation);
   }
 
   function upgradeConsensusMock(address _implementation) public {
-    EternalStorageProxy(getConsensus()).upgradeTo(_implementation);
+    EternalStorageProxy(payable(getConsensus())).upgradeTo(_implementation);
   }
 }

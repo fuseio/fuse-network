@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "../Consensus.sol";
 
@@ -29,11 +30,11 @@ contract ConsensusMock is Consensus {
   //   return _getBlocksToSnapshot();
   // }
 
-  function setNewValidatorSetMock(address[] _newSet) public {
+  function setNewValidatorSetMock(address[] memory _newSet) public {
     addressArrayStorage[NEW_VALIDATOR_SET] = _newSet;
   }
 
-  function setStakeAmountMockGroup(address[] _newSet) public {
+  function setStakeAmountMockGroup(address[] memory _newSet) public {
     for (uint256 i; i < _newSet.length; i++) {
        _stakeAmountAdd(_newSet[i],1000000000000000000);
     }
@@ -51,19 +52,19 @@ contract ConsensusMock is Consensus {
     boolStorage[SHOULD_EMIT_INITIATE_CHANGE] = _status;
   }
 
-  function getMinStake() public pure returns(uint256) {
+  function getMinStake() public pure override returns(uint256) {
     return 1e22;
   }
 
-  function getMaxStake() public pure returns(uint256) {
+  function getMaxStake() public pure override returns(uint256) {
     return 5e22;
   }
 
-  function getCycleDurationBlocks() public pure returns(uint256) {
+  function getCycleDurationBlocks() public pure override returns(uint256) {
     return 120;
   }
 
-  function getSnapshotsPerCycle() public pure returns(uint256) {
+  function getSnapshotsPerCycle() public pure override returns(uint256) {
     return 10;
   }
 
@@ -71,7 +72,7 @@ contract ConsensusMock is Consensus {
     currentValidatorsLengthMock = _currentValidatorsLengthMock;
   }
 
-  function currentValidatorsLength() public view returns(uint256) {
+  function currentValidatorsLength() public view override returns(uint256) {
     if (currentValidatorsLengthMock != 0) {
       return currentValidatorsLengthMock;
     }

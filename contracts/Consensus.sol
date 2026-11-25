@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+
+pragma solidity ^0.8.0;
 
 import "./interfaces/IBlockReward.sol";
 import "./interfaces/IVoting.sol";
@@ -29,14 +30,14 @@ contract Consensus is ConsensusUtils {
   /**
   * @dev Function which returns the current validator addresses
   */
-  function getValidators() external view returns(address[]) {
+  function getValidators() external view override returns(address[] memory) {
     return currentValidators();
   }
 
   /**
   * @dev See ValidatorSet.finalizeChange
   */
-  function finalizeChange() external onlySystem notFinalized {
+  function finalizeChange() external override onlySystem notFinalized {
     if (newValidatorSetLength() > 0) {
       _setCurrentValidators(newValidatorSet());
       emit ChangeFinalized(currentValidators());
@@ -45,9 +46,16 @@ contract Consensus is ConsensusUtils {
   }
 
   /**
-  * @dev Fallback function allowing to pay to this contract. Whoever sends funds is considered as "staking" and wanting to become a validator.
+  * @dev Receive function allowing to pay to this contract. Whoever sends funds is considered as "staking" and wanting to become a validator.
   */
-  function () external payable {
+  receive() external payable {
+    _delegate(msg.sender, msg.value, msg.sender);
+  }
+
+  /**
+  * @dev Fallback function preserving the legacy behaviour - any call with unknown calldata and value attached is considered as "staking"
+  */
+  fallback() external payable {
     _delegate(msg.sender, msg.value, msg.sender);
   }
 
