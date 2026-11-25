@@ -11,8 +11,10 @@ async function main() {
 
   let credentialsAddress = ethers.utils.getAddress(CREDENTIALS_ADDRESS);
 
-  // Contracts Factory
-  const ConsensusFactory = await ethers.getContractFactory("Consensus");
+  // Contracts Factory. Spark runs 1 hour cycles, which only ConsensusSpark keeps
+  const consensusContract = hre.network.name === "spark" ? "ConsensusSpark" : "Consensus";
+  console.log(`Consensus contract: ${consensusContract}`);
+  const ConsensusFactory = await ethers.getContractFactory(consensusContract);
   const VotingFactory = await ethers.getContractFactory("Voting");
 
   // Consensus
