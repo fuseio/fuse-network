@@ -71,13 +71,13 @@ function buildFuseParity {
 }
 
 function buildFuseAppSpark {
-  read -p "Please input your new Version number for FuseApp (currentVersion=$DOCKER_IMAGE_FUSE_APP_VERSION): " newVersion
+  read -p "Please input your new Version number for the Spark FuseApp (currentVersion=$SPARK_DOCKER_IMAGE_FUSE_APP_VERSION): " newVersion
   
   docker build -t "$DOCKER_IMAGE_APP_SPARK" -f "../app/Dockerfile.spark" ../app
   docker tag "$DOCKER_IMAGE_APP_SPARK" "$DOCKER_IMAGE_APP_SPARK:$newVersion"
   docker push "$DOCKER_IMAGE_APP_SPARK:$newVersion"
   
-  sed -i "s/^DOCKER_IMAGE_FUSE_APP_VERSION.*/DOCKER_IMAGE_FUSE_APP_VERSION="\""${newVersion}"\""/" "../Version"
+  sed -i "s/^SPARK_DOCKER_IMAGE_FUSE_APP_VERSION.*/SPARK_DOCKER_IMAGE_FUSE_APP_VERSION="\""${newVersion}"\""/" "../Version"
 }
 
 function buildFuseParitySpark {
